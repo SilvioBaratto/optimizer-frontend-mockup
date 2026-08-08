@@ -288,3 +288,8 @@ todo.md
 
 # Playwright MCP session artifacts
 .playwright-mcp/
+
+# Vercel CLI link data and the OIDC token it writes to .env.local
+.vercel
+.env*
+!.env.example
