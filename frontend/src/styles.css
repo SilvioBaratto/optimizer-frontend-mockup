@@ -90,14 +90,27 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Stops iOS/Android inflating text when the device rotates to landscape. */
+    -webkit-text-size-adjust: 100%;
+    /* Global rather than scoped to tap targets, so a stray double-tap anywhere —
+       a table cell, a card body, a paragraph — cannot zoom the page either. */
+    touch-action: manipulation;
   }
 
-  /* Prevent iOS auto-zoom on focused inputs */
+  /* Prevent iOS auto-zoom on focused inputs, which fires below 16px and leaves the
+     user zoomed in afterwards.
+
+     The `!important` is load-bearing. This rule lives in @layer base, and Tailwind
+     utilities outrank base, so a control marked `text-sm` for visual density kept
+     its 14px and went on triggering the zoom. Nine controls on Universe & Data were
+     measured at 14px before this: add-ticker, the four filter/source selects, the
+     two month inputs, and the two number inputs. Scoped to mobile widths so desktop
+     density is unaffected. */
   @media (max-width: 767px) {
     input,
     textarea,
     select {
-      font-size: 16px;
+      font-size: 16px !important;
     }
   }
 
@@ -182,16 +195,15 @@
     display: none;
   }
 
-  /* Set touch-action manipulation on tappable elements: removes the ~300ms double-tap-zoom
-     delay and double-tap zoom while keeping pinch-to-zoom and pan gestures intact.
-     Scoped to explicit tap targets only; native form controls manage their own touch events.
-     NEVER set user-scalable=no / maximum-scale=1 — pinch zoom must stay enabled (WCAG 1.4.4). */
-  a,
-  button,
-  [role="button"],
-  label {
-    touch-action: manipulation;
-  }
+  /* touch-action: manipulation now sits on `html` above, so it covers every element
+     rather than only explicit tap targets.
+
+     This file previously carried the opposite instruction — never set user-scalable=no,
+     because pinch zoom must stay available under WCAG 2.1 SC 1.4.4. That guidance was
+     overridden deliberately: the viewport is now locked in index.html and pinch zoom is
+     blocked there too, matching the ITAL-IA implementation. Recorded here so the choice
+     reads as intentional rather than as an accident, and so the accessibility cost stays
+     visible to whoever revisits this. */
 
   /* h-dvh / h-svh / h-lvh trade-offs — layout.html uses h-dvh on the shell root and
      md:h-dvh on the main scroll container (overflow-y-auto):
