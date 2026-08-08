@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   selector: 'app-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="rounded-lg border border-border bg-surface-raised text-text">
+    <div class="rounded-lg border border-border bg-surface-raised text-text max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
       <div class="border-b border-border px-4 py-3">
         <ng-content select="[slot-header]" />
       </div>

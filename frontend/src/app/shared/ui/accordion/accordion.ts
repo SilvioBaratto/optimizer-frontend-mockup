@@ -89,7 +89,7 @@ let nextAccordionId = 0;
   providers: [{ provide: ACCORDION_CONTEXT, useExisting: AccordionComponent }],
   host: { '(keydown)': 'onKeydown($event)' },
   template: `
-    <div class="rounded-lg border border-border bg-surface-raised overflow-hidden">
+    <div class="rounded-lg border border-border bg-surface-raised overflow-hidden max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
       <ng-content />
     </div>
   `,
