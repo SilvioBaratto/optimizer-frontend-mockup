@@ -1,0 +1,688 @@
+<!--
+  Regions follow `docs/06 Objective & Constraints.md` in order. The shell
+  renders the <h1> and the breadcrumb, so headings here start at <h2>.
+-->
+
+<app-step-tracker [current]="4" />
+
+<!-- Dependency notice — only rendered when it actually applies. -->
+@if (disabledObjectives().length > 0) {
+  <div role="status" class="flex flex-col gap-2 rounded-md border border-border bg-surface-inset px-4 py-3">
+    <p class="flex items-center gap-2 text-sm font-medium text-text">
+      <app-status-badge label="dependency" tone="warn" />
+      Expected returns have not been estimated in Views Builder.
+    </p>
+    <p class="text-sm text-text-secondary">
+      Disabled:
+      @for (o of disabledObjectives(); track o.id) {
+        <span>{{ o.label }}{{ $last ? '' : ' · ' }}</span>
+      }
+      — every other objective stays selectable.
+    </p>
+    <a
+      routerLink="/build/views-builder"
+      href="/build/views-builder"
+      class="min-h-11 self-start text-sm font-medium text-primary underline underline-offset-2"
+    >
+      Go to Views Builder →
+    </a>
+  </div>
+}
+
+<!-- Objective type -->
+<section class="flex flex-col gap-3" aria-labelledby="objective-label">
+  <h2 id="objective-label" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+    Objective type · single selection · {{ objectives.length }} objectives available
+  </h2>
+
+  <!--
+    A radiogroup rather than a list of buttons: exactly one objective applies,
+    and arrow keys move between them.
+  -->
+  <div role="radiogroup" aria-labelledby="objective-label" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    @for (o of objectives; track o.id) {
+      <div
+        #objectiveCard
+        role="radio"
+        [attr.aria-checked]="selected() === o.id"
+        [attr.aria-disabled]="isDisabled(o.id) || null"
+        [attr.tabindex]="isDisabled(o.id) ? -1 : selected() === o.id ? 0 : -1"
+        [attr.title]="isDisabled(o.id) ? 'Requires expected returns from Views Builder' : null"
+        class="flex cursor-pointer flex-col gap-1 rounded-md border px-4 py-3 transition-colors"
+        [class.border-primary]="selected() === o.id"
+        [class.bg-primary-light]="selected() === o.id"
+        [class.border-border]="selected() !== o.id"
+        [class.bg-surface-raised]="selected() !== o.id"
+        [class.opacity-60]="isDisabled(o.id)"
+        [class.cursor-not-allowed]="isDisabled(o.id)"
+        (click)="select(o.id)"
+        (keydown)="onCardKeydown($event, o.id)"
+      >
+        <span class="text-sm font-medium text-text">{{ o.label }}</span>
+        @if (o.alsoKnownAs) {
+          <span class="text-xs text-text-secondary">also {{ o.alsoKnownAs }}</span>
+        }
+        @if (isDisabled(o.id)) {
+          <!-- Reason in text, not just a dimmed card. -->
+          <span class="text-xs text-text-secondary">needs expected returns</span>
+        }
+      </div>
+    }
+  </div>
+</section>
+
+<!-- Objective parameters — replaced wholesale when the objective changes. -->
+<app-info-card [title]="'Objective parameters' + (definition() ? ' — ' + definition()!.label : '')">
+  <button
+    card-action
+    type="button"
+    class="min-h-11 rounded-md px-2 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+    [attr.aria-expanded]="whatChangesOpen()"
+    aria-controls="what-changes"
+    (click)="whatChangesOpen.set(!whatChangesOpen())"
+  >
+    What changes ▸
+  </button>
+
+  @if (!definition()) {
+    <p class="text-sm text-text-secondary">Select an objective to configure its parameters.</p>
+  } @else {
+    <div class="flex flex-col gap-5">
+      @if (whatChangesOpen()) {
+        <p id="what-changes" class="rounded-md bg-surface-inset px-3 py-2 text-sm text-text-secondary">
+          Each objective exposes only the controls it uses. Values you enter are kept if you switch
+          objective and come back during this session.
+        </p>
+      }
+
+      @switch (selected()) {
+        @case ('mean-variance') {
+          <ng-container [ngTemplateOutlet]="riskAversionBlock" />
+          <ng-container [ngTemplateOutlet]="targetReturnBlock" />
+        }
+        @case ('mean-variance-skewness') {
+          <ng-container [ngTemplateOutlet]="riskAversionBlock" />
+          <div class="flex flex-col gap-1">
+            <label for="lambda" class="text-xs text-text-secondary">Skewness preference λ</label>
+            <input
+              id="lambda"
+              type="number"
+              step="0.05"
+              class="min-h-11 w-28 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+              [value]="parameters().lambda"
+              (change)="onParamNumber($event, 'lambda')"
+            />
+          </div>
+        }
+        @case ('robust-mean-variance') {
+          <ng-container [ngTemplateOutlet]="riskAversionBlock" />
+          <div class="flex flex-wrap gap-4">
+            <div class="flex flex-col gap-1">
+              <label for="theta" class="text-xs text-text-secondary">Uncertainty set θ</label>
+              <input
+                id="theta"
+                type="number"
+                step="0.1"
+                min="0"
+                class="min-h-11 w-28 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+                [value]="parameters().theta"
+                (change)="onParamNumber($event, 'theta')"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label for="sigma-max" class="text-xs text-text-secondary">σ max (%)</label>
+              <input
+                id="sigma-max"
+                type="number"
+                step="0.5"
+                min="0"
+                class="min-h-11 w-28 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+                [value]="parameters().sigmaMax"
+                (change)="onParamNumber($event, 'sigmaMax')"
+              />
+            </div>
+          </div>
+        }
+        @case ('min-cvar') {
+          <div class="flex flex-col gap-1">
+            <label for="confidence" class="text-xs text-text-secondary">Confidence level α</label>
+            <input
+              id="confidence"
+              type="number"
+              min="0.5"
+              max="0.999"
+              step="0.01"
+              class="min-h-11 w-28 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+              [value]="parameters().confidence"
+              (change)="onParamNumber($event, 'confidence')"
+            />
+          </div>
+        }
+        @case ('equal-risk-contribution') {
+          <p class="text-sm text-text-secondary">
+            Risk contributions are equalised across holdings. Custom risk budgets are set per asset
+            in the weight-bounds table below.
+          </p>
+        }
+        @default {
+          <p class="text-sm text-text-secondary">
+            This objective takes no additional parameters — the constraints below fully determine it.
+          </p>
+        }
+      }
+    </div>
+  }
+</app-info-card>
+
+<!-- Shared parameter blocks, so Mean-Variance and its variants stay in step. -->
+<ng-template #riskAversionBlock>
+  <div class="flex flex-col gap-2">
+    <label for="risk-aversion" class="text-xs text-text-secondary">
+      Risk aversion coefficient A
+    </label>
+    <div class="flex flex-wrap items-center gap-3">
+      <input
+        id="risk-aversion"
+        type="range"
+        min="-2"
+        max="10"
+        step="0.25"
+        class="flex-1 accent-[var(--color-primary)]"
+        [value]="parameters().riskAversion"
+        [attr.aria-valuetext]="riskAversionText(parameters().riskAversion)"
+        (input)="onRiskAversion($event)"
+      />
+      <input
+        type="number"
+        min="-2"
+        max="10"
+        step="0.25"
+        aria-label="Risk aversion coefficient A, numeric entry"
+        class="min-h-11 w-24 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+        [value]="parameters().riskAversion"
+        (change)="onRiskAversion($event)"
+      />
+    </div>
+    <p class="text-xs text-text-secondary">
+      risk-seeking −2 → neutral 0 → risk-averse 10 ·
+      <span class="text-text">{{ riskAversionText(parameters().riskAversion) }}</span>
+    </p>
+  </div>
+</ng-template>
+
+<ng-template #targetReturnBlock>
+  <div class="flex flex-col gap-2 border-t border-border pt-4">
+    <fieldset>
+      <legend class="text-xs text-text-secondary">Target return constraint</legend>
+      <div class="flex flex-wrap gap-4">
+        @for (mode of [{ id: 'none', label: 'None' }, { id: 'at-least', label: '≥ r_min' }, { id: 'exactly', label: '= r_min' }]; track mode.id) {
+          <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+            <input
+              type="radio"
+              name="target-mode"
+              class="accent-[var(--color-primary)]"
+              [checked]="parameters().targetMode === mode.id"
+              (change)="onTargetMode($any(mode.id))"
+            />
+            {{ mode.label }}
+          </label>
+        }
+      </div>
+    </fieldset>
+    <div class="flex flex-col gap-1">
+      <label for="r-min" class="text-xs text-text-secondary">r_min (% annualized)</label>
+      <input
+        id="r-min"
+        type="number"
+        min="0"
+        step="0.1"
+        class="min-h-11 w-28 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text disabled:opacity-50"
+        [value]="parameters().targetReturn"
+        [disabled]="parameters().targetMode === 'none'"
+        (change)="onParamNumber($event, 'targetReturn')"
+      />
+    </div>
+  </div>
+</ng-template>
+
+<!-- Weight bounds -->
+<app-info-card title="Weight bounds">
+  <div class="flex flex-col gap-3">
+    <div class="flex flex-wrap items-center gap-4 text-sm">
+      <label class="flex min-h-11 items-center gap-2 text-text">
+        <input
+          type="checkbox"
+          class="h-4 w-4 accent-[var(--color-primary)]"
+          [checked]="longOnly()"
+          (change)="longOnly.set($any($event.target).checked)"
+        />
+        Long-only
+      </label>
+      <span class="text-text-secondary">Budget Σw = 100% (fixed)</span>
+      <span class="text-text-secondary">{{ bounds().length }} rows</span>
+    </div>
+
+    @if (minSum() > 100) {
+      <!-- Inline, in words — not just a red border. -->
+      <p role="alert" class="text-sm text-danger">
+        Weight minimums sum to {{ minSum().toFixed(1) }}%, above the 100% budget.
+      </p>
+    }
+
+    <div class="max-h-96 overflow-auto">
+      <table class="w-full min-w-[40rem] text-sm">
+        <caption class="sr-only">
+          Per-asset weight bounds with lot size and whether the bound is hard or soft
+        </caption>
+        <thead class="sticky top-0 bg-surface-raised">
+          <tr class="border-b border-border text-xs text-text-secondary">
+            <th scope="col" class="py-2 pr-4 text-left font-medium">Asset / class</th>
+            <th scope="col" class="py-2 pr-4 text-right font-medium">Min %</th>
+            <th scope="col" class="py-2 pr-4 text-right font-medium">Max %</th>
+            <th scope="col" class="py-2 pr-4 text-right font-medium">Lot size</th>
+            <th scope="col" class="py-2 text-left font-medium">Hard / Soft</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (bound of bounds(); track bound.id) {
+            <tr class="border-b border-border-muted last:border-0">
+              <th scope="row" class="py-2 pr-4 text-left font-medium text-text">{{ bound.name }}</th>
+              <td class="py-2 pr-4 text-right">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  [attr.aria-label]="'Minimum weight for ' + bound.name"
+                  [attr.aria-invalid]="boundErrors()[bound.id] ? 'true' : null"
+                  class="min-h-11 w-20 rounded-md border border-border-control bg-surface-raised px-2 text-right text-sm tabular-nums text-text"
+                  [value]="bound.minPercent"
+                  (change)="onBoundNumber(bound.id, $event, 'minPercent')"
+                />
+              </td>
+              <td class="py-2 pr-4 text-right">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  placeholder="—"
+                  [attr.aria-label]="'Maximum weight for ' + bound.name + ', blank for no cap'"
+                  class="min-h-11 w-20 rounded-md border border-border-control bg-surface-raised px-2 text-right text-sm tabular-nums text-text"
+                  [value]="bound.maxPercent ?? ''"
+                  (change)="onBoundNumber(bound.id, $event, 'maxPercent')"
+                />
+              </td>
+              <td class="py-2 pr-4 text-right">
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  [attr.aria-label]="'Lot size for ' + bound.name"
+                  class="min-h-11 w-20 rounded-md border border-border-control bg-surface-raised px-2 text-right text-sm tabular-nums text-text"
+                  [value]="bound.lotSize"
+                  (change)="onBoundNumber(bound.id, $event, 'lotSize')"
+                />
+              </td>
+              <td class="py-2">
+                <select
+                  [attr.aria-label]="'Bound strength for ' + bound.name"
+                  class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+                  (change)="onBoundStrength(bound.id, $event)"
+                >
+                  <option value="hard" [selected]="bound.strength === 'hard'">Hard</option>
+                  <option value="soft" [selected]="bound.strength === 'soft'">Soft</option>
+                </select>
+              </td>
+            </tr>
+            @if (boundErrors()[bound.id]; as error) {
+              <tr>
+                <td colspan="5" class="pb-2">
+                  <p role="alert" class="text-sm text-danger">{{ bound.name }}: {{ error }}</p>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flex justify-end">
+      <button
+        type="button"
+        class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+        (click)="addBound()"
+      >
+        + Add row
+      </button>
+    </div>
+  </div>
+</app-info-card>
+
+<!-- Cardinality & lots -->
+<app-info-card title="Cardinality &amp; lots">
+  <div class="flex flex-col gap-4">
+    <div class="flex flex-wrap items-end gap-6">
+      <label class="flex min-h-11 items-center gap-2 text-sm text-text">
+        <input
+          type="checkbox"
+          class="h-4 w-4 accent-[var(--color-primary)]"
+          [checked]="limitHoldings()"
+          (change)="limitHoldings.set($any($event.target).checked)"
+        />
+        Limit number of holdings
+      </label>
+      <div class="flex flex-col gap-1">
+        <label for="k-holdings" class="text-xs text-text-secondary">K</label>
+        <input
+          id="k-holdings"
+          type="number"
+          min="1"
+          class="min-h-11 w-24 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text disabled:opacity-50"
+          [value]="holdingsLimit()"
+          [disabled]="!limitHoldings()"
+          (change)="onNumberSignal($event, holdingsLimit.set)"
+        />
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-end gap-6">
+      <label class="flex min-h-11 items-center gap-2 text-sm text-text">
+        <input
+          type="checkbox"
+          class="h-4 w-4 accent-[var(--color-primary)]"
+          [checked]="requireMinLots()"
+          (change)="requireMinLots.set($any($event.target).checked)"
+        />
+        Require minimum lots if selected
+      </label>
+      <div class="flex flex-col gap-1">
+        <label for="min-lots" class="text-xs text-text-secondary">min lots</label>
+        <input
+          id="min-lots"
+          type="number"
+          min="1"
+          class="min-h-11 w-24 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text disabled:opacity-50"
+          [value]="minLots()"
+          [disabled]="!requireMinLots()"
+          (change)="onNumberSignal($event, minLots.set)"
+        />
+      </div>
+    </div>
+
+    <!-- Only once cardinality sits alongside three other active constraints. -->
+    @if (npHard()) {
+      <div role="status" class="flex flex-col gap-1 rounded-md border border-warning bg-surface-inset px-3 py-2">
+        <p class="flex items-center gap-2 text-sm font-medium text-text">
+          <app-status-badge label="NP-hard" tone="warn" />
+          Cardinality with {{ activeConstraintCount() }} active constraints
+        </p>
+        <p class="text-sm text-text-secondary">
+          Feasibility becomes NP-complete and the solve NP-hard. The exact MIQP may not finish —
+          the Advanced solver panel has been opened with PSO highlighted as the fallback.
+        </p>
+      </div>
+    }
+  </div>
+</app-info-card>
+
+<!-- Drawdown caps — independent of the objective. -->
+<app-info-card title="Drawdown caps">
+  <p class="mb-3 text-sm text-text-secondary">
+    Independent of the objective above — any combination may be active at once.
+  </p>
+  <div class="flex flex-col gap-3">
+    @for (cap of [
+      { id: 'nu1', label: 'Cap maximum drawdown', symbol: 'ν₁' },
+      { id: 'nu2', label: 'Cap average drawdown', symbol: 'ν₂' },
+      { id: 'nu3', label: 'Cap CDaR', symbol: 'ν₃' }
+    ]; track cap.id) {
+      <div class="flex flex-wrap items-end gap-4">
+        <label class="flex min-h-11 min-w-64 items-center gap-2 text-sm text-text">
+          <input
+            type="checkbox"
+            class="h-4 w-4 accent-[var(--color-primary)]"
+            [checked]="cap.id === 'nu1' ? capMaxDrawdown() : cap.id === 'nu2' ? capAvgDrawdown() : capCdar()"
+            (change)="
+              cap.id === 'nu1'
+                ? capMaxDrawdown.set($any($event.target).checked)
+                : cap.id === 'nu2'
+                  ? capAvgDrawdown.set($any($event.target).checked)
+                  : capCdar.set($any($event.target).checked)
+            "
+          />
+          {{ cap.label }}
+        </label>
+        <div class="flex flex-col gap-1">
+          <label [attr.for]="cap.id" class="text-xs text-text-secondary">{{ cap.symbol }}</label>
+          <input
+            [id]="cap.id"
+            type="number"
+            min="0"
+            max="1"
+            step="0.01"
+            class="min-h-11 w-24 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text disabled:opacity-50"
+            [value]="cap.id === 'nu1' ? nu1() : cap.id === 'nu2' ? (nu2() ?? '') : (nu3() ?? '')"
+            [disabled]="cap.id === 'nu1' ? !capMaxDrawdown() : cap.id === 'nu2' ? !capAvgDrawdown() : !capCdar()"
+            (change)="
+              cap.id === 'nu1'
+                ? onNumberSignal($event, nu1.set)
+                : cap.id === 'nu2'
+                  ? onNullableNumber($event, nu2.set)
+                  : onNullableNumber($event, nu3.set)
+            "
+          />
+        </div>
+        @if (cap.id === 'nu3') {
+          <div class="flex flex-col gap-1">
+            <label for="cdar-alpha" class="text-xs text-text-secondary">α</label>
+            <input
+              id="cdar-alpha"
+              type="number"
+              min="0.01"
+              max="0.99"
+              step="0.01"
+              class="min-h-11 w-24 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text disabled:opacity-50"
+              [value]="cdarAlpha()"
+              [disabled]="!capCdar()"
+              (change)="onNumberSignal($event, cdarAlpha.set)"
+            />
+          </div>
+        }
+      </div>
+    }
+  </div>
+</app-info-card>
+
+<!-- Advanced solver — collapsed until the NP-hard notice opens it. -->
+<app-info-card title="Advanced solver">
+  <button
+    card-action
+    type="button"
+    class="min-h-11 rounded-md px-2 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+    [attr.aria-expanded]="advancedOpen()"
+    aria-controls="advanced-solver"
+    (click)="advancedOpen.set(!advancedOpen())"
+  >
+    {{ advancedOpen() ? 'Collapse' : 'Expand' }}
+  </button>
+
+  @if (advancedOpen()) {
+    <div id="advanced-solver" class="flex flex-col gap-4">
+      <div class="flex flex-col gap-1">
+        <label for="penalty" class="text-xs text-text-secondary">Penalty factor ε</label>
+        <input
+          id="penalty"
+          type="number"
+          min="0.0001"
+          step="0.0001"
+          class="min-h-11 w-32 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+          [value]="penalty()"
+          (change)="onNumberSignal($event, penalty.set)"
+        />
+      </div>
+
+      <fieldset>
+        <legend class="text-xs text-text-secondary">Solver</legend>
+        <div class="flex flex-wrap gap-4">
+          <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+            <input
+              type="radio"
+              name="solver"
+              class="accent-[var(--color-primary)]"
+              [checked]="solver() === 'exact'"
+              (change)="onSolver('exact')"
+            />
+            Exact (MIQP)
+          </label>
+          <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+            <input
+              type="radio"
+              name="solver"
+              class="accent-[var(--color-primary)]"
+              [checked]="solver() === 'pso'"
+              (change)="onSolver('pso')"
+            />
+            PSO metaheuristic
+            @if (npHard() && solver() !== 'pso') {
+              <app-status-badge label="suggested" tone="warn" />
+            }
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="flex flex-wrap items-end gap-4">
+        <div class="flex flex-col gap-1">
+          <label for="swarm" class="text-xs text-text-secondary">PSO swarm size</label>
+          <input
+            id="swarm"
+            type="number"
+            min="1"
+            class="min-h-11 w-24 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text disabled:opacity-50"
+            [value]="swarmSize()"
+            [disabled]="solver() !== 'pso'"
+            (change)="onNumberSignal($event, swarmSize.set)"
+          />
+        </div>
+        <p class="min-h-11 self-end pb-3 text-xs text-text-secondary">
+          inertia weight 0.90 → 0.40 (fixed schedule)
+        </p>
+      </div>
+    </div>
+  }
+</app-info-card>
+
+<!-- Summary -->
+<app-info-card title="Summary">
+  @if (feasibility() === 'error') {
+    <app-error-state
+      message="Feasibility check could not be completed"
+      cause="action"
+      (retry)="checkFeasibility()"
+    />
+  } @else {
+    <div class="flex flex-col gap-3">
+      <dl class="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+        <div class="flex items-baseline gap-2">
+          <dt class="text-text-secondary">Objective</dt>
+          <dd class="font-mono text-text">{{ definition()?.formula ?? '—' }}</dd>
+        </div>
+        @if (selected() === 'mean-variance' || selected() === 'mean-variance-skewness' || selected() === 'robust-mean-variance') {
+          <div class="flex items-baseline gap-2">
+            <dt class="text-text-secondary">A</dt>
+            <dd class="tabular-nums text-text">{{ parameters().riskAversion.toFixed(2) }}</dd>
+          </div>
+          @if (parameters().targetMode !== 'none') {
+            <div class="flex items-baseline gap-2">
+              <dt class="text-text-secondary">r_min</dt>
+              <dd class="tabular-nums text-text">
+                {{ parameters().targetMode === 'at-least' ? '≥' : '=' }}
+                {{ parameters().targetReturn.toFixed(1) }}%
+              </dd>
+            </div>
+          }
+        }
+      </dl>
+
+      <dl class="flex flex-wrap gap-x-8 gap-y-2 border-t border-border pt-3 text-sm">
+        <div class="flex items-baseline gap-2">
+          <dt class="text-text-secondary">Active constraints</dt>
+          <dd class="tabular-nums font-medium text-text">{{ activeConstraintCount() }}</dd>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <dt class="text-text-secondary">hard</dt>
+          <dd class="tabular-nums text-text">{{ hardCount() }}</dd>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <dt class="text-text-secondary">soft</dt>
+          <dd class="tabular-nums text-text">{{ softCount() }}</dd>
+        </div>
+      </dl>
+
+      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+        <p class="flex items-center gap-2 text-sm" aria-live="polite">
+          <span class="text-text-secondary">Feasibility</span>
+          <app-status-badge [label]="feasibilityLabel()" [tone]="feasibilityTone()" />
+          @if (lastChecked(); as at) {
+            <span class="text-text-secondary">last checked {{ at }}</span>
+          }
+        </p>
+        <button
+          type="button"
+          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+          [disabled]="feasibility() === 'checking'"
+          (click)="checkFeasibility()"
+        >
+          Check feasibility
+        </button>
+      </div>
+    </div>
+  }
+</app-info-card>
+
+<!-- Blocking validation, listed where the primary action is. -->
+@if (blockingErrors().length > 0) {
+  <div role="alert" class="flex flex-col gap-1 rounded-md border border-danger bg-surface-inset px-4 py-3">
+    <p class="text-sm font-medium text-danger">Resolve before continuing</p>
+    <ul class="list-inside list-disc text-sm text-text">
+      @for (error of blockingErrors(); track error) {
+        <li>{{ error }}</li>
+      }
+    </ul>
+  </div>
+}
+
+<div class="sticky bottom-0 -mx-4 border-t border-border bg-surface px-4 py-3 md:-mx-8 md:px-8">
+  <app-action-button-row>
+    <button
+      type="button"
+      class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+      (click)="confirmReset.set(true)"
+    >
+      Reset to defaults
+    </button>
+    <button
+      type="button"
+      class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+    >
+      Save draft
+    </button>
+    <button
+      type="button"
+      class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+      [disabled]="!canContinue()"
+    >
+      Continue → Run &amp; Solver Diagnostics
+    </button>
+  </app-action-button-row>
+</div>
+
+<app-confirm-dialog
+  [open]="confirmReset()"
+  title="Reset to defaults?"
+  message="Objective, weight bounds, cardinality, drawdown caps and solver settings all return to their defaults. This cannot be undone."
+  confirmLabel="Reset"
+  [destructive]="true"
+  (confirmed)="performReset()"
+  (cancelled)="confirmReset.set(false)"
+/>
+
+<div aria-live="polite" class="sr-only">{{ announcement() }}</div>

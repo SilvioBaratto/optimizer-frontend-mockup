@@ -1,0 +1,664 @@
+<!--
+  Regions follow `docs/03 Universe & Data.md` in order. The page renders no
+  <h1>: the shell renders it from the route, so headings here start at <h2>.
+-->
+
+<app-step-tracker [current]="1" />
+
+<!-- ParameterPanel — universe -->
+<section class="flex flex-col gap-3" aria-labelledby="panel-universe">
+  <h2 id="panel-universe" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+    Universe
+  </h2>
+
+  <div class="rounded-lg border border-border bg-surface-raised">
+    <div class="flex flex-col gap-3 border-b border-border px-4 py-3">
+      <div class="flex flex-wrap items-end gap-2">
+        <div class="flex min-w-52 flex-1 flex-col gap-1">
+          <label for="add-ticker" class="text-xs text-text-secondary">Add ticker or asset</label>
+          <input
+            id="add-ticker"
+            type="search"
+            placeholder="Search ticker or asset…"
+            class="min-h-11 w-full rounded-md border border-border-control bg-surface-raised px-3 text-sm text-text"
+          />
+        </div>
+        <button
+          type="button"
+          class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
+        >
+          Add
+        </button>
+        <button
+          type="button"
+          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+        >
+          Import list
+        </button>
+      </div>
+
+      <div class="flex flex-wrap gap-3">
+        <div class="flex flex-col gap-1">
+          <label for="filter-class" class="text-xs text-text-secondary">Asset class</label>
+          <select id="filter-class" class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text">
+            <option>All</option>
+            <option>Equity</option>
+            <option>Fixed income</option>
+            <option>Commodity</option>
+            <option>Real estate</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="filter-sector" class="text-xs text-text-secondary">Sector</label>
+          <select id="filter-sector" class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text">
+            <option>All</option>
+            <option>Technology</option>
+            <option>Health care</option>
+            <option>Energy</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="filter-benchmark" class="text-xs text-text-secondary">Benchmark</label>
+          <select id="filter-benchmark" class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text">
+            <option>S&amp;P 500</option>
+            <option>MSCI World</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    @if (isEmpty()) {
+      <app-empty-state
+        title="No assets in the universe"
+        detail="Add the first asset or import a list to begin."
+      />
+    } @else {
+      <!-- Table scrolls inside its own box; the page never scrolls sideways. -->
+      <div class="relative overflow-x-auto">
+        <table class="w-full min-w-[46rem] text-sm">
+          <caption class="sr-only">
+            Assets in the universe, with available history, observation count and data status
+          </caption>
+          <thead>
+            <tr class="border-b border-border text-xs text-text-secondary">
+              <th scope="col" class="px-4 py-2 text-left font-medium">
+                <span class="sr-only">Select</span>
+              </th>
+              <th scope="col" class="px-2 py-2 text-left font-medium">Ticker</th>
+              <th scope="col" class="px-2 py-2 text-left font-medium">Name</th>
+              <th scope="col" class="px-2 py-2 text-left font-medium">Class</th>
+              <th scope="col" class="px-2 py-2 text-left font-medium">History</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">Obs (n)</th>
+              <th scope="col" class="px-4 py-2 text-left font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (asset of visibleAssets(); track asset.ticker) {
+              <tr class="border-b border-border-muted last:border-0">
+                <td class="px-4 py-2">
+                  <input
+                    type="checkbox"
+                    class="h-4 w-4 accent-[var(--color-primary)]"
+                    [attr.aria-label]="'Select ' + asset.ticker"
+                    [checked]="isSelected(asset.ticker)"
+                    (change)="toggleSelected(asset.ticker, $any($event.target).checked)"
+                  />
+                </td>
+                <th scope="row" class="px-2 py-2 text-left font-medium text-text">
+                  {{ asset.ticker }}
+                </th>
+                <td class="px-2 py-2 text-text-secondary">{{ asset.name }}</td>
+                <td class="px-2 py-2 text-text-secondary">{{ asset.assetClass }}</td>
+                <td class="px-2 py-2 tabular-nums text-text-secondary">{{ asset.historyFrom }}</td>
+                <td class="px-2 py-2 text-right tabular-nums text-text">
+                  @if (recalculating()) {
+                    <app-skeleton-block height="h-4" width="w-12" />
+                  } @else {
+                    {{ asset.observations }} mo
+                  }
+                </td>
+                <td class="px-4 py-2">
+                  <div class="flex items-center gap-2">
+                    <app-status-badge
+                      [label]="statusLabel[asset.status]"
+                      [tone]="statusTone(asset.status)"
+                    />
+                    <!-- Per-row retry: one bad ticker never blocks the others. -->
+                    @if (asset.status === 'unavailable') {
+                      <app-retry-button label="Retry" (retry)="retry(asset.ticker)" />
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-3">
+        <p class="text-sm text-text-secondary">
+          @if (!showAllAssets() && hiddenAssetCount() > 0) {
+            … {{ hiddenAssetCount() }} more assets
+          }
+        </p>
+        <div class="flex flex-wrap items-center gap-2">
+          @if (hiddenAssetCount() > 0) {
+            <button
+              type="button"
+              class="min-h-11 rounded-md px-3 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+              (click)="showAllAssets.set(!showAllAssets())"
+            >
+              {{ showAllAssets() ? 'Show fewer' : 'View full table' }}
+            </button>
+          }
+          <button
+            type="button"
+            class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+            [disabled]="selected().length === 0"
+            (click)="requestRemove()"
+          >
+            Remove selected ({{ selected().length }})
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</section>
+
+<!-- ParameterPanel — data source & sample window -->
+<section class="flex flex-col gap-3" aria-labelledby="panel-source">
+  <h2 id="panel-source" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+    Data source &amp; sample window
+  </h2>
+
+  <div class="flex flex-col gap-4 rounded-lg border border-border bg-surface-raised px-4 py-3">
+    <div class="flex flex-wrap gap-4">
+      <div class="flex flex-col gap-1">
+        <label for="data-source" class="text-xs text-text-secondary">Source</label>
+        <select id="data-source" class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text">
+          <option>Internal price DB</option>
+          <option>Vendor feed</option>
+        </select>
+      </div>
+
+      <fieldset class="flex flex-col gap-1">
+        <legend class="text-xs text-text-secondary">Frequency</legend>
+        <div class="flex min-h-11 items-center gap-4">
+          @for (f of ['daily', 'monthly']; track f) {
+            <label class="flex items-center gap-1.5 text-sm text-text">
+              <input
+                type="radio"
+                name="frequency"
+                class="accent-[var(--color-primary)]"
+                [value]="f"
+                [checked]="frequency() === f"
+                (change)="onFrequency($any(f))"
+              />
+              {{ f === 'daily' ? 'Daily' : 'Monthly' }}
+            </label>
+          }
+        </div>
+      </fieldset>
+
+      <div class="flex flex-col gap-1">
+        <label for="window-from" class="text-xs text-text-secondary">From</label>
+        <input id="window-from" type="month" value="2002-01" class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text" />
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="window-to" class="text-xs text-text-secondary">To</label>
+        <input id="window-to" type="month" value="2026-06" class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text" />
+      </div>
+    </div>
+
+    <dl class="flex flex-wrap gap-x-8 gap-y-2 border-t border-border pt-3 text-sm">
+      <div class="flex items-baseline gap-2">
+        <dt class="text-text-secondary">Total observations n</dt>
+        <dd class="tabular-nums font-medium text-text">{{ observations() }}</dd>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <dt class="text-text-secondary">Universe size p</dt>
+        <dd class="tabular-nums font-medium text-text">{{ universeSize() }} assets</dd>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <dt class="text-text-secondary">p / n</dt>
+        <dd class="tabular-nums font-medium text-text">{{ pOverN().toFixed(3) }}</dd>
+      </div>
+    </dl>
+  </div>
+</section>
+
+<!-- ParameterPanel — data quality & winsorization -->
+<section class="flex flex-col gap-3" aria-labelledby="panel-quality">
+  <h2 id="panel-quality" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+    Data quality &amp; winsorization
+  </h2>
+
+  <div class="rounded-lg border border-border bg-surface-raised">
+    <div class="flex flex-wrap items-end gap-4 px-4 py-3">
+      <fieldset class="flex flex-col gap-1">
+        <legend class="text-xs text-text-secondary">Winsorization</legend>
+        <div class="flex min-h-11 items-center gap-4">
+          <label class="flex items-center gap-1.5 text-sm text-text">
+            <input type="radio" name="winsor" class="accent-[var(--color-primary)]" [checked]="winsorizationOn()" (change)="winsorizationOn.set(true)" />
+            On
+          </label>
+          <label class="flex items-center gap-1.5 text-sm text-text">
+            <input type="radio" name="winsor" class="accent-[var(--color-primary)]" [checked]="!winsorizationOn()" (change)="winsorizationOn.set(false)" />
+            Off
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="flex flex-col gap-1">
+        <label for="censored" class="text-xs text-text-secondary">Censored obs. per tail (i)</label>
+        <input
+          id="censored"
+          type="number"
+          min="0"
+          class="min-h-11 w-24 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+          [value]="censoredPerTail()"
+          [disabled]="!winsorizationOn()"
+          (change)="onNumber($event, censoredPerTail.set)"
+        />
+      </div>
+
+      <p class="min-h-11 flex-1 self-center text-sm text-text-secondary">
+        Detected extreme observations: {{ winsorized().length }} across
+        {{ winsorized().length }} assets
+      </p>
+
+      <button
+        type="button"
+        class="min-h-11 rounded-md px-3 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+        [attr.aria-expanded]="showBeforeAfter()"
+        aria-controls="before-after"
+        (click)="showBeforeAfter.set(!showBeforeAfter())"
+      >
+        {{ showBeforeAfter() ? 'Hide' : 'View' }} before/after
+      </button>
+    </div>
+
+    <!-- Collapsed by default, per the spec. -->
+    @if (showBeforeAfter()) {
+      <div id="before-after" class="overflow-x-auto border-t border-border">
+        <table class="w-full min-w-[42rem] text-sm">
+          <caption class="sr-only">
+            Winsorised tail observations, with the effect on each asset's mean and standard deviation
+          </caption>
+          <thead>
+            <tr class="border-b border-border text-xs text-text-secondary">
+              <th scope="col" class="px-4 py-2 text-left font-medium">Ticker</th>
+              <th scope="col" class="px-2 py-2 text-left font-medium">Raw tail</th>
+              <th scope="col" class="px-2 py-2 text-left font-medium">Winsorized replacement</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">Δ mean</th>
+              <th scope="col" class="px-4 py-2 text-right font-medium">Δ SD</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of winsorized(); track row.ticker + row.at) {
+              <tr class="border-b border-border-muted last:border-0">
+                <th scope="row" class="px-4 py-2 text-left font-medium text-text">{{ row.ticker }}</th>
+                <td class="px-2 py-2 tabular-nums text-text-secondary">
+                  {{ row.at }} · {{ row.rawReturn.toFixed(1) }}%
+                </td>
+                <td class="px-2 py-2 text-text-secondary">{{ row.replacement }}</td>
+                <td class="px-2 py-2 text-right tabular-nums text-text">{{ row.deltaMean.toFixed(1) }}%</td>
+                <td class="px-4 py-2 text-right tabular-nums text-text">{{ row.deltaSd.toFixed(1) }}%</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</section>
+
+<!-- ParameterPanel — expected returns -->
+<section class="flex flex-col gap-3" aria-labelledby="panel-returns">
+  <h2 id="panel-returns" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+    Expected returns
+  </h2>
+
+  <div class="rounded-lg border border-border bg-surface-raised">
+    <div class="relative overflow-x-auto">
+      <table class="w-full min-w-[46rem] text-sm">
+        <caption class="sr-only">
+          Historical mean return per asset with its standard error and 95% confidence interval
+        </caption>
+        <thead>
+          <tr class="border-b border-border text-xs text-text-secondary">
+            <th scope="col" class="px-4 py-2 text-left font-medium">Ticker</th>
+            <th scope="col" class="px-2 py-2 text-right font-medium">R̄</th>
+            <th scope="col" class="px-2 py-2 text-right font-medium">SD</th>
+            <th scope="col" class="px-2 py-2 text-right font-medium">n</th>
+            <th scope="col" class="px-2 py-2 text-right font-medium">SE</th>
+            <th scope="col" class="px-2 py-2 text-right font-medium">95% CI</th>
+            <th scope="col" class="px-4 py-2 text-left font-medium">Flag</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of visibleEstimates(); track row.ticker) {
+            <tr class="border-b border-border-muted last:border-0">
+              <th scope="row" class="px-4 py-2 text-left font-medium text-text">{{ row.ticker }}</th>
+              @if (recalculating()) {
+                <td colspan="5" class="px-2 py-2"><app-skeleton-block height="h-4" /></td>
+              } @else {
+                <td class="px-2 py-2 text-right tabular-nums text-text">
+                  {{ row.mean === null ? '—' : row.mean.toFixed(1) + '%' }}
+                </td>
+                <td class="px-2 py-2 text-right tabular-nums text-text-secondary">
+                  {{ row.sd === null ? '—' : row.sd.toFixed(1) + '%' }}
+                </td>
+                <td class="px-2 py-2 text-right tabular-nums text-text-secondary">
+                  {{ row.observations ?? '—' }}
+                </td>
+                <td class="px-2 py-2 text-right tabular-nums text-text-secondary">
+                  {{ row.standardError === null ? '—' : row.standardError.toFixed(2) + '%' }}
+                </td>
+                <td class="px-2 py-2 text-right tabular-nums text-text">
+                  @if (row.confidenceInterval; as ci) {
+                    [{{ ci[0].toFixed(1) }}%, {{ ci[1].toFixed(1) }}%]
+                  } @else {
+                    —
+                  }
+                </td>
+              }
+              <td class="px-4 py-2">
+                @if (row.wide) {
+                  <app-status-badge label="wide interval" tone="warn" />
+                } @else if (row.mean === null) {
+                  <app-status-badge label="no data" tone="alert" />
+                } @else {
+                  <span class="text-text-tertiary" aria-hidden="true">—</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (hiddenEstimateCount() > 0) {
+      <div class="flex items-center justify-between gap-2 border-t border-border px-4 py-2">
+        <p class="text-sm text-text-secondary">
+          @if (!showAllEstimates()) {
+            … {{ hiddenEstimateCount() }} more assets
+          }
+        </p>
+        <button
+          type="button"
+          class="min-h-11 rounded-md px-3 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+          (click)="showAllEstimates.set(!showAllEstimates())"
+        >
+          {{ showAllEstimates() ? 'Show fewer' : 'View full table' }}
+        </button>
+      </div>
+    }
+
+    <!--
+      Sample-size calculator. Feeds only the readout beside it — the estimates
+      above stay exactly as the API returned them.
+    -->
+    <div class="flex flex-wrap items-end gap-3 border-t border-border px-4 py-3">
+      <div class="flex flex-col gap-1">
+        <label for="half-width" class="text-xs text-text-secondary">Target CI half-width h</label>
+        <input
+          id="half-width"
+          type="number"
+          min="0.1"
+          step="0.1"
+          class="min-h-11 w-24 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+          [value]="targetHalfWidth()"
+          (change)="onNumber($event, targetHalfWidth.set)"
+        />
+      </div>
+      <p class="min-h-11 self-center text-sm text-text-secondary">
+        → required T
+        @for (r of requiredObservations(); track r.ticker) {
+          <span class="ml-2 tabular-nums text-text">{{ r.ticker }} ~ {{ r.required }} obs</span>
+        }
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ParameterPanel — covariance estimation -->
+<section class="flex flex-col gap-3" aria-labelledby="panel-covariance">
+  <h2 id="panel-covariance" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+    Covariance estimation
+  </h2>
+
+  <div class="rounded-lg border border-border bg-surface-raised">
+    <fieldset class="border-b border-border px-4 py-3">
+      <legend class="text-xs text-text-secondary">Estimator</legend>
+      <div class="flex flex-wrap gap-4">
+        @for (e of estimators; track e) {
+          <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+            <input
+              type="radio"
+              name="estimator"
+              class="accent-[var(--color-primary)]"
+              [checked]="estimator() === e"
+              (change)="onEstimator(e)"
+            />
+            {{ estimatorLabel[e] }}
+          </label>
+        }
+      </div>
+    </fieldset>
+
+    <!--
+      Only the selected estimator's fields render. The change is announced,
+      because fields appearing and disappearing is otherwise silent.
+    -->
+    <div class="flex flex-col gap-4 border-b border-border px-4 py-3">
+      @switch (estimator()) {
+        @case ('ewma') {
+          <div class="flex flex-wrap items-end gap-4">
+            <div class="flex flex-col gap-1">
+              <label for="decay" class="text-xs text-text-secondary">Decay factor λ</label>
+              <div class="flex min-h-11 items-center gap-2">
+                <input
+                  id="decay"
+                  type="range"
+                  min="0.80"
+                  max="0.99"
+                  step="0.01"
+                  class="accent-[var(--color-primary)]"
+                  [value]="decay()"
+                  (input)="onNumber($event, decay.set)"
+                />
+                <span class="tabular-nums text-sm text-text">{{ decay().toFixed(2) }}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" class="min-h-11 rounded-md border border-border-control px-3 text-sm text-text hover:bg-surface-inset" (click)="decay.set(0.94)">
+                0.94 daily
+              </button>
+              <button type="button" class="min-h-11 rounded-md border border-border-control px-3 text-sm text-text hover:bg-surface-inset" (click)="decay.set(0.97)">
+                0.97 monthly
+              </button>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label for="tolerance" class="text-xs text-text-secondary">Window tolerance Υ_L (%)</label>
+              <input
+                id="tolerance"
+                type="number"
+                min="0.1"
+                max="99"
+                step="0.1"
+                class="min-h-11 w-24 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+                [value]="windowTolerance()"
+                (change)="onNumber($event, windowTolerance.set)"
+              />
+            </div>
+            <p class="min-h-11 self-center text-sm text-text-secondary">
+              → effective obs K ~
+              <span class="tabular-nums text-text">{{ effectiveObservations() ?? '—' }}</span>
+            </p>
+          </div>
+        }
+        @case ('dcc') {
+          <!-- Read-only: estimated, not user-set. -->
+          <dl class="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+            <div class="flex items-baseline gap-2">
+              <dt class="text-text-secondary">α</dt>
+              <dd class="tabular-nums text-text">{{ diagnostics().dcc?.alpha }}</dd>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <dt class="text-text-secondary">β</dt>
+              <dd class="tabular-nums text-text">{{ diagnostics().dcc?.beta }}</dd>
+            </div>
+            @if (diagnostics().dcc; as dcc) {
+              <div class="flex items-baseline gap-2">
+                <dt class="text-text-secondary">α + β</dt>
+                <dd class="tabular-nums text-text">
+                  {{ (dcc.alpha + dcc.beta).toFixed(3) }}
+                  <span class="ml-1 text-text-secondary">
+                    {{ dcc.alpha + dcc.beta < 1 ? '< 1 → mean-reverting' : '≥ 1 → not mean-reverting' }}
+                  </span>
+                </dd>
+              </div>
+            }
+          </dl>
+        }
+        @case ('linear') {
+          <p class="text-sm text-text-secondary">
+            Shrinkage intensity ρ (PRIAL)
+            <span class="ml-2 tabular-nums text-text">{{ diagnostics().shrinkageIntensity }}</span>
+          </p>
+        }
+        @case ('nonlinear') {
+          @if (diagnostics().perEigenvalue; as pe) {
+            <p class="text-sm text-text-secondary">
+              Per-eigenvalue shrinkage
+              <span class="ml-2 tabular-nums text-text">avg {{ pe.average }}</span>
+              <span class="ml-2 tabular-nums text-text">range {{ pe.min }}–{{ pe.max }}</span>
+            </p>
+          }
+        }
+        @default {
+          <p class="text-sm text-text-secondary">
+            No shrinkage applied — the raw sample covariance is used.
+          </p>
+        }
+      }
+
+      <dl class="flex flex-wrap gap-x-8 gap-y-1 border-t border-border pt-3 text-sm">
+        <div class="flex items-baseline gap-2">
+          <dt class="text-text-secondary">p / n</dt>
+          <dd class="tabular-nums text-text">{{ pOverN().toFixed(3) }}</dd>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <dt class="text-text-secondary">Condition number</dt>
+          <dd class="tabular-nums text-text">{{ diagnostics().conditionNumber }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="px-4 py-3">
+      <app-bar-chart
+        title="Eigenvalue spectrum — sample vs shrunk"
+        ariaLabel="Eigenvalues of the covariance matrix before and after shrinkage"
+        [categories]="spectrumCategories()"
+        [series]="spectrumSeries()"
+        [height]="220"
+        [loading]="recalculating()"
+      />
+      @if (hiddenEigenvalueCount() > 0) {
+        <div class="flex items-center justify-between gap-2 pt-2">
+          <p class="text-sm text-text-secondary">
+            @if (!showAllEigenvalues()) {
+              … {{ hiddenEigenvalueCount() }} more eigenvalues
+            }
+          </p>
+          <button
+            type="button"
+            class="min-h-11 rounded-md px-3 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+            (click)="showAllEigenvalues.set(!showAllEigenvalues())"
+          >
+            {{ showAllEigenvalues() ? 'Show fewer' : 'View full table' }}
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- InfoCard — validation -->
+<app-info-card title="Validation">
+  <ul class="flex flex-col gap-2">
+    @for (notice of notices(); track notice.id) {
+      <li class="flex flex-wrap items-center gap-2 text-sm">
+        <app-status-badge
+          [label]="notice.severity === 'ok' ? 'ok' : notice.severity"
+          [tone]="severityTone(notice.severity)"
+        />
+        <span class="flex-1 text-text">{{ notice.message }}</span>
+        @if (notice.retryTicker; as ticker) {
+          <app-retry-button label="Retry" (retry)="retry(ticker)" />
+        }
+      </li>
+    }
+  </ul>
+  <p class="mt-3 border-t border-border pt-2 text-sm text-text-secondary">
+    Last data refresh {{ lastRefresh }}
+  </p>
+</app-info-card>
+
+<!-- ActionButtonRow -->
+<app-action-button-row>
+  <button
+    type="button"
+    class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+    (click)="confirmReset.set(true)"
+  >
+    Reset
+  </button>
+  <button
+    type="button"
+    class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+  >
+    Save as draft
+  </button>
+  <button
+    type="button"
+    class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+    [disabled]="hasBlockingWarning() || recalculating()"
+    (click)="continue()"
+  >
+    Continue to Signals &amp; Factors →
+  </button>
+  @if (hasBlockingWarning()) {
+    <!-- Says why it is disabled; a disabled control with no reason is a dead end. -->
+    <p class="w-full text-right text-xs text-text-secondary">
+      Resolve the blocking warning above to continue.
+    </p>
+  }
+</app-action-button-row>
+
+<app-confirm-dialog
+  [open]="confirmReset()"
+  title="Reset this page?"
+  message="Universe, sample window, winsorization and estimator all return to their defaults. This cannot be undone."
+  confirmLabel="Reset"
+  [destructive]="true"
+  (confirmed)="performReset()"
+  (cancelled)="confirmReset.set(false)"
+/>
+
+<app-confirm-dialog
+  [open]="confirmRemove()"
+  title="Remove selected assets?"
+  [message]="
+    wouldDropBelowTwo()
+      ? 'This leaves fewer than two assets in the universe, which is not enough to estimate a covariance matrix.'
+      : 'The selected assets are removed from the universe and the estimates are recalculated.'
+  "
+  confirmLabel="Remove"
+  [destructive]="true"
+  (confirmed)="performRemove()"
+  (cancelled)="confirmRemove.set(false)"
+/>
+
+<div aria-live="polite" class="sr-only">{{ announcement() }}</div>

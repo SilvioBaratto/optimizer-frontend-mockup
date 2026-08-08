@@ -1,0 +1,504 @@
+<!--
+  Regions follow `docs/07 Run & Solver Diagnostics.md` in order. The shell
+  renders the <h1> and the breadcrumb, so headings here start at <h2>.
+-->
+
+<app-step-tracker [current]="5" />
+
+<!-- HeroStatCard — sticky, so status and the stop control stay reachable. -->
+<div
+  class="sticky top-0 z-20 -mx-4 flex flex-col gap-3 border-b border-border bg-surface px-4 py-3 md:-mx-8 md:px-8"
+>
+  <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+    <p class="flex items-center gap-2">
+      <app-status-badge [label]="statusLabel()" [tone]="statusTone()" />
+      <span class="font-mono text-lg tabular-nums text-text">{{ elapsed() }}</span>
+    </p>
+
+    <p class="flex items-center gap-2 text-sm text-text-secondary">
+      Stream
+      <app-status-badge
+        [label]="streamState() === 'connected' ? 'SSE connected' : streamState() === 'reconnecting' ? 'reconnecting…' : 'closed'"
+        [tone]="streamState() === 'connected' ? 'ok' : streamState() === 'reconnecting' ? 'warn' : 'neutral'"
+      />
+      <span class="tabular-nums">last-event-id {{ lastEventId() }}</span>
+    </p>
+
+    <div class="ml-auto flex flex-wrap items-center gap-2">
+      <label for="past-runs" class="text-sm text-text-secondary">View past runs</label>
+      <!--
+        Capped: a select sizes itself to its widest option, and a run id runs to
+        30-odd characters, which pushes the page past a 320px viewport.
+      -->
+      <select
+        id="past-runs"
+        class="min-h-11 min-w-0 max-w-48 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+      >
+        @for (run of pastRuns; track run) {
+          <option [value]="run">{{ run }}</option>
+        }
+      </select>
+
+      <!-- The primary action follows the run's state. -->
+      @if (isRunning()) {
+        <button
+          type="button"
+          class="min-h-11 rounded-md border border-danger px-3 text-sm font-medium text-danger transition-colors hover:bg-surface-inset"
+          (click)="requestStop()"
+        >
+          Stop run
+        </button>
+      } @else if (status() === 'stopped') {
+        <button
+          type="button"
+          class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
+          (click)="restart()"
+        >
+          Resume configuration
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
+          (click)="restart()"
+        >
+          Run again
+        </button>
+      }
+    </div>
+  </div>
+
+  <p class="font-mono text-xs text-text-secondary">run {{ runId }}</p>
+</div>
+
+@if (isEmpty()) {
+  <app-empty-state
+    title="No run started"
+    detail="Launch a run to see the solver's classification and convergence."
+  >
+    <button
+      type="button"
+      class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
+      (click)="restart()"
+    >
+      Run
+    </button>
+  </app-empty-state>
+} @else {
+  <!-- Problem classification -->
+  <app-info-card title="Problem classification">
+    <div class="flex flex-col gap-3 text-sm">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-text-secondary">Convex inclusion chain</span>
+        @for (klass of convexChain; track klass) {
+          <span
+            class="rounded-md px-2 py-0.5 font-mono"
+            [class.bg-primary-light]="klass === classification().detectedClass"
+            [class.text-primary]="klass === classification().detectedClass"
+            [class.font-semibold]="klass === classification().detectedClass"
+            [class.text-text-secondary]="klass !== classification().detectedClass"
+          >
+            {{ klass }}
+          </span>
+          @if (!$last) {
+            <span aria-hidden="true" class="text-text-tertiary">⊂</span>
+          }
+        }
+        <span class="text-xs text-text-secondary">each class contains the last</span>
+      </div>
+
+      <dl class="flex flex-col gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <dt class="w-44 text-text-secondary">Integer constraints</dt>
+          <dd>
+            <app-status-badge
+              [label]="classification().hasIntegerConstraints ? 'present — lots and cardinality' : 'none'"
+              [tone]="classification().hasIntegerConstraints ? 'warn' : 'ok'"
+            />
+          </dd>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <dt class="w-44 text-text-secondary">Detected class</dt>
+          <dd class="font-mono text-text">{{ detectedClassText() }}</dd>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <dt class="w-44 text-text-secondary">Problem size</dt>
+          <dd class="tabular-nums text-text">
+            n = {{ classification().variables }} vars · m = {{ classification().inequalities }} ineq
+            · p = {{ classification().equalities }} eq
+          </dd>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <dt class="w-44 text-text-secondary">Feasibility</dt>
+          <dd class="flex flex-wrap items-center gap-2">
+            <app-status-badge [label]="feasibilityLabel()" [tone]="feasibilityTone()" />
+            <!-- Pending is explained, not left as an unexplained shrug. -->
+            @if (classification().feasibility === 'pending' && isMixedInteger()) {
+              <span class="text-xs text-text-secondary">
+                resolves only when the penalty residual reaches zero — see Penalty / swarm
+                diagnostics
+              </span>
+            }
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </app-info-card>
+
+  <!-- Complexity notice — mixed-integer runs only. -->
+  @if (isMixedInteger()) {
+    <div role="status" class="flex flex-col gap-2 rounded-md border border-warning bg-surface-inset px-4 py-3">
+      <p class="flex items-center gap-2 text-sm font-medium text-text">
+        <app-status-badge label="complexity" tone="warn" />
+        Cardinality and minimum-lot constraints are active on this run
+      </p>
+      <p class="text-sm text-text-secondary">
+        Feasibility check NP-complete · solve NP-hard. Solved instead by an exact-penalty
+        reformulation driven by PSO — see the Penalty / swarm diagnostics below. This is why the
+        Feasibility badge above cannot yet be a clean yes or no.
+      </p>
+    </div>
+  }
+
+  <!-- Convergence -->
+  <app-line-chart
+    title="Convergence"
+    [subtitle]="'Iteration ' + iteration() + ' / max ' + maxIterations + ' · ' + (isMixedInteger() ? 'exact-penalty + PSO' : 'interior point')"
+    [ariaLabel]="metricLabel() + ' against solver iteration'"
+    [x]="convergenceX()"
+    [series]="convergenceSeries()"
+    [logY]="logScale()"
+    [refLines]="stopMarker()"
+    [yAxisName]="metricAxisName()"
+    xAxisName="iter"
+    [height]="280"
+  >
+    <div class="flex flex-wrap items-center gap-4 border-t border-border px-4 py-3">
+      <fieldset class="flex items-center gap-3">
+        <legend class="sr-only">Scale</legend>
+        <span class="text-xs text-text-secondary">Scale</span>
+        <label class="flex items-center gap-1.5 text-sm text-text">
+          <input
+            type="radio"
+            name="scale"
+            class="accent-[var(--color-primary)]"
+            [checked]="!logScale()"
+            (change)="logScale.set(false)"
+          />
+          Linear
+        </label>
+        <label class="flex items-center gap-1.5 text-sm text-text">
+          <input
+            type="radio"
+            name="scale"
+            class="accent-[var(--color-primary)]"
+            [checked]="logScale()"
+            (change)="logScale.set(true)"
+          />
+          Log
+        </label>
+      </fieldset>
+
+      <div class="flex items-center gap-2">
+        <label for="metric" class="text-xs text-text-secondary">Metric</label>
+        <select
+          id="metric"
+          class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+          (change)="onMetric($event)"
+        >
+          <option value="objective" [selected]="metric() === 'objective'">Objective</option>
+          <option value="fitness" [selected]="metric() === 'fitness'">Fitness</option>
+          <option value="gap" [selected]="metric() === 'gap'">Gap</option>
+        </select>
+      </div>
+
+      @if (isRunning()) {
+        <span class="text-xs text-text-secondary" aria-hidden="true">⟳ streaming, live</span>
+      }
+    </div>
+  </app-line-chart>
+
+  <!-- Optimality certificate — the two modes are mutually exclusive. -->
+  <app-info-card title="Optimality certificate">
+    @if (certificate(); as cert) {
+      <div class="flex flex-col gap-3">
+        @if (cert.partial) {
+          <p class="text-sm text-text-secondary">
+            <!-- Never labelled "converged": the run did not finish. -->
+            partial — run stopped before completion
+          </p>
+        }
+        <dl class="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+          <div class="flex items-baseline gap-2">
+            <dt class="text-text-secondary">Primal value</dt>
+            <dd class="tabular-nums text-text">{{ cert.primalValue.toFixed(4) }}</dd>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <dt class="text-text-secondary">Dual value</dt>
+            <dd class="tabular-nums text-text">{{ cert.dualValue.toFixed(4) }}</dd>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <dt class="text-text-secondary">Duality gap</dt>
+            <dd class="tabular-nums text-text">{{ cert.dualityGap.toExponential(2) }}</dd>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <dt class="text-text-secondary">Slater</dt>
+            <dd><app-status-badge [label]="cert.slaterHolds ? 'holds' : 'fails'" [tone]="cert.slaterHolds ? 'ok' : 'warn'" /></dd>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <dt class="text-text-secondary">Strong duality</dt>
+            <dd><app-status-badge [label]="cert.strongDuality ? 'holds' : 'fails'" [tone]="cert.strongDuality ? 'ok' : 'warn'" /></dd>
+          </div>
+        </dl>
+
+        <div class="relative overflow-x-auto">
+          <table class="w-full text-sm">
+            <caption class="sr-only">
+              The four KKT conditions, each with a binary outcome and its numeric residual
+            </caption>
+            <thead>
+              <tr class="border-b border-border text-xs text-text-secondary">
+                <th scope="col" class="py-2 pr-4 text-left font-medium">Condition</th>
+                <th scope="col" class="py-2 pr-4 text-left font-medium">Outcome</th>
+                <th scope="col" class="py-2 text-right font-medium">Residual</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of cert.conditions; track c.name) {
+                <tr class="border-b border-border-muted last:border-0">
+                  <th scope="row" class="py-2 pr-4 text-left font-medium text-text">{{ c.name }}</th>
+                  <td class="py-2 pr-4">
+                    <app-status-badge
+                      [label]="c.satisfied ? 'satisfied' : 'not satisfied'"
+                      [tone]="c.satisfied ? 'ok' : 'alert'"
+                    />
+                  </td>
+                  <!-- Shown as measured; never rounded into a false binary. -->
+                  <td class="py-2 text-right tabular-nums text-text">
+                    {{ c.residual === 0 ? '0' : c.residual.toExponential(1) }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    } @else {
+      <div class="flex flex-col gap-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="text-sm font-medium text-text">Not applicable to this run</p>
+          <button
+            type="button"
+            class="min-h-11 rounded-md px-2 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+            [attr.aria-expanded]="whyNotShownOpen()"
+            aria-controls="why-not-shown"
+            (click)="whyNotShownOpen.set(!whyNotShownOpen())"
+          >
+            Why is this not shown? ▸
+          </button>
+        </div>
+        <p class="text-sm text-text-secondary">
+          Path: mixed-integer exact-penalty + PSO (see the Complexity notice above).
+        </p>
+        @if (whyNotShownOpen()) {
+          <!--
+            Careful wording: the dual function exists for any problem. The claim
+            is only that this path does not compute a KKT certificate.
+          -->
+          <p id="why-not-shown" class="rounded-md bg-surface-inset px-3 py-2 text-sm text-text-secondary">
+            No KKT certificate is computed on this path. The Lagrange dual function is still
+            defined for this problem — the app simply does not solve it here, so no primal value,
+            no dual value and no duality gap are claimed. Feasibility evidence for this run lives
+            in Penalty / swarm diagnostics below.
+          </p>
+        }
+      </div>
+    }
+  </app-info-card>
+
+  <!-- Penalty / swarm diagnostics — mixed-integer runs only. -->
+  @if (penalty(); as pso) {
+    <app-info-card title="Penalty / swarm diagnostics">
+      <div class="flex flex-col gap-3 text-sm">
+        <dl class="flex flex-wrap gap-x-8 gap-y-2">
+          <div class="flex items-baseline gap-2">
+            <dt class="text-text-secondary">Particles M</dt>
+            <dd class="tabular-nums text-text">{{ pso.particles }}</dd>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <dt class="text-text-secondary">Topology</dt>
+            <dd class="text-text">{{ pso.topology }}</dd>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <dt class="text-text-secondary">Inertia w</dt>
+            <dd class="tabular-nums text-text">{{ pso.inertiaFrom }} → {{ pso.inertiaTo }} linear</dd>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <dt class="text-text-secondary">Penalty ε</dt>
+            <dd class="tabular-nums text-text">{{ pso.penaltyFactor.toExponential(1) }}</dd>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <dt class="text-text-secondary">K (max holdings)</dt>
+            <dd class="tabular-nums text-text">{{ pso.maxHoldings }}</dd>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <dt class="text-text-secondary">PSO iteration</dt>
+            <dd class="tabular-nums text-text">{{ pso.iteration }} / {{ pso.maxIterations }}</dd>
+          </div>
+        </dl>
+
+        <dl class="flex flex-wrap gap-x-8 gap-y-2 border-t border-border pt-3">
+          <div class="flex items-baseline gap-2">
+            <dt class="text-text-secondary">Fitness = VP + penalty</dt>
+            <dd class="tabular-nums text-text">VP {{ pso.portfolioVariance.toFixed(4) }}</dd>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <dt class="text-text-secondary">fitness − VP</dt>
+            <dd class="tabular-nums text-text">{{ pso.penaltyShare.toFixed(4) }}</dd>
+          </div>
+        </dl>
+
+        <p class="border-t border-border pt-3 text-text-secondary">
+          <span class="text-text-secondary">Outcome</span>
+          <span class="ml-2 text-text">{{ swarmOutcomeText() }}</span>
+        </p>
+        @if (pso.penaltyShare !== 0) {
+          <p class="text-xs text-text-secondary">
+            Constraint residual is not zero → the Feasibility badge above stays pending.
+          </p>
+        }
+      </div>
+    </app-info-card>
+  }
+
+  <!-- Event log -->
+  <app-info-card title="Event log">
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          [attr.aria-pressed]="paused()"
+          (click)="togglePause()"
+        >
+          {{ paused() ? 'Resume' : 'Pause' }}
+        </button>
+        <button
+          type="button"
+          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          (click)="downloadLog()"
+        >
+          Download
+        </button>
+        <label class="flex min-h-11 items-center gap-2 text-sm text-text">
+          <input
+            type="checkbox"
+            class="h-4 w-4 accent-[var(--color-primary)]"
+            [checked]="autoScroll()"
+            (change)="autoScroll.set($any($event.target).checked)"
+          />
+          Auto-scroll
+        </label>
+        @if (paused()) {
+          <!-- Says what pausing does and does not do. -->
+          <span class="text-xs text-text-secondary">paused — the buffer keeps filling</span>
+        }
+      </div>
+
+      @if (hiddenLogCount() > 0) {
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-sm text-text-secondary">
+            @if (!showFullLog()) {
+              … {{ hiddenLogCount() }} earlier events
+            }
+          </p>
+          <button
+            type="button"
+            class="min-h-11 rounded-md px-3 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+            (click)="showFullLog.set(!showFullLog())"
+          >
+            {{ showFullLog() ? 'Show fewer' : 'View full log' }}
+          </button>
+        </div>
+      }
+
+      <ul #logList class="max-h-64 overflow-y-auto font-mono text-xs">
+        @for (entry of visibleLog(); track entry.id) {
+          <li
+            class="flex gap-3 border-b border-border-muted py-1.5 last:border-0"
+            [class.text-warning]="entry.kind === 'notice'"
+          >
+            <span class="shrink-0 text-text-secondary">{{ entry.at }}</span>
+            <!-- A stream gap is flagged in words, not just colour. -->
+            @if (entry.kind === 'notice') {
+              <span class="shrink-0 font-semibold">[notice]</span>
+            }
+            <span class="text-text">{{ entry.message }}</span>
+          </li>
+        } @empty {
+          <li><app-empty-state title="No events yet" /></li>
+        }
+      </ul>
+    </div>
+  </app-info-card>
+
+  <!-- Exits depend on the outcome. -->
+  <app-action-button-row align="start">
+    @if (status() === 'converged') {
+      <app-cross-page-link
+        label="View results"
+        route="/results/results-frontier"
+        emphasis="filled"
+      />
+    }
+    @if (status() === 'infeasible' || status() === 'unbounded') {
+      <app-cross-page-link label="Back to Objective & Constraints" route="/build/objective-constraints" />
+    }
+    @if (status() === 'stopped') {
+      <app-cross-page-link label="Resume configuration" route="/build/objective-constraints" />
+      <app-cross-page-link label="View partial results" route="/results/results-frontier" />
+    }
+  </app-action-button-row>
+
+  <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+    <div class="flex items-center gap-2">
+      <label for="compare" class="text-sm text-text-secondary">Compare against</label>
+      <!-- Capped for the same reason as the run selector above. -->
+      <select
+        id="compare"
+        class="min-h-11 min-w-0 max-w-48 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+        (change)="onCompare($event)"
+      >
+        <option value="none" [selected]="compareRun() === 'none'">none</option>
+        @for (run of pastRuns.slice(1); track run) {
+          <option [value]="run" [selected]="compareRun() === run">{{ run }}</option>
+        }
+      </select>
+      @if (compareRun() !== 'none') {
+        <span class="text-xs text-text-secondary">
+          drawn as a dashed second series; the current run is untouched
+        </span>
+      }
+    </div>
+    <button
+      type="button"
+      class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+      (click)="exportDiagnostics()"
+    >
+      Export diagnostics
+    </button>
+  </div>
+}
+
+<app-confirm-dialog
+  [open]="confirmStop()"
+  title="Stop this run?"
+  message="The solver stops where it is. Partial diagnostics stay available, and the elapsed timer freezes rather than resetting."
+  confirmLabel="Stop run"
+  [destructive]="true"
+  (confirmed)="performStop()"
+  (cancelled)="confirmStop.set(false)"
+/>
+
+<!-- Status changes only — not every iteration. -->
+<div aria-live="polite" class="sr-only">{{ statusAnnouncement() }}</div>

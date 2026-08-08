@@ -1,0 +1,719 @@
+<!--
+  `docs/04 Signals & Factors.md`. Four tabs share the page; the Factor Models
+  tab is the one the wireframe draws in full. The shell renders the <h1> and
+  the breadcrumb, so headings here start at <h2>.
+-->
+
+<app-step-tracker [current]="2" />
+
+<ui-tabs>
+  <ui-tab [tabIndex]="0">Factor Models</ui-tab>
+  <ui-tab [tabIndex]="1">Fundamentals Screen</ui-tab>
+  <ui-tab [tabIndex]="2">Alpha Signals</ui-tab>
+  <ui-tab [tabIndex]="3">Combine &amp; Diagnostics</ui-tab>
+
+  <!-- ============================ FACTOR MODELS ========================= -->
+  <ui-tab-panel [panelIndex]="0">
+    @if (isEmpty()) {
+      <app-empty-state
+        title="No factor model defined"
+        detail="Define a factor specification, or filter a universe, before continuing."
+      />
+    } @else {
+      <!-- Library beside the detail panel from lg; stacked below it on narrow screens. -->
+      <div class="flex flex-col gap-6 pt-6 lg:flex-row lg:items-start">
+        <!-- Library column: stacks above the detail panel on narrow screens. -->
+        <section class="flex flex-col gap-3 lg:w-80 lg:shrink-0" aria-labelledby="library-label">
+          <h2 id="library-label" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+            Factor model library
+          </h2>
+
+          <app-action-button-row align="start">
+            <button
+              type="button"
+              class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+              [disabled]="isEstimating()"
+            >
+              + New Model
+            </button>
+            <button
+              type="button"
+              class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+              [disabled]="isEstimating()"
+            >
+              Import
+            </button>
+          </app-action-button-row>
+
+          <label class="sr-only" for="model-search">Search models</label>
+          <input
+            id="model-search"
+            type="search"
+            placeholder="Search models…"
+            class="min-h-11 w-full rounded-md border border-border-control bg-surface-raised px-3 text-sm text-text"
+            [value]="query()"
+            (input)="onQuery($event)"
+          />
+
+          <p class="text-xs text-text-secondary">{{ filteredModels().length }} models</p>
+
+          <!--
+            Single-select listbox. Each option carries the full state in its
+            aria-label, so the badge colour is never the only signal.
+          -->
+          <ul role="listbox" aria-labelledby="library-label" class="flex flex-col gap-2">
+            @for (model of filteredModels(); track model.id) {
+              <li
+                role="option"
+                [attr.aria-selected]="model.id === selected()?.id"
+                [attr.aria-label]="cardLabel(model.name, model.source, model.k, model.status)"
+              >
+                <button
+                  type="button"
+                  class="flex w-full flex-col gap-1 rounded-md border px-3 py-2 text-left transition-colors"
+                  [class.border-primary]="model.id === selected()?.id"
+                  [class.bg-primary-light]="model.id === selected()?.id"
+                  [class.border-border]="model.id !== selected()?.id"
+                  [class.bg-surface-raised]="model.id !== selected()?.id"
+                  [class.hover:bg-surface-inset]="model.id !== selected()?.id"
+                  (click)="select(model.id)"
+                >
+                  <span class="flex items-center justify-between gap-2">
+                    <span class="truncate text-sm font-medium text-text">{{ model.name }}</span>
+                    <app-status-badge
+                      [label]="statusLabel[model.status]"
+                      [tone]="statusTone(model.status)"
+                    />
+                  </span>
+                  <span class="text-xs text-text-secondary">
+                    {{ sourceLabel[model.source] }} · K = {{ model.k }}
+                  </span>
+                </button>
+              </li>
+            } @empty {
+              <li><app-empty-state title="No models match your search" /></li>
+            }
+          </ul>
+        </section>
+
+        <!-- Detail panel -->
+        @if (selected(); as model) {
+          <div class="flex min-w-0 flex-1 flex-col gap-6">
+            <app-hero-stat-card [title]="model.name" [eyebrow]="sourceLabel[model.source]">
+              <div hero-action class="flex flex-wrap items-center gap-2">
+                <app-status-badge
+                  [label]="statusLabel[model.status]"
+                  [tone]="statusTone(model.status)"
+                />
+                <!-- Stale sits beside the status; it does not replace it. -->
+                @if (model.stale) {
+                  <app-status-badge label="Stale — universe changed" tone="warn" />
+                }
+                <button
+                  type="button"
+                  class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+                  [disabled]="isEstimating()"
+                  (click)="requestRun()"
+                >
+                  {{ isEstimating() ? 'Estimating…' : 'Run Estimation' }}
+                </button>
+              </div>
+
+              <dl class="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+                <div class="flex items-baseline gap-2">
+                  <dt class="text-text-secondary">K</dt>
+                  <dd class="tabular-nums text-text">{{ model.k }}</dd>
+                </div>
+                <div class="flex items-baseline gap-2">
+                  <dt class="text-text-secondary">Centering</dt>
+                  <dd class="text-text">{{ model.centering }}</dd>
+                </div>
+                <div class="flex items-baseline gap-2">
+                  <dt class="text-text-secondary">Last run</dt>
+                  <dd class="tabular-nums text-text">{{ model.lastRun ?? 'never' }}</dd>
+                </div>
+                <div class="flex items-baseline gap-2">
+                  <dt class="text-text-secondary">Source universe</dt>
+                  <dd class="text-text">Universe &amp; Data (step 1)</dd>
+                </div>
+              </dl>
+            </app-hero-stat-card>
+
+            @if (error(); as message) {
+              <!-- The last valid estimate stays on screen underneath. -->
+              <app-error-state
+                [message]="message"
+                cause="action"
+                (retry)="run()"
+              />
+            }
+
+            <!-- Specification -->
+            <app-info-card title="Specification">
+              <div class="flex flex-col gap-4">
+                <fieldset>
+                  <legend class="text-xs text-text-secondary">Source</legend>
+                  <div class="flex flex-wrap gap-4">
+                    @for (s of sources; track s) {
+                      <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+                        <input
+                          type="radio"
+                          name="source"
+                          class="accent-[var(--color-primary)]"
+                          [checked]="model.source === s"
+                          (change)="onSource(s)"
+                        />
+                        {{ sourceLabel[s] }}
+                      </label>
+                    }
+                  </div>
+                </fieldset>
+
+                <div class="flex flex-wrap gap-4">
+                  <div class="flex flex-col gap-1">
+                    <label for="k-factors" class="text-xs text-text-secondary">K (factors)</label>
+                    <select
+                      id="k-factors"
+                      class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+                      [value]="model.k"
+                      (change)="onK($event)"
+                    >
+                      @for (k of [3, 4, 5, 6, 8]; track k) {
+                        <option [value]="k" [selected]="k === model.k">{{ k }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label for="centering" class="text-xs text-text-secondary">Centering</label>
+                    <select
+                      id="centering"
+                      class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+                      [value]="model.centering"
+                      (change)="onCentering($event)"
+                    >
+                      @for (c of centerings; track c) {
+                        <option [value]="c" [selected]="c === model.centering">{{ c }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </app-info-card>
+
+            <!--
+              Statistical models report variance shares per component; named
+              schemes have no such decomposition and list their factors instead.
+            -->
+            @if (isStatistical()) {
+              <app-info-card title="Variance explained (PCA)">
+                @if (isEstimating()) {
+                  <app-skeleton-block height="h-40" />
+                } @else if (model.variance.length === 0) {
+                  <app-empty-state
+                    title="Not yet estimated"
+                    detail="Run the estimation to see the variance decomposition."
+                  />
+                } @else {
+                  <app-bar-chart
+                    ariaLabel="Share of total variance explained by each retained principal component"
+                    [categories]="varianceCategories()"
+                    [series]="varianceSeries()"
+                    [valueFormatter]="pct"
+                    [height]="200"
+                  />
+                  <p class="mt-2 border-t border-border pt-2 text-sm text-text-secondary">
+                    Cumulative variance explained by the {{ model.k }} retained components
+                    <span class="ml-2 font-medium tabular-nums text-text">
+                      {{ cumulativeVariance() }}%
+                    </span>
+                  </p>
+                }
+              </app-info-card>
+            } @else {
+              <app-info-card title="Named factors">
+                <ul class="flex flex-wrap gap-2">
+                  @for (name of model.factorNames; track name) {
+                    <li class="rounded-full border border-border bg-surface-inset px-2.5 py-1 text-xs text-text">
+                      {{ name }}
+                    </li>
+                  }
+                </ul>
+              </app-info-card>
+            }
+
+            <!-- Factor exposures -->
+            <app-info-card title="Factor exposures (β)">
+              <div class="flex flex-col gap-3">
+                <div class="flex flex-wrap items-end gap-4">
+                  <div class="flex flex-col gap-1">
+                    <label for="estimation-method" class="text-xs text-text-secondary">
+                      Estimation method
+                    </label>
+                    <select
+                      id="estimation-method"
+                      class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+                    >
+                      <option>OLS</option>
+                    </select>
+                  </div>
+                  <label class="flex min-h-11 items-center gap-2 text-sm text-text">
+                    <input
+                      type="checkbox"
+                      class="h-4 w-4 accent-[var(--color-primary)]"
+                      [disabled]="!blumeAvailable()"
+                    />
+                    Blume shrinkage
+                    @if (!blumeAvailable()) {
+                      <!-- Says why, rather than being mysteriously greyed out. -->
+                      <span class="text-xs text-text-secondary">
+                        (n/a — no market or style beta to shrink)
+                      </span>
+                    }
+                  </label>
+                </div>
+
+                @if (isEstimating()) {
+                  <app-skeleton-block height="h-8" [lines]="3" />
+                } @else if (model.exposures.length === 0) {
+                  <app-empty-state
+                    title="Not yet estimated"
+                    detail="Run the estimation to see per-asset exposures."
+                  />
+                } @else {
+                  <div class="relative overflow-x-auto">
+                    <table class="w-full min-w-[38rem] text-sm">
+                      <caption class="sr-only">
+                        Factor exposures per asset with the regression fit
+                      </caption>
+                      <thead>
+                        <tr class="border-b border-border text-xs text-text-secondary">
+                          <th scope="col" class="py-2 pr-4 text-left font-medium">Asset</th>
+                          @for (factor of model.factorNames; track factor) {
+                            <th scope="col" class="py-2 pr-4 text-right font-medium">{{ factor }}</th>
+                          }
+                          <th scope="col" class="py-2 text-right font-medium">R²</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of visibleExposures(); track row.ticker) {
+                          <tr class="border-b border-border-muted last:border-0">
+                            <th scope="row" class="py-2 pr-4 text-left font-medium text-text">
+                              {{ row.ticker }}
+                            </th>
+                            @for (beta of row.betas; track $index) {
+                              <td class="py-2 pr-4 text-right tabular-nums text-text">
+                                {{ beta.toFixed(2) }}
+                              </td>
+                            }
+                            <td class="py-2 text-right tabular-nums text-text-secondary">
+                              {{ row.rSquared.toFixed(2) }}
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+
+                  @if (hiddenExposureCount() > 0) {
+                    <div class="flex items-center justify-between gap-2">
+                      <p class="text-sm text-text-secondary">
+                        @if (!showAllExposures()) {
+                          … {{ hiddenExposureCount() }} more assets
+                        }
+                      </p>
+                      <button
+                        type="button"
+                        class="min-h-11 rounded-md px-3 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+                        (click)="showAllExposures.set(!showAllExposures())"
+                      >
+                        {{ showAllExposures() ? 'Show fewer' : 'View full table' }}
+                      </button>
+                    </div>
+                  }
+
+                  @if (model.excludedAssets > 0) {
+                    <p class="flex items-center gap-2 border-t border-border pt-2 text-sm">
+                      <app-status-badge label="excluded" tone="warn" />
+                      <span class="text-text-secondary">
+                        {{ model.excludedAssets }} assets excluded — insufficient history for the
+                        requested window.
+                      </span>
+                    </p>
+                  }
+                }
+              </div>
+            </app-info-card>
+
+            <!-- Smart beta tilt -->
+            <app-info-card title="Smart beta tilt">
+              <div class="flex flex-col gap-4">
+                <div class="flex flex-wrap items-end gap-4">
+                  <div class="flex flex-col gap-1">
+                    <label for="tilt-factor" class="text-xs text-text-secondary">Target factor</label>
+                    <select
+                      id="tilt-factor"
+                      class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+                      [value]="tiltFactor()"
+                      (change)="tiltFactor.set($any($event.target).value)"
+                    >
+                      @for (factor of model.factorNames; track factor) {
+                        <option [value]="factor" [selected]="factor === tiltFactor()">
+                          {{ factor }}
+                        </option>
+                      }
+                    </select>
+                  </div>
+
+                  <fieldset class="flex flex-col gap-1">
+                    <legend class="text-xs text-text-secondary">Objective</legend>
+                    <div class="flex min-h-11 items-center gap-4">
+                      <label class="flex items-center gap-1.5 text-sm text-text">
+                        <input
+                          type="radio"
+                          name="tilt-objective"
+                          class="accent-[var(--color-primary)]"
+                          [checked]="tiltObjective() === 'max-exposure'"
+                          (change)="tiltObjective.set('max-exposure')"
+                        />
+                        Max exposure
+                      </label>
+                      <label class="flex items-center gap-1.5 text-sm text-text">
+                        <input
+                          type="radio"
+                          name="tilt-objective"
+                          class="accent-[var(--color-primary)]"
+                          [checked]="tiltObjective() === 'mean-variance'"
+                          (change)="tiltObjective.set('mean-variance')"
+                        />
+                        Mean-variance
+                      </label>
+                    </div>
+                  </fieldset>
+
+                  <div class="flex flex-col gap-1">
+                    <label for="gamma" class="text-xs text-text-secondary">Risk aversion γ</label>
+                    <input
+                      id="gamma"
+                      type="number"
+                      min="0.1"
+                      step="0.1"
+                      class="min-h-11 w-24 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text disabled:opacity-50"
+                      [value]="gamma()"
+                      [disabled]="tiltObjective() !== 'mean-variance'"
+                      (change)="onNumber($event, gamma.set)"
+                    />
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+                  <p class="text-sm text-text-secondary">
+                    Resulting β_p on {{ tiltFactor() }}
+                    <span class="ml-2 font-medium tabular-nums text-text">0.84</span>
+                  </p>
+                  <button
+                    type="button"
+                    class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+                  >
+                    Preview tilted weights
+                  </button>
+                </div>
+                <!-- The preview is exploratory; weights are fixed in step 4. -->
+                <p class="text-xs text-text-secondary">
+                  A preview does not change the fund's weights — those are set in Objective &amp;
+                  Constraints.
+                </p>
+              </div>
+            </app-info-card>
+
+            <app-action-button-row>
+              <button
+                type="button"
+                class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+              >
+                Save draft
+              </button>
+              <button
+                type="button"
+                class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+                [disabled]="!canSend()"
+              >
+                Send to Views Builder →
+              </button>
+              @if (!canSend()) {
+                <p class="w-full text-right text-xs text-text-secondary">
+                  The model must be estimated and current before it can be sent on.
+                </p>
+              }
+            </app-action-button-row>
+          </div>
+        }
+      </div>
+    }
+  </ui-tab-panel>
+
+  <!-- ========================= FUNDAMENTALS SCREEN ====================== -->
+  <ui-tab-panel [panelIndex]="1">
+    <div class="flex flex-col gap-6 pt-6">
+      <section class="flex flex-col gap-3" aria-labelledby="screen-filters">
+        <h2 id="screen-filters" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+          Ratio families
+        </h2>
+        <ul class="flex flex-wrap gap-2">
+          @for (family of ['Profitability', 'Liquidity', 'Efficiency', 'Interest coverage', 'Leverage', 'DuPont']; track family) {
+            <li>
+              <button
+                type="button"
+                aria-pressed="false"
+                class="min-h-11 rounded-full border border-border bg-surface-raised px-3 text-sm text-text transition-colors hover:bg-surface-inset"
+              >
+                {{ family }}
+              </button>
+            </li>
+          }
+        </ul>
+
+        <div class="flex flex-wrap gap-4">
+          @for (multiple of [{ id: 'pb', label: 'P/B', from: 0.4, to: 2.1 }, { id: 'pe', label: 'P/E', from: 5, to: 22 }, { id: 'ev', label: 'EV/EBITDA', from: 3, to: 14 }]; track multiple.id) {
+            <div class="flex flex-col gap-1">
+              <span class="text-xs text-text-secondary">{{ multiple.label }}</span>
+              <div class="flex items-center gap-1">
+                <label class="sr-only" [attr.for]="multiple.id + '-from'">
+                  {{ multiple.label }} lower bound
+                </label>
+                <input
+                  [id]="multiple.id + '-from'"
+                  type="number"
+                  [value]="multiple.from"
+                  class="min-h-11 w-20 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+                />
+                <span aria-hidden="true" class="text-text-secondary">–</span>
+                <label class="sr-only" [attr.for]="multiple.id + '-to'">
+                  {{ multiple.label }} upper bound
+                </label>
+                <input
+                  [id]="multiple.id + '-to'"
+                  type="number"
+                  [value]="multiple.to"
+                  class="min-h-11 w-20 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+                />
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section
+        class="flex flex-wrap items-end gap-6 rounded-lg border border-border bg-surface-raised px-4 py-3"
+        aria-labelledby="screen-stats"
+      >
+        <h2 id="screen-stats" class="sr-only">Screen results</h2>
+        <p class="text-sm">
+          <span aria-live="polite" class="font-medium tabular-nums text-text">312</span>
+          <span class="ml-1 text-text-secondary">names selected</span>
+        </p>
+        <div class="flex flex-col gap-1">
+          <label for="top-n" class="text-xs text-text-secondary">Top-N</label>
+          <input
+            id="top-n"
+            type="number"
+            min="1"
+            class="min-h-11 w-24 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+            [value]="topN()"
+            (change)="onNumber($event, topN.set)"
+          />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="weighting" class="text-xs text-text-secondary">Weighting</label>
+          <select
+            id="weighting"
+            class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+            [value]="weighting()"
+            (change)="weighting.set($any($event.target).value)"
+          >
+            <option value="equal">Equal-weighted</option>
+            <option value="cap">Cap-weighted</option>
+          </select>
+        </div>
+        @for (threshold of [{ id: 'buy', label: 'Buy', value: 0.8 }, { id: 'hold', label: 'Hold', value: 0.2 }, { id: 'sell', label: 'Sell', value: -0.5 }]; track threshold.id) {
+          <div class="flex flex-col gap-1">
+            <label [attr.for]="threshold.id" class="text-xs text-text-secondary">
+              {{ threshold.label }}
+            </label>
+            <input
+              [id]="threshold.id"
+              type="number"
+              step="0.1"
+              [value]="threshold.value"
+              class="min-h-11 w-20 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+            />
+          </div>
+        }
+      </section>
+
+      <div class="overflow-x-auto rounded-lg border border-border bg-surface-raised">
+        <table class="w-full min-w-[34rem] text-sm">
+          <caption class="sr-only">Names surviving the current screen</caption>
+          <thead>
+            <tr class="border-b border-border text-xs text-text-secondary">
+              <th scope="col" class="px-4 py-2 text-left font-medium">Ticker</th>
+              <th scope="col" class="px-2 py-2 text-left font-medium">Name</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">P/B</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">P/E</th>
+              <th scope="col" class="px-4 py-2 text-right font-medium">EV/EBITDA</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of screened(); track row.ticker) {
+              <tr class="border-b border-border-muted last:border-0">
+                <th scope="row" class="px-4 py-2 text-left font-medium text-text">{{ row.ticker }}</th>
+                <td class="px-2 py-2 text-text-secondary">{{ row.name }}</td>
+                <td class="px-2 py-2 text-right tabular-nums text-text">{{ row.priceToBook }}</td>
+                <td class="px-2 py-2 text-right tabular-nums text-text">{{ row.priceToEarnings }}</td>
+                <td class="px-4 py-2 text-right tabular-nums text-text">{{ row.evToEbitda }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </ui-tab-panel>
+
+  <!-- ============================ ALPHA SIGNALS ========================= -->
+  <ui-tab-panel [panelIndex]="2">
+    <div class="flex flex-col gap-3 pt-6">
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+        Alpha signal library
+      </h2>
+      <ul role="list" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        @for (sig of signalLibrary(); track sig.id) {
+          <li
+            class="flex flex-col gap-2 rounded-md border border-border bg-surface-raised px-4 py-3"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-sm font-medium text-text">{{ sig.name }}</span>
+              <!-- A signal with an IC but no combination says so in words. -->
+              <app-status-badge
+                [label]="sig.combined ? 'Combined' : 'Not combined'"
+                [tone]="sig.combined ? 'ok' : 'pending'"
+              />
+            </div>
+            <dl class="flex flex-wrap gap-x-6 gap-y-1 text-xs">
+              <div class="flex items-baseline gap-1.5">
+                <dt class="text-text-secondary">Category</dt>
+                <dd class="text-text">{{ categoryLabel[sig.category] }}</dd>
+              </div>
+              <div class="flex items-baseline gap-1.5">
+                <dt class="text-text-secondary">IC</dt>
+                <dd class="tabular-nums text-text">{{ sig.ic.toFixed(3) }}</dd>
+              </div>
+            </dl>
+          </li>
+        }
+        <li>
+          <button
+            type="button"
+            class="flex h-full w-full items-center justify-center rounded-md border border-dashed border-border-control px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+          >
+            + New Signal…
+          </button>
+        </li>
+      </ul>
+    </div>
+  </ui-tab-panel>
+
+  <!-- ======================= COMBINE & DIAGNOSTICS ====================== -->
+  <ui-tab-panel [panelIndex]="3">
+    <div class="flex flex-col gap-6 pt-6">
+      <app-info-card title="Combination parameters">
+        <div class="flex flex-wrap gap-4">
+          <div class="flex flex-col gap-1">
+            <label for="breadth" class="text-xs text-text-secondary">
+              Breadth (independent forecasts / year)
+            </label>
+            <input
+              id="breadth"
+              type="number"
+              min="1"
+              class="min-h-11 w-32 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+              [value]="breadth()"
+              (change)="onNumber($event, breadth.set)"
+            />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="lambda-r" class="text-xs text-text-secondary">Risk aversion λ_R</label>
+            <input
+              id="lambda-r"
+              type="number"
+              min="0.1"
+              step="0.1"
+              class="min-h-11 w-24 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+              [value]="lambdaR()"
+              (change)="onNumber($event, lambdaR.set)"
+            />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="signal-rho" class="text-xs text-text-secondary">Signal correlation ρ</label>
+            <input
+              id="signal-rho"
+              type="number"
+              min="-1"
+              max="1"
+              step="0.01"
+              class="min-h-11 w-24 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+              [value]="signalCorrelation()"
+              (change)="onNumber($event, signalCorrelation.set)"
+            />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="rho-target" class="text-xs text-text-secondary">
+              Target autocorrelation ρ_target
+            </label>
+            <div class="flex min-h-11 items-center gap-2">
+              <input
+                id="rho-target"
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                class="accent-[var(--color-primary)]"
+                [value]="targetAutocorrelation()"
+                (input)="onNumber($event, targetAutocorrelation.set)"
+              />
+              <span class="tabular-nums text-sm text-text">
+                {{ targetAutocorrelation().toFixed(2) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </app-info-card>
+
+      <app-info-card title="Fundamental law of active management">
+        <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          @for (metric of [
+            { label: 'Information ratio', value: fundamentalLaw().informationRatio.toFixed(2) },
+            { label: 'Expected value added', value: fundamentalLaw().expectedValueAdded.toFixed(2) + '%' },
+            { label: 'Signal decay', value: fundamentalLaw().decayMonths.toFixed(1) + ' mo' },
+            { label: 'Turnover', value: fundamentalLaw().turnover + '%' }
+          ]; track metric.label) {
+            <div class="flex flex-col gap-0.5">
+              <dt class="text-xs text-text-secondary">{{ metric.label }}</dt>
+              <dd class="text-xl font-semibold tabular-nums text-text">{{ metric.value }}</dd>
+            </div>
+          }
+        </dl>
+      </app-info-card>
+    </div>
+  </ui-tab-panel>
+</ui-tabs>
+
+<!-- Re-running over an estimated model overwrites it, so it asks first. -->
+<app-confirm-dialog
+  [open]="confirmRerun()"
+  title="Overwrite the existing estimate?"
+  message="This model is already estimated. Running again replaces its exposures and variance decomposition."
+  confirmLabel="Run estimation"
+  (confirmed)="run()"
+  (cancelled)="confirmRerun.set(false)"
+/>
+
+<div aria-live="polite" class="sr-only">{{ announcement() }}</div>

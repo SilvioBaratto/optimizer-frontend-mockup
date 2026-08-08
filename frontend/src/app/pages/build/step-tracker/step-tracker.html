@@ -1,0 +1,32 @@
+<nav aria-label="Build progress">
+  <ol class="flex flex-wrap items-center gap-x-1 gap-y-2 text-sm">
+    @for (step of steps; track step.index) {
+      <li class="flex items-center gap-1">
+        @if (step.index === current()) {
+          <span
+            aria-current="step"
+            class="rounded-md bg-primary-light px-2.5 py-1 font-medium text-primary"
+          >
+            {{ step.index }} {{ step.label }}
+          </span>
+        } @else if (step.index <= unlockedThrough()) {
+          <a
+            [routerLink]="step.route"
+            class="rounded-md px-2.5 py-1 text-text-secondary transition-colors hover:bg-surface-inset hover:text-text"
+          >
+            {{ step.index }} {{ step.label }}
+          </a>
+        } @else {
+          <!-- Not yet reachable: plain text, and said so for screen readers. -->
+          <span class="rounded-md px-2.5 py-1 text-text-tertiary">
+            {{ step.index }} {{ step.label }}
+            <span class="sr-only">(not yet available)</span>
+          </span>
+        }
+        @if (!$last) {
+          <span aria-hidden="true" class="text-text-tertiary">&rsaquo;</span>
+        }
+      </li>
+    }
+  </ol>
+</nav>
