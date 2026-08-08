@@ -1,0 +1,111 @@
+<div class="flex flex-col gap-3">
+  <p class="sr-only" aria-live="polite">{{ announcement() }}</p>
+
+  @switch (publication().state) {
+    @case ('failed') {
+      <!--
+        role="alert": a write that did not happen has to be heard immediately,
+        and it stays until it is retried or the run is repeated.
+      -->
+      <div
+        role="alert"
+        class="flex flex-col gap-2 rounded-md border border-danger bg-primary-light px-4 py-3"
+      >
+        <p class="flex items-start gap-2 text-sm font-medium text-text">
+          <span aria-hidden="true" class="text-danger">!</span>
+          Publish failed — the fund state was not updated
+        </p>
+        <p class="text-sm text-text-secondary">
+          The proposed allocation below is unchanged and still not published for this run. Retrying
+          re-sends the same allocation; it does not recompute it.
+        </p>
+
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+            [disabled]="publishing()"
+            (click)="confirming.set(true)"
+          >
+            {{ publishing() ? 'Retrying…' : 'Retry' }}
+          </button>
+          <button
+            type="button"
+            class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+            [attr.aria-expanded]="detailOpen()"
+            aria-controls="publish-failure-detail"
+            (click)="detailOpen.set(!detailOpen())"
+          >
+            {{ detailOpen() ? 'Hide failure detail' : 'View failure detail' }}
+          </button>
+        </div>
+
+        @if (detailOpen()) {
+          <p id="publish-failure-detail" class="text-sm text-text-secondary">
+            {{ publication().failureDetail }}
+          </p>
+        }
+      </div>
+    }
+    @case ('published') {
+      <div
+        role="status"
+        class="flex flex-wrap items-center gap-3 rounded-md border border-border bg-surface-inset px-4 py-3 text-sm"
+      >
+        <span aria-hidden="true" class="text-success">&#10003;</span>
+        <span class="flex-1 text-text">
+          Published to the fund state
+          <span class="text-text-secondary">· {{ publication().at }}</span>
+        </span>
+        <span class="text-xs text-text-secondary">
+          The risk and execution agents read it on their next run.
+        </span>
+      </div>
+    }
+    @default {
+      <div
+        role="status"
+        class="flex flex-col gap-2 rounded-md border border-border bg-surface-inset px-4 py-3"
+      >
+        <p class="text-sm text-text">Not yet published for this run</p>
+        @if (publication().at) {
+          <p class="text-sm text-text-secondary">
+            Last published <span class="tabular-nums text-text">{{ publication().at }}</span>
+            @if (publication().state === 'stale') {
+              — stale, superseded by a newer macro state. Stale is not a failure: that write
+              succeeded, it has simply been overtaken.
+            }
+          </p>
+        }
+
+        <div class="flex flex-col gap-2">
+          <button
+            type="button"
+            class="min-h-11 self-start rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+            [disabled]="!canPublish() || publishing()"
+            (click)="confirming.set(true)"
+          >
+            {{ publishing() ? 'Publishing…' : 'Publish to fund state' }}
+          </button>
+          @if (blockedReason()) {
+            <p class="text-xs text-text-secondary">{{ blockedReason() }}</p>
+          }
+        </div>
+      </div>
+    }
+  }
+</div>
+
+<!--
+  Explicit confirmation: the write overwrites the state three other agents
+  read, and it cannot be undone from this page.
+-->
+<app-confirm-dialog
+  [open]="confirming()"
+  title="Publish the proposed allocation?"
+  message="This overwrites the proposed allocation in the shared fund state. The risk and execution agents read that state on their next run, and this page cannot undo the write."
+  confirmLabel="Publish"
+  [destructive]="true"
+  (confirmed)="confirmPublish()"
+  (cancelled)="confirming.set(false)"
+/>

@@ -1,0 +1,154 @@
+<!--
+  Regions follow `docs/11 Fund Deliberation.md` in order. The shell renders the
+  <h1>, so headings here start at <h2>.
+-->
+
+<!-- Toolbar — sticky, so the run's state stays visible while reading the logs. -->
+<div
+  class="sticky top-0 z-20 -mx-4 flex flex-col gap-3 border-b border-border bg-surface px-4 py-3 md:-mx-8 md:px-8"
+>
+  <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+    <p class="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
+      Run status
+      <app-status-badge [label]="runStatusLabel[status()]" [tone]="runTone()" />
+      @if (latestCheckpoint(); as latest) {
+        <span>
+          last checkpoint step <span class="tabular-nums text-text">{{ latest.step }}</span> ·
+          <span class="font-mono tabular-nums text-text">{{ latest.at }}</span>
+        </span>
+      }
+    </p>
+
+    <p class="flex items-center gap-2 text-sm text-text-secondary">
+      <!--
+        Icon and word, and no pulsing: `motion-safe` keeps the animation off for
+        anyone who has asked for reduced motion.
+      -->
+      <span
+        aria-hidden="true"
+        [class]="
+          connection() === 'live'
+            ? 'inline-block h-2 w-2 rounded-full bg-primary motion-safe:animate-pulse'
+            : 'inline-block h-2 w-2 rounded-full bg-border-control'
+        "
+      ></span>
+      {{ connection() === 'live' ? 'SSE live' : connection() === 'reconnecting' ? 'SSE disconnected' : 'SSE closed' }}
+    </p>
+
+    <div class="ml-auto flex flex-wrap items-center gap-3">
+      <button
+        type="button"
+        class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+        [disabled]="isRunning()"
+        (click)="start()"
+      >
+        {{ isRunning() ? 'Deliberation running…' : 'Start Deliberation Run' }}
+      </button>
+
+      <div class="flex items-center gap-2">
+        <label for="checkpoint" class="text-sm text-text-secondary">Checkpoint</label>
+        <select
+          id="checkpoint"
+          class="min-h-11 min-w-0 max-w-48 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text disabled:opacity-50"
+          [disabled]="!hasRun()"
+          (change)="onCheckpoint($event)"
+        >
+          <option value="latest" [selected]="selectedStep() === null">Latest</option>
+          @for (c of checkpoints(); track c.step) {
+            <option [value]="c.step" [selected]="selectedStep() === c.step">
+              {{ checkpointLabel(c.step) }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <label for="node-filter" class="text-sm text-text-secondary">Node</label>
+        <select
+          id="node-filter"
+          class="min-h-11 min-w-0 max-w-40 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+          (change)="onNodeFilter($event)"
+        >
+          <option value="all" [selected]="nodeFilter() === 'all'">All</option>
+          @for (id of agentIds; track id) {
+            <option [value]="id" [selected]="nodeFilter() === id">{{ agentLabel[id] }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!--
+  assertive: a dropped stream is the one thing on this page worth interrupting
+  for, because everything below it stops being current.
+-->
+@if (disconnected()) {
+  <div
+    role="alert"
+    aria-live="assertive"
+    class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border bg-surface-inset px-4 py-3"
+  >
+    <app-status-badge label="connection lost" tone="warn" />
+    <p class="text-sm text-text-secondary">
+      Reconnecting using Last-Event-ID
+      <span class="font-mono tabular-nums text-text">{{ lastEventId() }}</span>. Everything already
+      received stays on screen.
+    </p>
+  </div>
+}
+
+@if (replayedCount() > 0 && !disconnected()) {
+  <p class="text-xs text-text-secondary">
+    Stream resumed — {{ replayedCount() }} events were replayed from Last-Event-ID, with none
+    duplicated or lost.
+  </p>
+}
+
+<!-- AgentTopology -->
+<app-info-card title="Agent topology">
+  <app-agent-topology />
+</app-info-card>
+
+<!-- FundStateInspector -->
+<app-info-card title="Fund state at the selected checkpoint">
+  <app-fund-state-inspector />
+</app-info-card>
+
+<!-- Live event stream -->
+<app-info-card title="Live event stream">
+  <app-live-event-stream />
+</app-info-card>
+
+<!-- Audit checkpoints -->
+<app-info-card title="Audit checkpoints">
+  <app-audit-checkpoints />
+</app-info-card>
+
+<!-- ActionButtonRow -->
+<div class="flex flex-col gap-2">
+  <p class="text-sm text-text-secondary">{{ completionSummary() }}</p>
+  <app-action-button-row align="start">
+    @if (canSendToGate()) {
+      <app-cross-page-link
+        label="Send to Human Approval Gate →"
+        route="/approvals/approval-gate"
+        emphasis="filled"
+      />
+    } @else {
+      <button
+        type="button"
+        class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary opacity-50"
+        disabled
+      >
+        Send to Human Approval Gate →
+      </button>
+    }
+  </app-action-button-row>
+  @if (!canSendToGate()) {
+    <p class="text-xs text-text-secondary">
+      Opens once risk_verdict and proposed_orders are both written. The gate's own rules live on
+      that page; this is only the hand-off.
+    </p>
+  }
+</div>

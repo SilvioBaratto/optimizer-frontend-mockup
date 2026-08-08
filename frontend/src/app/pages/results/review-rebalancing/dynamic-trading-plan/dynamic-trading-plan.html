@@ -1,0 +1,107 @@
+<section class="rounded-lg border border-border bg-surface-raised">
+  <h2 class="sr-only">Dynamic trading plan</h2>
+  <button
+    type="button"
+    class="flex w-full min-h-11 flex-wrap items-center justify-between gap-3 px-4 py-3 text-left"
+    [attr.aria-expanded]="open()"
+    aria-controls="dynamic-plan-body"
+    (click)="open.set(!open())"
+  >
+    <span class="flex items-center gap-2 text-sm font-medium text-text">
+      <span aria-hidden="true" class="text-text-secondary">{{ open() ? '▾' : '▸' }}</span>
+      Dynamic trading plan
+    </span>
+    <span class="flex flex-wrap items-center gap-x-4 text-sm text-text-secondary">
+      <span>
+        trade rate a/λ
+        <span class="tabular-nums text-text">{{ tradeRate().toFixed(2) }}</span> toward aim
+      </span>
+      <span class="tabular-nums text-text">
+        {{ beyondTolerance() }} of {{ assetCount() }}
+        <span class="font-normal text-text-secondary">beyond tolerance</span>
+      </span>
+    </span>
+  </button>
+
+  @if (open()) {
+    <div id="dynamic-plan-body" class="flex flex-col gap-4 border-t border-border px-4 py-4">
+      <p class="text-sm text-text-secondary">
+        With trading costs it is never optimal to jump to today's Markowitz portfolio: that target
+        moves, and chasing it pays the cost every period. The optimum closes a fixed share of the
+        gap toward an aim that already weights each signal by how slowly it decays.
+      </p>
+
+      <dl class="flex flex-wrap gap-x-8 gap-y-2 rounded-md border border-border bg-surface-inset px-4 py-3">
+        <div class="flex items-baseline gap-2">
+          <dt class="text-xs text-text-secondary">Risk aversion γ</dt>
+          <dd class="tabular-nums text-sm text-text">{{ riskAversion.toFixed(4) }}</dd>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <dt class="text-xs text-text-secondary">Cost parameter λ</dt>
+          <dd class="tabular-nums text-sm text-text">{{ costParameter.toFixed(2) }}</dd>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <dt class="text-xs text-text-secondary">Discount ρ</dt>
+          <dd class="tabular-nums text-sm text-text">{{ discount.toFixed(2) }}</dd>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <dt class="text-xs text-text-secondary">Weight on today's Markowitz z</dt>
+          <dd class="tabular-nums text-sm text-text">{{ aimWeight().toFixed(2) }}</dd>
+        </div>
+        <!-- Configured elsewhere; read-only here, with a way to go and change them. -->
+        <app-cross-page-link label="Edit in Objective & Constraints" route="/build/objective-constraints" />
+      </dl>
+
+      <!-- Inferred chart: named in prose, no axes or series specified. -->
+      <app-bar-chart
+        title="Aim portfolio against current position"
+        subtitle="chart inferred — the specification names it without defining axes"
+        ariaLabel="Current weight and aim weight for each asset"
+        [categories]="aimCategories()"
+        [series]="aimSeries()"
+        [valueFormatter]="decimalFormatter"
+        categoryAxisName="asset"
+        valueAxisName="weight"
+        [height]="260"
+      />
+
+      <!-- Inferred chart: Proposition 5, position homing in. -->
+      <app-line-chart
+        title="Position homing"
+        subtitle="chart inferred — convergence toward a fixed aim at rate a/λ"
+        ariaLabel="Convergence of one position toward its aim weight over successive periods"
+        [x]="homingLabels()"
+        [series]="homingSeries()"
+        [valueFormatter]="decimalFormatter"
+        xAxisName="period"
+        yAxisName="weight"
+        [height]="220"
+      />
+
+      <p class="text-sm text-text-secondary">
+        Each period closes {{ (tradeRate() * 100).toFixed(0) }}% of the remaining gap, so the
+        position approaches the aim without ever paying to arrive in one step.
+      </p>
+
+      <!-- Inferred chart: the empirical comparison of §12. -->
+      <app-bar-chart
+        title="Static against dynamic rebalancing"
+        subtitle="chart inferred — Sharpe ratio, gross and net of trading cost"
+        ariaLabel="Sharpe ratio of each policy, gross and net of trading cost"
+        [categories]="policyCategories"
+        [series]="policySeries"
+        [valueFormatter]="decimalFormatter"
+        categoryAxisName="policy"
+        valueAxisName="Sharpe"
+        [height]="240"
+      />
+
+      <p class="text-sm text-text-secondary">
+        Markowitz wins gross and loses badly net — it trades constantly. The dynamic policy wins
+        net because it gives less weight to the fastest-decaying signal and follows the persistent
+        ones instead. No choice of γ and λ recovers this for the static policy once there is more
+        than one predictor, because the static aim treats every factor alike.
+      </p>
+    </div>
+  }
+</section>

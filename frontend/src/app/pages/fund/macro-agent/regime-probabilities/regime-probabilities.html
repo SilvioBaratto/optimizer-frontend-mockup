@@ -1,0 +1,100 @@
+<div class="flex flex-col gap-4">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <label class="flex min-h-11 items-center gap-2 text-sm text-text">
+      <input
+        type="checkbox"
+        class="h-4 w-4 accent-[var(--color-primary)]"
+        [checked]="sortByProbability()"
+        (change)="sortByProbability.set($any($event.target).checked)"
+      />
+      Sort by probability
+    </label>
+  </div>
+
+  <!--
+    The bars are the estimate itself, so while the filter re-runs they are
+    replaced: showing a stale number where a fresh one is being computed invites
+    reading it as current.
+  -->
+  @if (recomputing()) {
+    <div role="status" class="flex flex-col gap-2">
+      <p class="text-sm text-text-secondary">Recomputing the filter…</p>
+      <app-skeleton-block height="h-40" />
+    </div>
+  } @else {
+    <app-bar-chart
+      title="Filtered probability by state"
+      ariaLabel="Filtered probability for each regime state"
+      [categories]="categories()"
+      [series]="series()"
+      [valueFormatter]="percentFormatter"
+      categoryAxisName="state"
+      valueAxisName="P"
+      [height]="200"
+      [showLegend]="false"
+    />
+  }
+
+  <!--
+    The accessible alternative, and the only place the expected run appears —
+    the chart carries one number per state, and this carries both.
+  -->
+  <div class="relative overflow-x-auto">
+    <table class="w-full min-w-lg text-sm">
+      <caption class="sr-only">
+        Filtered probability and expected run for each regime state.
+      </caption>
+      <thead>
+        <tr class="border-b border-border text-xs text-text-secondary">
+          <th scope="col" class="px-3 py-2 text-left font-medium">State</th>
+          <th scope="col" class="px-3 py-2 text-right font-medium">Filtered P</th>
+          <th scope="col" class="px-3 py-2 text-right font-medium">Expected run</th>
+          <th scope="col" class="px-3 py-2 text-left font-medium">Reading</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (state of orderedStates(); track state.name) {
+          <tr
+            class="border-b border-border-muted last:border-0"
+            [class.bg-surface-inset]="state.name === estimate().driver"
+          >
+            <th scope="row" class="px-3 py-2 text-left font-normal text-text">{{ state.name }}</th>
+            <td class="px-3 py-2 text-right tabular-nums text-text">{{ state.probability }}%</td>
+            <td class="px-3 py-2 text-right tabular-nums text-text-secondary">
+              ~{{ state.expectedRunMonths }}mo
+            </td>
+            <td class="px-3 py-2 text-xs text-text-secondary">{{ state.description }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!--
+    The sparkline keeps its last values through a re-run rather than blanking:
+    it is history, and history does not change because a new estimate is being
+    computed. It is labelled instead.
+  -->
+  <div class="flex flex-col gap-1">
+    @if (recomputing()) {
+      <p class="text-xs text-text-secondary">
+        Updating — the series below is the last completed run.
+      </p>
+    }
+    <app-line-chart
+      [title]="'Filtered P(' + estimate().driver + ') · last 24 months'"
+      ariaLabel="Filtered probability of the current driver state over the last 24 months"
+      [x]="historyLabels()"
+      [series]="historySeries()"
+      [valueFormatter]="percentFormatter"
+      xAxisName="month"
+      yAxisName="P"
+      [height]="180"
+      [showLegend]="false"
+    />
+  </div>
+
+  <p class="text-sm text-text-secondary">
+    Secondary read · {{ estimate().secondaryReading }}
+  </p>
+</div>

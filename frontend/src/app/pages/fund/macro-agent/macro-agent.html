@@ -1,0 +1,194 @@
+<!--
+  Regions follow `docs/12 Macro & Regimes Agent.md` in order. The shell renders
+  the <h1>, so headings here start at <h2>.
+-->
+
+<!-- HeroStatCard — sticky, so the agent's state stays readable across tabs. -->
+<div
+  class="sticky top-0 z-20 -mx-4 flex flex-col gap-3 border-b border-border bg-surface px-4 py-3 md:-mx-8 md:px-8"
+>
+  <h2 class="sr-only">Current regime</h2>
+
+  <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+    <p class="flex flex-wrap items-center gap-2">
+      <span class="text-sm text-text-secondary">Regime</span>
+      <app-status-badge [label]="estimate().driver" [tone]="driverTone()" />
+      <span class="text-lg font-semibold tabular-nums text-text">
+        {{ estimate().driverProbability }}%
+      </span>
+      @if (estimate().elevatedUncertainty) {
+        <!--
+          Two states within ten points is a coin toss, and the badge says so.
+          A colour change alone would let it read as a call.
+        -->
+        <app-status-badge label="elevated uncertainty" tone="warn" />
+      }
+    </p>
+
+    <p class="text-sm text-text-secondary">Runner-up {{ runnerUps() }}</p>
+
+    <div class="ml-auto flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2">
+        <label for="regime-model" class="text-sm text-text-secondary">Model</label>
+        <select
+          id="regime-model"
+          class="min-h-11 min-w-0 max-w-56 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+          (change)="onModel($event)"
+        >
+          @for (m of models; track m.id) {
+            <option [value]="m.id" [selected]="model() === m.id">{{ m.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <label for="lookback" class="text-sm text-text-secondary">Lookback</label>
+        <select
+          id="lookback"
+          class="min-h-11 min-w-0 max-w-40 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+          (change)="onLookback($event)"
+        >
+          @for (l of lookbacks; track l) {
+            <option [value]="l" [selected]="lookback() === l">{{ lookbackLabel[l] }}</option>
+          }
+        </select>
+      </div>
+
+      <button
+        type="button"
+        class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+        [disabled]="recomputing()"
+        (click)="recompute()"
+      >
+        {{ recomputing() ? 'Recomputing…' : 'Recompute filter' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-secondary">
+    <span>
+      Filter last run <span class="tabular-nums text-text">{{ estimate().lastRun }}</span>
+      · vintage <span class="tabular-nums text-text">{{ estimate().vintage }}</span>
+    </span>
+    @if (staleSignals().length) {
+      <span class="flex items-center gap-2">
+        <app-status-badge
+          [label]="staleSignals().length + (staleSignals().length === 1 ? ' signal stale' : ' signals stale')"
+          tone="warn"
+        />
+      </span>
+    }
+    @if (lookbackDirty()) {
+      <!-- Changing the sample changes the estimate; the page says so rather
+           than quietly showing an estimate from a different window. -->
+      <span class="text-text">
+        Lookback changed — recompute the filter to re-estimate over the new sample.
+      </span>
+    }
+  </div>
+</div>
+
+@if (errorMessage(); as message) {
+  <app-error-state
+    [message]="message"
+    detail="The estimate below is the last one that converged. It is stale, and publishing it would write a stale payload to the shared state."
+    (retry)="retry()"
+  />
+}
+
+<!-- TabBar -->
+<nav class="border-b border-border">
+  <ul role="tablist" aria-label="Macro agent sections" class="flex flex-wrap gap-1">
+    @for (tab of tabs; track tab.id; let i = $index) {
+      <li role="presentation">
+        <button
+          #tabButton
+          type="button"
+          role="tab"
+          [id]="'tab-' + tab.id"
+          [attr.aria-selected]="activeTab() === tab.id"
+          [attr.aria-controls]="'panel-' + tab.id"
+          [attr.tabindex]="activeTab() === tab.id ? 0 : -1"
+          class="min-h-11 border-b-2 px-3 text-sm transition-colors"
+          [class.border-primary]="activeTab() === tab.id"
+          [class.font-medium]="activeTab() === tab.id"
+          [class.text-text]="activeTab() === tab.id"
+          [class.border-transparent]="activeTab() !== tab.id"
+          [class.text-text-secondary]="activeTab() !== tab.id"
+          (click)="selectTab(tab.id)"
+          (keydown)="onTabKeydown($event, i)"
+        >
+          {{ tab.label }}
+        </button>
+      </li>
+    }
+  </ul>
+</nav>
+
+<div
+  role="tabpanel"
+  [id]="'panel-' + activeTab()"
+  [attr.aria-labelledby]="'tab-' + activeTab()"
+  tabindex="0"
+  class="flex flex-col gap-6"
+>
+  <h2 class="sr-only">{{ activeTabTitle() }}</h2>
+
+  @switch (activeTab()) {
+    @case ('overview') {
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <app-info-card title="Regime probabilities">
+          <app-regime-probabilities />
+        </app-info-card>
+
+        <app-info-card title="Views to Black-Litterman">
+          <app-view-bridge />
+        </app-info-card>
+      </div>
+
+      <app-info-card title="Validated predictive signals">
+        <app-predictive-signals />
+      </app-info-card>
+
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <app-info-card title="Stress scenario snapshot">
+          <app-stress-panel mode="snapshot" />
+        </app-info-card>
+
+        <app-info-card title="Handoff to fund state">
+          <app-handoff-panel mode="preview" />
+        </app-info-card>
+      </div>
+    }
+
+    @case ('regime-filter') {
+      <app-info-card title="Regime filter & nowcast">
+        <app-regime-filter-nowcast />
+      </app-info-card>
+    }
+
+    @case ('signals') {
+      <app-info-card title="Predictive signals">
+        <app-predictive-signals />
+      </app-info-card>
+    }
+
+    @case ('correlations') {
+      <app-info-card title="Correlations by regime">
+        <app-correlations-by-regime />
+      </app-info-card>
+    }
+
+    @case ('stress') {
+      <app-info-card title="Stress scenarios">
+        <app-stress-panel mode="workbench" />
+      </app-info-card>
+    }
+
+    @case ('handoff') {
+      <app-info-card title="Handoff log">
+        <app-handoff-panel mode="log" />
+      </app-info-card>
+    }
+  }
+</div>

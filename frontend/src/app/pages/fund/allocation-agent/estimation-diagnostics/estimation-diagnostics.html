@@ -1,0 +1,39 @@
+<div class="flex flex-col gap-3">
+  <dl class="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
+    <dt class="text-text-secondary">Approach</dt>
+    <dd class="text-text">{{ approachLabel[diagnostics().approach] }}</dd>
+
+    <dt class="text-text-secondary">Estimation uncertainty</dt>
+    <dd>
+      <app-status-badge [label]="diagnostics().uncertainty" [tone]="uncertaintyTone()" />
+    </dd>
+
+    <dt class="text-text-secondary">Certainty-equivalent loss</dt>
+    <dd class="tabular-nums text-text">~{{ diagnostics().certaintyEquivalentLoss.toFixed(1) }}%</dd>
+
+    <dt class="text-text-secondary">Assets in universe</dt>
+    <dd class="tabular-nums text-text">{{ diagnostics().universeSize }}</dd>
+
+    <dt class="text-text-secondary">Excluded, insufficient data</dt>
+    <dd class="tabular-nums text-text">{{ diagnostics().excludedCount }}</dd>
+
+    <dt class="text-text-secondary">Remedies</dt>
+    <dd class="text-text">{{ remedySummary() }}</dd>
+
+    <dt class="text-text-secondary">Covariance matrix</dt>
+    <dd class="text-text">
+      {{ diagnostics().covariancePositiveDefinite ? 'positive definite' : 'not positive definite' }}
+    </dd>
+  </dl>
+
+  <p class="text-xs text-text-secondary">
+    CE − E[ĈE] ≈ (γ/2)·tr[cov[x̂*]Σ] — the utility given up by optimising over estimated moments
+    rather than the true ones. Shrinkage and position limits reduce the variance of the estimate at
+    the cost of bias, which is why the loss falls as remedies are added.
+  </p>
+
+  <app-cross-page-link
+    label="Open weight sensitivity"
+    route="/build/run-solver-diagnostics"
+  />
+</div>

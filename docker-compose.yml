@@ -1,0 +1,13 @@
+services:
+  # Angular Frontend with nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_HOST_PORT:-4200}:80"
+    networks:
+      - app_network
+
+networks:
+  app_network:

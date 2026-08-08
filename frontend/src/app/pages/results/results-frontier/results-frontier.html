@@ -1,0 +1,348 @@
+<!--
+  Regions follow `docs/08 Results & Frontier.md` in order. The shell renders the
+  <h1> and the breadcrumb, so headings here start at <h2>.
+-->
+
+<!-- CollectionStatBar — sticky, so the run and constraint set stay in sight. -->
+<div
+  class="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-b border-border bg-surface px-4 py-3 md:-mx-8 md:px-8"
+>
+  <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+    <div class="flex items-center gap-2">
+      <label for="run-selector" class="text-sm text-text-secondary">Run</label>
+      <select
+        id="run-selector"
+        class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+        (change)="onRun($event)"
+      >
+        @for (run of runs; track run.id) {
+          <option [value]="run.id" [selected]="run.id === runId()">{{ run.label }}</option>
+        }
+      </select>
+    </div>
+
+    <p class="text-sm text-text-secondary">
+      Universe
+      <span class="tabular-nums text-text">{{ result()?.universeSize ?? '—' }}</span>
+      assets
+    </p>
+
+    <p class="text-sm text-text-secondary">
+      Risk-free r<sub>f</sub>
+      @if (result(); as data) {
+        <span class="tabular-nums text-text">
+          {{ data.riskFreeRate !== null ? data.riskFreeRate.toFixed(2) + '%' : 'not configured' }}
+        </span>
+      } @else {
+        <span class="text-text">—</span>
+      }
+    </p>
+  </div>
+
+  <!--
+    Constraint view. A set the run never computed is disabled and says so — the
+    reason is text, not a grey fill someone has to interpret.
+  -->
+  <fieldset class="flex flex-wrap items-center gap-x-4 gap-y-1">
+    <legend class="sr-only">Constraint view</legend>
+    <span class="text-sm text-text-secondary">Constraint view</span>
+    @for (view of constraintViews; track view) {
+      <label class="flex min-h-11 items-center gap-1.5 text-sm">
+        <input
+          type="radio"
+          name="constraint-view"
+          class="accent-[var(--color-primary)]"
+          [checked]="constraintView() === view"
+          [disabled]="!isViewComputed(view)"
+          (change)="onConstraintView(view)"
+        />
+        <span [class.text-text-secondary]="!isViewComputed(view)" [class.text-text]="isViewComputed(view)">
+          {{ constraintLabel[view] }}
+        </span>
+        @if (!isViewComputed(view)) {
+          <span class="text-xs text-text-secondary">— not computed for this run</span>
+        }
+      </label>
+    }
+  </fieldset>
+</div>
+
+@if (state() === 'error') {
+  <app-error-state
+    message="The frontier could not be computed for this run."
+    detail="The solver did not converge, the constraint set is infeasible, or the covariance matrix is not positive definite. Exports and the hand-off to Backtest stay unavailable until a valid result comes back."
+    (retry)="retry()"
+  />
+} @else if (state() === 'empty') {
+  <app-empty-state
+    title="No frontier available for this run"
+    detail="This run finished without computing a frontier for the selected constraint set. Open Run & Solver Diagnostics to see how it ended, or pick another run above."
+  >
+    <app-cross-page-link label="Run & Solver Diagnostics" route="/build/run-solver-diagnostics" />
+  </app-empty-state>
+} @else {
+  @if (isStale()) {
+    <!--
+      Non-blocking, and deliberately not a StatusBanner: this is not the outcome
+      of an action the user just took, and the results below stay readable. It
+      informs and points at the current run rather than interrupting.
+    -->
+    <div
+      class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border bg-surface-inset px-4 py-3"
+    >
+      <app-status-badge label="may be out of date" tone="warn" />
+      <p class="text-sm text-text-secondary">
+        The universe or its input data changed after this run finished.
+      </p>
+      <app-cross-page-link label="Open the current run" route="/build/run-solver-diagnostics" />
+    </div>
+  }
+
+  <section class="flex flex-col gap-6">
+    <h2 class="sr-only">Frontier and selected portfolio</h2>
+
+    @if (state() === 'loading') {
+      <div role="status" class="flex flex-col gap-6">
+        <span class="sr-only">Loading the frontier for this run</span>
+        <div class="rounded-lg border border-border bg-surface-raised p-4">
+          <app-skeleton-block height="h-72" />
+        </div>
+        <div class="rounded-lg border border-border bg-surface-raised p-4">
+          <app-skeleton-block height="h-5" [lines]="4" />
+        </div>
+      </div>
+    } @else if (result(); as data) {
+      <!-- ChartPanel — Efficient frontier -->
+      <app-frontier-chart
+        title="Efficient frontier"
+        [subtitle]="'Run #' + data.runId + ' · ' + constraintLabel[data.constraintView]"
+        [ariaLabel]="chartAriaLabel()"
+        [curve]="curve()"
+        [inefficientBranch]="inefficientBranch()"
+        [riskFreeRate]="riskFreeForChart()"
+        [markers]="markers()"
+        [assets]="assetPoints()"
+        [optionPatch]="chartOptionPatch"
+        xAxisName="SD(σ)"
+        yAxisName="E(r)"
+        [height]="380"
+        (pointClicked)="onChartClick($event)"
+      >
+        <div class="flex flex-col gap-3 border-t border-border px-4 py-3">
+          <!-- Overlay toggles — show and hide only; no data is refetched. -->
+          <fieldset class="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <legend class="sr-only">Chart overlays</legend>
+            <span class="text-xs text-text-secondary">Overlay</span>
+
+            <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+              <input
+                type="checkbox"
+                class="h-4 w-4 accent-[var(--color-primary)]"
+                [checked]="showFrontier()"
+                (change)="showFrontier.set($any($event.target).checked)"
+              />
+              Frontier
+            </label>
+
+            <label class="flex min-h-11 items-center gap-1.5 text-sm">
+              <input
+                type="checkbox"
+                class="h-4 w-4 accent-[var(--color-primary)]"
+                [checked]="showCal() && calAvailable()"
+                [disabled]="!calAvailable()"
+                (change)="showCal.set($any($event.target).checked)"
+              />
+              <span [class.text-text-secondary]="!calAvailable()" [class.text-text]="calAvailable()">
+                CAL &amp; Tangency
+              </span>
+              @if (!calAvailable()) {
+                <span class="text-xs text-text-secondary">— needs a risk-free rate</span>
+              }
+            </label>
+
+            <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+              <input
+                type="checkbox"
+                class="h-4 w-4 accent-[var(--color-primary)]"
+                [checked]="showGmvp()"
+                (change)="showGmvp.set($any($event.target).checked)"
+              />
+              GMVP
+            </label>
+
+            <label class="flex min-h-11 items-center gap-1.5 text-sm">
+              <input
+                type="checkbox"
+                class="h-4 w-4 accent-[var(--color-primary)]"
+                [checked]="showMdp() && mdpAvailable()"
+                [disabled]="!mdpAvailable()"
+                (change)="showMdp.set($any($event.target).checked)"
+              />
+              <span [class.text-text-secondary]="!mdpAvailable()" [class.text-text]="mdpAvailable()">
+                MDP
+              </span>
+              @if (!mdpAvailable()) {
+                <span class="text-xs text-text-secondary">— correlation matrix is singular</span>
+              }
+            </label>
+
+            <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+              <input
+                type="checkbox"
+                class="h-4 w-4 accent-[var(--color-primary)]"
+                [checked]="showAssets()"
+                (change)="showAssets.set($any($event.target).checked)"
+              />
+              Assets
+            </label>
+          </fieldset>
+
+          <!--
+            Target return π. The slider steps between points the solver
+            actually returned, so arrow keys move point to point and Home/End
+            land on the ends of the computed range.
+          -->
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <label for="target-return" class="text-sm text-text-secondary">Target return π</label>
+            <input
+              id="target-return"
+              type="range"
+              class="h-11 w-56 accent-[var(--color-primary)]"
+              min="0"
+              [max]="sliderMax()"
+              step="1"
+              [value]="sliderPosition()"
+              [attr.aria-valuetext]="sliderValueText()"
+              (input)="onSlider($event)"
+            />
+            <output for="target-return" class="tabular-nums text-sm font-medium text-text">
+              {{ selected()?.expectedReturn?.toFixed(2) }}%
+            </output>
+            <button
+              type="button"
+              class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+              [disabled]="atRunTarget()"
+              (click)="resetTarget()"
+            >
+              Reset to run's target
+            </button>
+            @if (notConvergedCount() > 0) {
+              <span class="text-xs text-text-secondary">
+                {{ notConvergedCount() }} target returns did not converge — the curve breaks there
+                and the slider steps over them
+              </span>
+            }
+          </div>
+        </div>
+      </app-frontier-chart>
+
+      <!-- InfoCard — Selected portfolio -->
+      @if (selected(); as metrics) {
+        <app-info-card title="Selected portfolio">
+          <dl class="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+            <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+              <dt class="text-sm text-text-secondary">Expected return E(r)</dt>
+              <dd class="tabular-nums text-sm font-medium text-text">
+                {{ metrics.expectedReturn.toFixed(2) }}%
+              </dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+              <dt class="text-sm text-text-secondary">Diversification ratio D(w)</dt>
+              <dd class="tabular-nums text-sm font-medium text-text">
+                {{ metrics.diversificationRatio.toFixed(2) }}
+              </dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+              <dt class="text-sm text-text-secondary">Standard deviation SD</dt>
+              <dd class="tabular-nums text-sm font-medium text-text">{{ metrics.sd.toFixed(2) }}%</dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+              <dt class="text-sm text-text-secondary">Weighted avg correlation ρ(w)</dt>
+              <dd class="tabular-nums text-sm font-medium text-text">
+                {{ metrics.weightedAvgCorrelation.toFixed(2) }}
+              </dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+              <dt class="text-sm text-text-secondary">Sharpe ratio</dt>
+              <dd class="tabular-nums text-sm font-medium text-text">
+                {{ metrics.sharpe.toFixed(3) }}
+              </dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+              <dt class="text-sm text-text-secondary">Concentration ratio CR(w)</dt>
+              <dd class="tabular-nums text-sm font-medium text-text">
+                {{ metrics.concentrationRatio.toFixed(3) }}
+              </dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-3 py-1">
+              <dt class="text-sm text-text-secondary">Correlation with the MDP ρ<sub>w,M</sub></dt>
+              <dd class="tabular-nums text-sm font-medium text-text">
+                {{ metrics.correlationWithMdp.toFixed(2) }}
+              </dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-3 py-1">
+              <dt class="text-sm text-text-secondary">Follows the π slider</dt>
+              <dd class="text-sm text-text-secondary">live</dd>
+            </div>
+          </dl>
+        </app-info-card>
+      }
+    }
+  </section>
+
+  @if (state() === 'ready' && result()) {
+    <!-- SectionCardGrid — Notable portfolios -->
+    <!-- Two up, not four: four metrics per card need the width to read. -->
+    <app-section-card-grid label="Notable portfolios" [columns]="2">
+      @for (portfolio of notable(); track portfolio.id) {
+        <app-entity-card
+          [title]="portfolio.name"
+          [meta]="cardMeta(portfolio.metrics)"
+          [selectable]="portfolio.pointIndex !== null"
+          [current]="portfolio.id === 'selected'"
+          (selected)="selectNotable(portfolio)"
+        >
+          @if (portfolio.id === 'selected') {
+            <app-status-badge label="selected" tone="active" />
+          }
+          @if (portfolio.pointIndex === null) {
+            <span class="text-xs text-text-secondary">off-frontier</span>
+          }
+        </app-entity-card>
+      }
+    </app-section-card-grid>
+
+    <!-- DataTable — Risk contribution -->
+    <app-info-card title="Risk contribution">
+      <app-risk-contribution-table
+        [rows]="holdings()"
+        [portfolioSd]="selected()?.sd ?? 0"
+        [highlighted]="highlightedTicker()"
+        (highlightedChange)="highlightedTicker.set($event)"
+      />
+    </app-info-card>
+
+    <!-- ActionButtonRow -->
+    <app-action-button-row align="start">
+      <button
+        type="button"
+        class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+        (click)="exportWeights()"
+      >
+        Export weights (CSV)
+      </button>
+      <button
+        type="button"
+        class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+        (click)="exportChart()"
+      >
+        Export chart (PNG)
+      </button>
+      <app-cross-page-link
+        label="Send selected portfolio to Backtest & Validation →"
+        route="/results/backtest-validation"
+        emphasis="filled"
+      />
+    </app-action-button-row>
+  }
+}

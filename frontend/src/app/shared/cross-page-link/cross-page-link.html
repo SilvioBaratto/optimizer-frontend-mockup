@@ -1,0 +1,11 @@
+<a
+  [routerLink]="route()"
+  [class]="
+    emphasis() === 'filled'
+      ? 'inline-flex min-h-11 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover'
+      : 'inline-flex min-h-11 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-primary transition-colors hover:bg-primary-light'
+  "
+>
+  {{ label() }}
+  <span aria-hidden="true">&rarr;</span>
+</a>

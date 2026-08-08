@@ -1,0 +1,52 @@
+<div class="relative min-w-0" (keydown.escape)="close()">
+  <button
+    #trigger
+    type="button"
+    role="combobox"
+    aria-haspopup="listbox"
+    aria-controls="portfolio-listbox"
+    [attr.aria-expanded]="open()"
+    class="inline-flex min-h-11 w-full max-w-64 items-center gap-2 rounded-md px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+    (click)="toggle()"
+  >
+    <span class="sr-only">Active portfolio:</span>
+    <span class="truncate">{{ active()?.name ?? 'No portfolio' }}</span>
+    <span aria-hidden="true" class="text-text-secondary">&#9662;</span>
+  </button>
+
+  @if (open()) {
+    <div
+      class="absolute left-0 z-30 mt-1 w-72 rounded-md border border-border bg-surface-raised shadow-lg"
+    >
+      <div class="border-b border-border p-2">
+        <input
+          type="text"
+          autofocus
+          placeholder="Search portfolios…"
+          aria-label="Search portfolios"
+          class="w-full rounded-md border border-border-control px-2 py-1.5 text-sm text-text"
+          [value]="query()"
+          (input)="onQuery($event)"
+        />
+      </div>
+      <ul id="portfolio-listbox" role="listbox" class="max-h-64 overflow-y-auto p-1">
+        @for (p of filtered(); track p.id) {
+          <li role="option" [attr.aria-selected]="p.id === active()?.id">
+            <button
+              type="button"
+              class="flex w-full items-center justify-between gap-2 rounded-md px-2 py-2 text-left text-sm text-text hover:bg-surface-inset"
+              (click)="select(p.id)"
+            >
+              <span class="truncate">{{ p.name }}</span>
+              @if (p.id === active()?.id) {
+                <span class="shrink-0 text-xs font-medium text-primary">Active</span>
+              }
+            </button>
+          </li>
+        } @empty {
+          <li class="px-2 py-3 text-sm text-text-secondary">No portfolios match your search</li>
+        }
+      </ul>
+    </div>
+  }
+</div>

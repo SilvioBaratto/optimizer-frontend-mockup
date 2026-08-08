@@ -1,0 +1,22 @@
+<section [id]="sectionId()" class="rounded-lg border border-border bg-surface-raised">
+  <header class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+    <h2 class="text-sm font-semibold text-text">{{ heading() }}</h2>
+    <div class="flex items-center gap-2">
+      <ng-content select="[section-action]" />
+      @if (status(); as value) {
+        <app-status-badge [label]="label(value)" [tone]="tone(value)" />
+      }
+    </div>
+  </header>
+
+  <div class="flex flex-col gap-3 px-4 py-4">
+    @if (recalculating()) {
+      <p role="status" class="text-sm text-text-secondary">Recalculating…</p>
+    }
+    @if (recalculating() && !keepContent()) {
+      <app-skeleton-block height="h-5" [lines]="3" />
+    } @else {
+      <ng-content />
+    }
+  </div>
+</section>

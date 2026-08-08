@@ -1,0 +1,83 @@
+<div class="flex flex-col gap-3">
+  <p class="sr-only" aria-live="polite">{{ announcement() }}</p>
+
+  <p class="text-sm text-text-secondary">
+    Why this strategy should earn a return, argued from investment theory rather than from the
+    backtest above. A p-value means something only when the hypothesis came first.
+  </p>
+
+  <label for="rationale-text" class="text-xs text-text-secondary">
+    Economic mechanism, documented independently of this backtest
+  </label>
+  <textarea
+    id="rationale-text"
+    rows="5"
+    class="w-full rounded-md border border-border-control bg-surface-raised px-3 py-2 text-sm text-text disabled:bg-surface-inset disabled:text-text-secondary"
+    [value]="text()"
+    [disabled]="locked()"
+    [attr.aria-describedby]="locked() ? 'rationale-locked-note' : null"
+    (input)="onText($event)"
+  ></textarea>
+
+  <label class="flex items-start gap-2 text-sm text-text">
+    <input
+      type="checkbox"
+      class="mt-1 h-4 w-4 accent-[var(--color-primary)]"
+      [checked]="attested()"
+      [disabled]="locked()"
+      (change)="onAttested($event)"
+    />
+    <span>
+      I confirm this rationale was documented independently of, and prior to, this backtest's
+      results.
+    </span>
+  </label>
+
+  <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-text-secondary">
+    <p>Author <span class="text-text">{{ author }}</span></p>
+    <p>Last saved <span class="tabular-nums text-text">{{ savedAt() ?? '—' }}</span></p>
+    @if (locked()) {
+      <span class="flex items-center gap-2">
+        <app-status-badge label="locked" tone="ok" />
+        <span id="rationale-locked-note">This rationale can no longer be edited.</span>
+      </span>
+    } @else {
+      <p>Locking is irreversible.</p>
+    }
+  </div>
+
+  @if (!locked()) {
+    <div class="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+        (click)="saveDraft()"
+      >
+        Save draft
+      </button>
+      <button
+        type="button"
+        class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+        [disabled]="!canLock()"
+        (click)="confirmingLock.set(true)"
+      >
+        Lock rationale
+      </button>
+      @if (!canLock()) {
+        <p class="text-xs text-text-secondary">
+          Needs the text filled in and the attestation ticked.
+        </p>
+      }
+    </div>
+  }
+</div>
+
+<app-confirm-dialog
+  [open]="confirmingLock()"
+  title="Lock this rationale?"
+  message="Once locked the text cannot be edited, which is what makes it evidence that the reasoning predates the results. This cannot be undone."
+  confirmLabel="Lock rationale"
+  [destructive]="true"
+  (confirmed)="performLock()"
+  (cancelled)="confirmingLock.set(false)"
+/>

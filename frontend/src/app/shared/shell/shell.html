@@ -1,0 +1,40 @@
+<div class="min-h-dvh bg-surface">
+  <a href="#main-content" class="skip-link">Skip to content</a>
+
+  <app-shell-sidebar
+    id="shell-sidebar"
+    [isOpen]="sidebarOpen()"
+    [isMobile]="isMobile()"
+    (navigate)="onNavigate()"
+  />
+
+  <!-- Backdrop: only reachable while the drawer is open on mobile. -->
+  @if (isMobile() && sidebarOpen()) {
+    <div
+      class="fixed inset-0 z-30 bg-text/20 md:hidden"
+      aria-hidden="true"
+      (click)="toggleSidebar()"
+    ></div>
+  }
+
+  <div class="flex min-h-dvh flex-col md:pl-[var(--sidebar-w)]">
+    <app-shell-topbar [sidebarOpen]="sidebarOpen()" (toggleSidebar)="toggleSidebar()" />
+
+    <main
+      id="main-content"
+      tabindex="-1"
+      class="flex-1 px-4 py-5 md:px-8 md:py-6"
+    >
+      <div class="mx-auto flex max-w-[1200px] flex-col gap-6">
+        <div class="flex flex-col gap-1">
+          <app-breadcrumb [section]="sectionLabel()" [page]="pageTitle()" />
+          <h1 class="text-2xl font-semibold tracking-tight text-text">{{ pageTitle() }}</h1>
+        </div>
+
+        <router-outlet />
+      </div>
+    </main>
+  </div>
+
+  <div aria-live="polite" aria-atomic="true" class="sr-only">{{ announced() }}</div>
+</div>

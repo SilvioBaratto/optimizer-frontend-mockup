@@ -1,0 +1,101 @@
+<div class="flex flex-col gap-4">
+  <p class="text-sm text-text-secondary">
+    Correlations are not a fixed property of the book. They tighten in the bad state and slacken in
+    the good one, which is why diversification tends to fail exactly when it is needed.
+  </p>
+
+  <div class="flex flex-wrap items-end gap-4">
+    <div class="flex flex-col gap-1">
+      <label for="regime-a" class="text-xs text-text-secondary">Regime A</label>
+      <select
+        id="regime-a"
+        class="min-h-11 min-w-0 max-w-48 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+        (change)="onRegimeA($event)"
+      >
+        @for (state of states; track state) {
+          <option [value]="state" [selected]="regimeA() === state">{{ state }}</option>
+        }
+      </select>
+    </div>
+    <div class="flex flex-col gap-1">
+      <label for="regime-b" class="text-xs text-text-secondary">Regime B</label>
+      <select
+        id="regime-b"
+        class="min-h-11 min-w-0 max-w-48 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+        (change)="onRegimeB($event)"
+      >
+        @for (state of states; track state) {
+          <option [value]="state" [selected]="regimeB() === state">{{ state }}</option>
+        }
+      </select>
+    </div>
+    <p class="text-xs text-text-secondary">
+      A and B cannot be the same state — picking one already chosen swaps the other.
+    </p>
+  </div>
+
+  <!-- Inferred chart: the source names this tab without giving a structure. -->
+  <app-bar-chart
+    title="Correlation by pair, two regimes compared"
+    subtitle="chart inferred — named in the specification without defined axes"
+    ariaLabel="Correlation of each asset pair under the two selected regimes"
+    [categories]="pairs()"
+    [series]="series()"
+    [valueFormatter]="decimalFormatter"
+    categoryAxisName="pair"
+    valueAxisName="ρ"
+    [height]="280"
+  />
+
+  <div class="relative overflow-x-auto">
+    <table class="w-full min-w-2xl text-sm">
+      <caption class="sr-only">
+        Correlation of each asset pair under every state of the four-state model.
+      </caption>
+      <thead>
+        <tr class="border-b border-border text-xs text-text-secondary">
+          <th scope="col" class="px-3 py-2 text-left font-medium">Pair</th>
+          @for (state of states; track state) {
+            <th scope="col" class="px-3 py-2 text-right font-medium">{{ state }}</th>
+          }
+          <th scope="col" class="px-3 py-2 text-right font-medium">
+            {{ regimeB() }} − {{ regimeA() }}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of correlations; track row.pair) {
+          <tr class="border-b border-border-muted last:border-0">
+            <th scope="row" class="px-3 py-2 text-left font-normal text-text">{{ row.pair }}</th>
+            @for (state of states; track state) {
+              <td
+                class="px-3 py-2 text-right tabular-nums"
+                [class.text-text]="state === regimeA() || state === regimeB()"
+                [class.text-text-secondary]="state !== regimeA() && state !== regimeB()"
+                [class.font-medium]="state === regimeA() || state === regimeB()"
+              >
+                {{ row.byState[state].toFixed(2) }}
+              </td>
+            }
+            <td class="px-3 py-2 text-right tabular-nums text-text">
+              {{ delta(row.pair) > 0 ? '+' : '' }}{{ delta(row.pair).toFixed(2) }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (signFlips().length) {
+    <p class="rounded-md border border-border bg-surface-inset px-4 py-3 text-sm text-text-secondary">
+      <span class="font-medium text-text">Changes sign between these two states:</span>
+      @for (row of signFlips(); track row.pair) {
+        <span class="block">
+          {{ row.pair }} — {{ row.byState[regimeA()].toFixed(2) }} in {{ regimeA() }} against
+          {{ row.byState[regimeB()].toFixed(2) }} in {{ regimeB() }}. A hedge that relies on this
+          pair holds in one state and not the other.
+        </span>
+      }
+    </p>
+  }
+</div>

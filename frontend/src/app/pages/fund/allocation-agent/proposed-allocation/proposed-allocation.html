@@ -1,0 +1,171 @@
+<div class="flex flex-col gap-3">
+  @if (superseded()) {
+    <!--
+      Kept visible, and kept honest: these are the previous run's weights, and
+      publishing them would publish that run, not the one that just failed.
+    -->
+    <p class="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
+      <app-status-badge label="superseded" tone="warn" />
+      Result of the last successful run. The run that followed it failed, so nothing here reflects
+      the current configuration.
+    </p>
+  }
+
+  <!-- Scrolls inside its own box so the page never scrolls sideways. -->
+  <div class="relative overflow-x-auto">
+    <table class="w-full min-w-xl text-sm">
+      <caption class="sr-only">
+        Proposed allocation: weight in capital and total risk contribution per asset, with any
+        binding constraint. Rows can be expanded for the asset's marginal contribution to portfolio
+        risk.
+      </caption>
+      <thead>
+        <tr class="border-b border-border text-xs text-text-secondary">
+          <th scope="col" class="px-4 py-2 text-left font-medium">Asset</th>
+          <th scope="col" class="px-2 py-2 text-right font-medium">Weight</th>
+          <th scope="col" class="px-2 py-2 text-right font-medium">Risk contr.</th>
+          <th scope="col" class="px-4 py-2 text-left font-medium">Flag</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of visibleRows(); track row.ticker) {
+          <tr class="border-b border-border-muted">
+            <th scope="row" class="px-4 py-1.5 text-left font-normal">
+              @if (row.weight !== null) {
+                <button
+                  type="button"
+                  class="flex min-h-11 items-center gap-2 rounded text-left text-text"
+                  [attr.aria-expanded]="openRow() === row.ticker"
+                  [attr.aria-controls]="'detail-' + row.ticker"
+                  (click)="toggleRow(row.ticker)"
+                >
+                  <span aria-hidden="true" class="text-xs text-text-secondary">
+                    {{ openRow() === row.ticker ? '▾' : '▸' }}
+                  </span>
+                  <span class="font-medium">{{ row.ticker }}</span>
+                  @if (row.weight < 0) {
+                    <!-- Stated, never left to the minus sign alone. -->
+                    <span class="text-xs text-text-secondary">(short)</span>
+                  }
+                  <span class="sr-only">{{ row.name }}, {{ row.assetClass }}</span>
+                </button>
+              } @else {
+                <span class="flex min-h-11 items-center gap-2 text-text-secondary">
+                  <span class="font-medium">{{ row.ticker }}</span>
+                  <span class="sr-only">{{ row.name }}, {{ row.assetClass }}</span>
+                </span>
+              }
+            </th>
+            <td class="px-2 py-1.5 text-right tabular-nums text-text">{{ pct(row.weight) }}</td>
+            <td class="px-2 py-1.5 text-right tabular-nums text-text">
+              {{ pct(row.riskContribution) }}
+            </td>
+            <td class="px-4 py-1.5 text-left">
+              <!-- Words, never colour: a bound constraint has to survive a monochrome print. -->
+              @if (row.flag === 'none') {
+                <span class="text-text-secondary">{{ flagLabel[row.flag] }}</span>
+              } @else {
+                <app-status-badge [label]="flagLabel[row.flag]" tone="warn" />
+              }
+            </td>
+          </tr>
+
+          @if (openRow() === row.ticker) {
+            <tr [id]="'detail-' + row.ticker" class="border-b border-border-muted bg-surface-inset">
+              <td colspan="4" class="px-4 py-3">
+                <p class="mb-2 text-sm font-medium text-text">
+                  {{ row.name }} — marginal contribution to portfolio risk
+                </p>
+                <dl class="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1 text-sm">
+                  <dt class="text-text-secondary">Asset class</dt>
+                  <dd class="text-text">{{ row.assetClass }}</dd>
+
+                  <dt class="text-text-secondary">Weight x<sub>i</sub></dt>
+                  <dd class="tabular-nums text-text">{{ row.weight!.toFixed(2) }}%</dd>
+
+                  <dt class="text-text-secondary">SD(R<sub>i</sub>)</dt>
+                  <dd class="tabular-nums text-text">{{ row.volatility!.toFixed(1) }}%</dd>
+
+                  <dt class="text-text-secondary">Corr(R<sub>i</sub>, R<sub>P</sub>)</dt>
+                  <dd class="tabular-nums text-text">{{ row.correlation!.toFixed(2) }}</dd>
+
+                  <dt class="text-text-secondary">∂σ/∂x<sub>i</sub></dt>
+                  <dd class="tabular-nums text-text">{{ row.marginalRisk!.toFixed(2) }}</dd>
+
+                  <dt class="text-text-secondary">σ<sub>i</sub>(x) share</dt>
+                  <dd class="tabular-nums text-text">{{ row.riskContribution!.toFixed(2) }}%</dd>
+                </dl>
+                <p class="mt-2 max-w-prose text-xs text-text-secondary">
+                  The marginal contribution is the increase in portfolio risk from a small increase
+                  in this asset; the total contribution σ<sub>i</sub>(x) = x<sub>i</sub> ·
+                  ∂σ/∂x<sub>i</sub> is the share of portfolio risk it carries. An asset can hold a
+                  large share of capital and a small share of risk, and that gap is what risk
+                  budgeting acts on.
+                </p>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+      <tfoot>
+        <tr class="border-t border-border text-sm font-medium">
+          <th scope="row" class="px-4 py-2 text-left">TOTAL</th>
+          <td class="px-2 py-2 text-right tabular-nums text-text">
+            {{ weightTotal().toFixed(1) }}%
+          </td>
+          <td class="px-2 py-2 text-right tabular-nums text-text">{{ riskTotal().toFixed(1) }}%</td>
+          <td class="px-4 py-2 text-left text-text-secondary">—</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  @if (hiddenCount() > 0 || expanded()) {
+    <button
+      type="button"
+      class="min-h-11 self-start rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+      (click)="expanded.set(!expanded())"
+    >
+      @if (expanded()) {
+        Show top positions only
+      } @else {
+        View full table — {{ hiddenCount() }} more assets
+      }
+    </button>
+  }
+
+  <!--
+    Sharpe is stated as its own definition, not as a number that happens to
+    match: it is derived from the three figures beside it and has no setter
+    anywhere in the page.
+  -->
+  <div class="flex flex-col gap-2 rounded-md bg-surface-inset px-4 py-3 text-sm">
+    <dl class="flex flex-wrap items-baseline gap-x-6 gap-y-2">
+      <div class="flex items-baseline gap-2">
+        <dt class="text-text-secondary">E[R<sub>P</sub>]</dt>
+        <dd class="tabular-nums text-text">{{ summary().expectedReturn.toFixed(1) }}%</dd>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <dt class="text-text-secondary">σ<sub>P</sub></dt>
+        <dd class="tabular-nums text-text">{{ summary().volatility.toFixed(1) }}%</dd>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <dt class="text-text-secondary">r<sub>f</sub></dt>
+        <dd class="tabular-nums text-text">{{ summary().riskFreeRate.toFixed(1) }}%</dd>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <dt class="text-text-secondary" id="sharpe-label">
+          Sharpe ratio, derived from E[R<sub>P</sub>], r<sub>f</sub> and σ<sub>P</sub>
+        </dt>
+        <dd class="tabular-nums text-text" aria-readonly="true" aria-labelledby="sharpe-label">
+          {{ summary().sharpe.toFixed(2) }}
+        </dd>
+      </div>
+    </dl>
+    <p class="text-xs text-text-secondary">
+      Sharpe = (E[R<sub>P</sub>] − r<sub>f</sub>) / σ<sub>P</sub> — the slope of the capital
+      allocation line through this portfolio. Read-only: it is never set independently of the three
+      values above.
+    </p>
+  </div>
+</div>

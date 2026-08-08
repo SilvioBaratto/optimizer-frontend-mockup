@@ -1,0 +1,196 @@
+<div class="flex flex-col gap-4">
+  <div class="flex flex-col gap-2">
+    <label for="maha-radius" class="text-xs text-text-secondary">
+      Mahalanobis radius k — the elliptical domain of admissibility
+    </label>
+    <div class="flex flex-wrap items-center gap-3">
+      <input
+        id="maha-radius"
+        type="range"
+        min="0.5"
+        max="5"
+        step="0.1"
+        class="h-11 w-48 accent-[var(--color-primary)]"
+        [value]="radius()"
+        [attr.aria-valuetext]="
+          'k equals ' + radius().toFixed(1) + ', maximum loss ' + stress().maximumLoss.toFixed(1) + ' percent'
+        "
+        (input)="onRadius($event)"
+      />
+      <!--
+        The number field, not the slider, is the accessible primary: it is the
+        only one usable without a pointer and without fine motor control.
+      -->
+      <label for="maha-radius-value" class="sr-only">Mahalanobis radius k, numeric</label>
+      <input
+        id="maha-radius-value"
+        type="number"
+        min="0"
+        step="0.1"
+        class="min-h-11 w-24 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+        [value]="radius()"
+        (change)="onRadiusField($event)"
+      />
+    </div>
+    <p class="text-xs text-text-secondary">
+      k does for the stress test what a confidence level does for VaR. Plausibility is measured by
+      radius rather than by probability mass, so the worst case does not shift merely because the
+      model has more factors in it.
+    </p>
+  </div>
+
+  <dl class="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+    <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+      <dt class="text-sm text-text-secondary">Maximum Loss over the domain</dt>
+      <dd class="tabular-nums text-sm font-medium text-text">
+        {{ stress().maximumLoss.toFixed(1) }}%
+      </dd>
+    </div>
+    <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+      <dt class="text-sm text-text-secondary">Top contributing factor</dt>
+      <dd class="text-sm text-text">
+        {{ topContribution().factor }}
+        <span class="tabular-nums text-text-secondary">{{ topContribution().share.toFixed(0) }}%</span>
+      </dd>
+    </div>
+  </dl>
+
+  @if (mode() === 'snapshot') {
+    <p class="text-xs text-text-secondary">
+      A read-only summary. The radius, the fixed factors and the reverse test live in the Stress
+      Scenarios tab.
+    </p>
+    <app-cross-page-link
+      label="Stress Testing & Scenarios"
+      route="/risk/stress-testing"
+    />
+  } @else {
+    <!-- Workbench — inferred: the specification names these without drawing them. -->
+    <div class="flex flex-col gap-3 rounded-md border border-border bg-surface-inset px-4 py-3">
+      <h3 class="text-sm font-medium text-text">Fixed factors</h3>
+      <p class="text-xs text-text-secondary">
+        A partial scenario pins a few factors and leaves the rest at their conditional mean, which
+        is the most plausible completion available and the cheapest to compute.
+      </p>
+
+      @if (stress().fixedFactors.length) {
+        <ul class="flex flex-wrap gap-2">
+          @for (fixed of stress().fixedFactors; track fixed.factor) {
+            <li class="flex items-center gap-2 rounded-md border border-border bg-surface px-2 py-1 text-sm">
+              <span class="text-text">{{ fixed.factor }}</span>
+              <span class="tabular-nums text-text-secondary">{{ fixed.value }}</span>
+              <button
+                type="button"
+                class="min-h-11 px-1 text-text-secondary hover:text-text"
+                [attr.aria-label]="'Unfix ' + fixed.factor"
+                (click)="removeFixedFactor(fixed.factor)"
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="text-sm text-text-secondary">
+          No factor is fixed — every factor sits at its conditional mean.
+        </p>
+      }
+
+      <div class="flex flex-wrap items-end gap-2">
+        <div class="flex flex-col gap-1">
+          <label for="fix-factor" class="text-xs text-text-secondary">Factor</label>
+          <select
+            id="fix-factor"
+            class="min-h-11 min-w-0 max-w-56 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+            (change)="onPendingFactor($event)"
+          >
+            @for (factor of factors; track factor) {
+              <option [value]="factor" [selected]="pendingFactor() === factor">{{ factor }}</option>
+            }
+          </select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="fix-value" class="text-xs text-text-secondary">Value</label>
+          <input
+            id="fix-value"
+            type="number"
+            step="0.1"
+            class="min-h-11 w-28 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+            [value]="pendingValue()"
+            (input)="onPendingValue($event)"
+          />
+        </div>
+        <button
+          type="button"
+          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+          [disabled]="pendingValue().trim() === ''"
+          (click)="addFixedFactor()"
+        >
+          Fix factor
+        </button>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3 rounded-md border border-border bg-surface-inset px-4 py-3">
+      <h3 class="text-sm font-medium text-text">Reverse stress test</h3>
+      <label class="flex min-h-11 items-center gap-2 text-sm text-text">
+        <input
+          type="checkbox"
+          class="h-4 w-4 accent-[var(--color-primary)]"
+          [checked]="reverseMode()"
+          (change)="reverseMode.set($any($event.target).checked)"
+        />
+        Start from a loss and search for the scenario that produces it
+      </label>
+      @if (reverseMode()) {
+        <div class="flex flex-col gap-1">
+          <label for="reverse-target" class="text-xs text-text-secondary">
+            Target loss, percent
+          </label>
+          <input
+            id="reverse-target"
+            type="number"
+            step="0.5"
+            class="min-h-11 w-32 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+            [value]="reverseTarget() ?? ''"
+            [attr.aria-invalid]="reverseTarget() === null ? 'true' : null"
+            [attr.aria-describedby]="reverseTarget() === null ? 'reverse-target-error' : null"
+            (change)="onReverseTarget($event)"
+          />
+          @if (reverseTarget() === null) {
+            <p id="reverse-target-error" class="text-xs text-text-secondary">
+              Reverse mode needs a target loss to search from.
+            </p>
+          }
+        </div>
+      }
+    </div>
+
+    <app-bar-chart
+      title="Maximum Loss Contribution by factor"
+      subtitle="chart inferred — the specification names the measure without drawing it"
+      ariaLabel="Share of the worst-case loss attributable to each systematic factor"
+      [categories]="categories()"
+      [series]="series()"
+      [valueFormatter]="percentFormatter"
+      categoryAxisName="factor"
+      valueAxisName="MLC"
+      [height]="260"
+      [showLegend]="false"
+    />
+
+    <p class="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
+      Σ MLC <span class="tabular-nums text-text">{{ stress().contributionSum.toFixed(1) }}%</span>
+      @if (interacts()) {
+        <!-- Stated in words: the shortfall is the finding, not a rounding error. -->
+        <app-status-badge label="negative interaction" tone="warn" />
+        <span>
+          The contributions fall short of 100%, so the factors interact: moving together does
+          damage that no single factor accounts for, and a hedge built factor by factor would miss it.
+        </span>
+      } @else {
+        <span>The contributions are additive, so factor-by-factor hedges account for the loss.</span>
+      }
+    </p>
+  }
+</div>

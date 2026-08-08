@@ -1,0 +1,720 @@
+<!--
+  Regions follow `docs/09 Backtest & Validation.md` in order. The shell renders
+  the <h1>; the summary card and each of the seven sections are <h2>.
+-->
+<p class="sr-only" aria-live="polite">{{ announcement() }}</p>
+
+@if (state() === 'loading') {
+  <div role="status" class="flex flex-col gap-6">
+    <span class="sr-only">Loading validation results</span>
+    <div class="rounded-lg border border-border bg-surface-raised p-4">
+      <app-skeleton-block height="h-6" [lines]="6" />
+    </div>
+    <div class="rounded-lg border border-border bg-surface-raised p-4">
+      <app-skeleton-block height="h-5" [lines]="4" />
+    </div>
+  </div>
+} @else if (state() === 'empty') {
+  <app-empty-state
+    title="No backtest has been run for this portfolio"
+    detail="Run a backtest from Run & Solver Diagnostics to populate the validation results."
+  >
+    <app-cross-page-link label="Run & Solver Diagnostics" route="/build/run-solver-diagnostics" />
+  </app-empty-state>
+} @else {
+  <!-- HeroStatCard — the six criteria and the overall verdict. -->
+  <!--
+    Sticky only from md up. Six criteria plus a verdict is a lot of chrome to
+    pin to a phone screen, and below that width the page is short enough on
+    content per screen that pinning it costs more than it gives.
+  -->
+  <div class="z-20 -mx-4 bg-surface px-4 pt-1 pb-3 md:sticky md:top-0 md:-mx-8 md:px-8">
+    <app-hero-stat-card title="Validation summary" eyebrow="Backtest">
+      <div hero-action class="relative">
+        <button
+          type="button"
+          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="exportMenuOpen()"
+          (click)="exportMenuOpen.set(!exportMenuOpen())"
+        >
+          Export report <span aria-hidden="true">▾</span>
+        </button>
+        @if (exportMenuOpen()) {
+          <div
+            role="menu"
+            class="absolute right-0 z-30 mt-1 w-44 rounded-md border border-border bg-surface-raised p-1"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              class="flex w-full min-h-11 items-center rounded-md px-2 text-left text-sm text-text hover:bg-surface-inset"
+              (click)="exportReport('pdf')"
+            >
+              Export as PDF
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="flex w-full min-h-11 items-center rounded-md px-2 text-left text-sm text-text hover:bg-surface-inset"
+              (click)="exportReport('csv')"
+            >
+              Export as CSV
+            </button>
+          </div>
+        }
+      </div>
+
+      <!--
+        Each row is a link to the section that produced it, so the badge and its
+        evidence are one click apart.
+      -->
+      <ul class="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2 xl:grid-cols-3">
+        @for (criterion of criteria(); track criterion.section) {
+          <li class="flex flex-col gap-0.5 border-b border-border-muted py-1.5">
+            <span class="flex flex-wrap items-center gap-2">
+              <a
+                class="text-sm font-medium text-text underline-offset-2 hover:underline"
+                [href]="'#' + criterion.section"
+                (click)="goToSection(criterion.section, $event)"
+              >
+                {{ criterion.label }}
+              </a>
+              <app-status-badge
+                [label]="badgeLabel(criterion.status)"
+                [tone]="badgeTone(criterion.status)"
+              />
+            </span>
+            <span class="text-xs text-text-secondary">{{ criterion.detail }}</span>
+          </li>
+        }
+      </ul>
+
+      <div
+        hero-footer
+        class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3"
+      >
+        <p class="text-sm font-semibold text-text">
+          Overall
+          <span class="ml-2 font-normal" [class.text-primary]="!validated()">{{ verdict() }}</span>
+        </p>
+        @if (hasFailed('export')) {
+          <p class="flex flex-wrap items-center gap-2 text-sm text-text-secondary" role="alert">
+            <app-status-badge label="export failed" tone="alert" />
+            The badges and verdict above are unchanged.
+            <app-retry-button label="Retry export" (retry)="retry('export')" />
+          </p>
+        }
+      </div>
+    </app-hero-stat-card>
+  </div>
+
+  <!-- SectionNav — real links, collapsing to a select on narrow viewports. -->
+  <nav aria-label="Validation sections" class="rounded-lg border border-border bg-surface-raised px-4 py-2">
+    <ul class="hidden flex-wrap items-center gap-x-1 gap-y-1 md:flex">
+      @for (section of sections; track section.id) {
+        <li>
+          <a
+            class="inline-flex min-h-11 items-center rounded-md px-2 text-sm text-text-secondary transition-colors hover:bg-surface-inset hover:text-text aria-[current=true]:bg-surface-inset aria-[current=true]:font-medium aria-[current=true]:text-text"
+            [href]="'#' + section.id"
+            [attr.aria-current]="activeSection() === section.id ? 'true' : null"
+            (click)="goToSection(section.id, $event)"
+          >
+            {{ section.navLabel }}
+          </a>
+        </li>
+      }
+    </ul>
+    <div class="flex items-center gap-2 md:hidden">
+      <label for="section-jump" class="text-xs text-text-secondary">Jump to</label>
+      <select
+        id="section-jump"
+        class="min-h-11 min-w-0 flex-1 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+        (change)="onNavSelect($event)"
+      >
+        @for (section of sections; track section.id) {
+          <option [value]="section.id" [selected]="activeSection() === section.id">
+            {{ section.title }}
+          </option>
+        }
+      </select>
+    </div>
+  </nav>
+
+  <!-- 1 — Trial log -->
+  <app-validation-section
+    sectionId="trial-log"
+    heading="Trial log"
+    [status]="statusOf('trial-log')"
+  >
+    <app-trial-log />
+  </app-validation-section>
+
+  <!-- 2 — Out-of-sample test -->
+  <app-validation-section
+    sectionId="oos-test"
+    heading="Out-of-sample test"
+    [status]="statusOf('oos-test')"
+  >
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-wrap items-end gap-x-8 gap-y-3">
+        <div class="flex flex-col gap-1">
+          <label for="split" class="text-xs text-text-secondary">
+            In-sample share — the rest is held out
+          </label>
+          <div class="flex items-center gap-3">
+            <input
+              id="split"
+              type="range"
+              min="10"
+              max="90"
+              step="5"
+              class="h-11 w-48 accent-[var(--color-primary)]"
+              [value]="inSamplePercent()"
+              [attr.aria-valuetext]="
+                'In-sample ' + inSamplePercent() + ' percent, out-of-sample ' + (100 - inSamplePercent()) + ' percent'
+              "
+              (input)="onSplit($event)"
+            />
+            <output for="split" class="text-sm tabular-nums text-text">
+              IS {{ inSamplePercent() }}% · OOS {{ 100 - inSamplePercent() }}%
+            </output>
+          </div>
+        </div>
+        <p class="text-sm text-text-secondary">
+          In-sample ends
+          <span class="tabular-nums text-text">{{ outOfSample().splitDate }}</span>
+        </p>
+      </div>
+
+      <app-line-chart
+        title="NAV — in-sample versus out-of-sample"
+        ariaLabel="Net asset value over time, split into the in-sample and out-of-sample periods"
+        [x]="navDates()"
+        [series]="navSeries()"
+        [valueFormatter]="decimalFormatter"
+        yAxisName="NAV"
+        xAxisName="t"
+        [height]="260"
+      />
+
+      <div class="relative overflow-x-auto">
+        <table class="w-full min-w-md text-sm">
+          <caption class="sr-only">
+            Sharpe ratio and maximum drawdown for the in-sample and out-of-sample periods.
+          </caption>
+          <thead>
+            <tr class="border-b border-border text-xs text-text-secondary">
+              <th scope="col" class="px-3 py-2 text-left font-medium">Period</th>
+              <th scope="col" class="px-3 py-2 text-right font-medium">Sharpe</th>
+              <th scope="col" class="px-3 py-2 text-right font-medium">Max drawdown</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-border-muted">
+              <th scope="row" class="px-3 py-2 text-left font-normal text-text">In-sample</th>
+              <td class="px-3 py-2 text-right tabular-nums text-text">
+                {{ outOfSample().sharpeIs.toFixed(2) }}
+              </td>
+              <td class="px-3 py-2 text-right tabular-nums text-text">
+                {{ outOfSample().maxDrawdownIs.toFixed(1) }}%
+              </td>
+            </tr>
+            <tr>
+              <th scope="row" class="px-3 py-2 text-left font-normal text-text">Out-of-sample</th>
+              <td class="px-3 py-2 text-right tabular-nums text-text">
+                {{ outOfSample().sharpeOos.toFixed(2) }}
+              </td>
+              <td class="px-3 py-2 text-right tabular-nums text-text">
+                {{ outOfSample().maxDrawdownOos.toFixed(1) }}%
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="text-sm text-text-secondary">
+        Holdout re-runs so far
+        <span class="tabular-nums text-text">{{ outOfSample().holdoutReruns }}</span>
+        — every re-run is itself a trial and adds to M above. A holdout repeated often enough
+        stops being out-of-sample.
+      </p>
+    </div>
+  </app-validation-section>
+
+  <!-- 3 — Multiple testing correction -->
+  <app-validation-section
+    sectionId="multiple-testing"
+    heading="Multiple testing correction"
+    [status]="statusOf('multiple-testing')"
+    [recalculating]="isRecalculating('multiple-testing')"
+  >
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-wrap items-end gap-x-8 gap-y-3">
+        <div class="flex flex-col gap-1">
+          <label for="alpha" class="text-xs text-text-secondary">Significance α</label>
+          <input
+            id="alpha"
+            type="number"
+            min="0.001"
+            max="0.999"
+            step="0.005"
+            class="min-h-11 w-28 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+            [value]="alpha()"
+            (change)="onAlpha($event)"
+          />
+        </div>
+        <p class="text-sm text-text-secondary">
+          M (trials) <span class="tabular-nums text-text">{{ trialSummary().totalTrials }}</span>
+        </p>
+        <p class="text-sm text-text-secondary">
+          N̄ <span class="tabular-nums text-text">{{ trialSummary().independentTrials }}</span>
+        </p>
+        <p class="text-sm text-text-secondary">
+          Unadjusted p
+          <span class="tabular-nums text-text">{{ multipleTesting().singleP.toExponential(2) }}</span>
+        </p>
+      </div>
+
+      <div class="relative overflow-x-auto">
+        <table class="w-full min-w-lg text-sm">
+          <caption class="sr-only">
+            Adjusted p-value and decision for each multiple-testing correction.
+          </caption>
+          <thead>
+            <tr class="border-b border-border text-xs text-text-secondary">
+              <th scope="col" class="px-3 py-2 text-left font-medium">Method</th>
+              <th scope="col" class="px-3 py-2 text-left font-medium">Controls</th>
+              <th scope="col" class="px-3 py-2 text-right font-medium">Adjusted p-value</th>
+              <th scope="col" class="px-3 py-2 text-left font-medium">Reject H₀?</th>
+              <th scope="col" class="px-3 py-2 text-left font-medium">Drives the verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of multipleTesting().rows; track row.method) {
+              <tr
+                class="border-b border-border-muted last:border-0"
+                [class.bg-surface-inset]="row.method === multipleTesting().method"
+              >
+                <th scope="row" class="px-3 py-2 text-left font-normal text-text">{{ row.label }}</th>
+                <td class="px-3 py-2 text-text-secondary">{{ row.controls }}</td>
+                <td class="px-3 py-2 text-right tabular-nums text-text">
+                  {{ row.adjustedP.toFixed(4) }}
+                </td>
+                <td class="px-3 py-2 text-text">{{ row.rejectsNull ? 'Yes' : 'No' }}</td>
+                <td class="px-3 py-2">
+                  <label class="flex min-h-11 items-center gap-2 text-sm text-text">
+                    <input
+                      type="radio"
+                      name="correction-method"
+                      class="accent-[var(--color-primary)]"
+                      [checked]="row.method === multipleTesting().method"
+                      (change)="onMethod(row.method)"
+                    />
+                    <span class="sr-only">Use {{ row.label }} for the verdict</span>
+                    @if (row.method === 'bhy') {
+                      <span class="text-xs text-text-secondary">recommended</span>
+                    }
+                  </label>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <p class="text-sm text-text-secondary">
+        Bonferroni and Holm control the family-wise error rate — no false discoveries at all.
+        BHY controls the false discovery rate instead, which is the more reasonable target when
+        some findings are expected to be real, and it holds under arbitrary dependence between
+        the trials. Changing the method changes only which row drives the badge.
+      </p>
+    </div>
+  </app-validation-section>
+
+  <!-- 4 & 5 — the two discounts on the same Sharpe ratio -->
+  <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+    <app-validation-section
+      sectionId="haircut-sr"
+      heading="Haircut Sharpe ratio"
+      [status]="statusOf('haircut-sr')"
+      [recalculating]="isRecalculating('haircut-sr')"
+    [keepContent]="true"
+    >
+      <div class="flex flex-col gap-4">
+        <!--
+          The single source of truth for what is being discounted, shown
+          identically in both panels and linked back to the row it came from.
+        -->
+        <div class="rounded-md border border-border bg-surface-inset px-3 py-2">
+          <p class="text-xs text-text-secondary">Selected Sharpe (annualized)</p>
+          <p class="flex flex-wrap items-baseline gap-2">
+            <span class="text-lg font-semibold tabular-nums text-text">
+              {{ selected.value.toFixed(2) }}
+            </span>
+            <a
+              class="text-sm text-primary underline-offset-2 hover:underline"
+              href="#trial-log"
+              (click)="goToSection('trial-log', $event)"
+            >
+              {{ selected.provenance }}
+            </a>
+          </p>
+        </div>
+
+        <dl class="flex flex-col gap-2">
+          <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+            <dt class="text-sm text-text-secondary">Multiple-testing p-value p<sup>M</sup></dt>
+            <dd class="tabular-nums text-sm text-text">{{ haircut().multipleP.toFixed(4) }}</dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+            <dt class="text-sm text-text-secondary">Haircut Sharpe ratio HSR</dt>
+            <dd class="tabular-nums text-sm font-medium text-text">
+              {{ haircut().haircutSharpe.toFixed(2) }}
+            </dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+            <dt class="text-sm text-text-secondary">Proportional discount hc</dt>
+            <dd class="tabular-nums text-sm text-text">
+              {{ (haircut().proportionalDiscount * 100).toFixed(0) }}%
+            </dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3 py-1">
+            <dt class="text-sm text-text-secondary">Independent trials assumed</dt>
+            <dd class="tabular-nums text-sm text-text">{{ haircut().trials }}</dd>
+          </div>
+        </dl>
+
+        <div class="flex flex-col gap-1">
+          <label for="min-hsr" class="text-xs text-text-secondary">
+            Minimum acceptable HSR
+          </label>
+          <input
+            id="min-hsr"
+            type="number"
+            min="0"
+            step="0.05"
+            placeholder="not set"
+            class="min-h-11 w-32 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+            [value]="minimumAcceptableHsr() ?? ''"
+            (change)="onMinimumHsr($event)"
+          />
+          <p class="text-xs text-text-secondary">
+            The badge stays “not set” until you choose a floor — this page will not invent one.
+          </p>
+        </div>
+
+        <app-line-chart
+          title="Discount against assumed trials"
+          subtitle="The discount is not linear"
+          ariaLabel="Haircut Sharpe ratio against the number of trials assumed"
+          [x]="haircutCategories()"
+          [series]="haircutSeries()"
+          [valueFormatter]="decimalFormatter"
+          yAxisName="HSR"
+          xAxisName="trials N"
+          [height]="220"
+          [showLegend]="false"
+          [loading]="isRecalculating('haircut-sr')"
+        />
+
+        <p class="text-sm text-text-secondary">
+          Marginal Sharpe ratios are penalised hardest, because they are where the false
+          positives are; a strong one is discounted far less. Always taking off 50% is a
+          serious error in both directions.
+        </p>
+      </div>
+    </app-validation-section>
+
+    <app-validation-section
+      sectionId="deflated-sr"
+      heading="Deflated Sharpe ratio"
+      [status]="statusOf('deflated-sr')"
+      [recalculating]="isRecalculating('deflated-sr')"
+    >
+      <div class="flex flex-col gap-4">
+        <div class="rounded-md border border-border bg-surface-inset px-3 py-2">
+          <p class="text-xs text-text-secondary">Selected Sharpe (annualized)</p>
+          <p class="flex flex-wrap items-baseline gap-2">
+            <span class="text-lg font-semibold tabular-nums text-text">
+              {{ selected.value.toFixed(2) }}
+            </span>
+            <a
+              class="text-sm text-primary underline-offset-2 hover:underline"
+              href="#trial-log"
+              (click)="goToSection('trial-log', $event)"
+            >
+              {{ selected.provenance }}
+            </a>
+          </p>
+        </div>
+
+        @if (momentsUnavailable()) {
+          <div role="alert" class="flex flex-col gap-2 rounded-md border border-border bg-surface-inset px-3 py-3">
+            <p class="text-sm font-medium text-text">
+              The series is too short to estimate γ₃ and γ₄.
+            </p>
+            <p class="text-sm text-text-secondary">
+              T = {{ sampleLength() }} observations. The deflation depends on the skewness and
+              kurtosis of the returns, so it cannot be computed here. Raise T to at least 30.
+            </p>
+          </div>
+        }
+
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div class="flex flex-col gap-1">
+            <label for="dsr-trials" class="text-xs text-text-secondary">
+              N trials — prefilled from N̄, editable
+            </label>
+            <input
+              id="dsr-trials"
+              type="number"
+              min="1"
+              step="1"
+              class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+              [value]="deflated().trials"
+              (change)="onDsrTrials($event)"
+            />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="dsr-variance" class="text-xs text-text-secondary">V[SR<sub>n</sub>]</label>
+            <input
+              id="dsr-variance"
+              type="number"
+              min="0"
+              step="0.05"
+              class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+              [value]="deflated().varianceOfSharpes"
+              (change)="onVariance($event)"
+            />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="dsr-t" class="text-xs text-text-secondary">T (observations)</label>
+            <input
+              id="dsr-t"
+              type="number"
+              min="2"
+              step="1"
+              class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+              [value]="deflated().sampleLength"
+              [attr.aria-invalid]="momentsUnavailable() ? 'true' : null"
+              [attr.aria-describedby]="momentsUnavailable() ? 'dsr-t-error' : null"
+              (change)="onSampleLength($event)"
+            />
+            @if (momentsUnavailable()) {
+              <p id="dsr-t-error" class="text-xs text-text-secondary">
+                Needs at least 30 observations for the higher moments.
+              </p>
+            }
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="dsr-threshold" class="text-xs text-text-secondary">Accept if DSR ≥</label>
+            <input
+              id="dsr-threshold"
+              type="number"
+              min="0.01"
+              max="0.99"
+              step="0.01"
+              class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+              [value]="deflated().acceptanceThreshold"
+              (change)="onDsrThreshold($event)"
+            />
+          </div>
+        </div>
+
+        <dl class="flex flex-col gap-2">
+          <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+            <dt class="text-sm text-text-secondary">Skewness γ₃ · kurtosis γ₄</dt>
+            <dd class="tabular-nums text-sm text-text">
+              {{ deflated().skewness.toFixed(2) }} · {{ deflated().kurtosis.toFixed(2) }}
+            </dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+            <dt class="text-sm text-text-secondary">Expected maximum SR₀</dt>
+            <dd class="tabular-nums text-sm text-text">
+              {{ deflated().expectedMaxSharpe.toFixed(2) }}
+            </dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3 py-1">
+            <dt class="text-sm text-text-secondary">Deflated Sharpe ratio</dt>
+            <dd class="tabular-nums text-sm font-medium text-text">
+              {{ deflated().deflatedSharpe.toFixed(4) }}
+            </dd>
+          </div>
+        </dl>
+
+        <p class="text-sm text-text-secondary">
+          SR₀ is the highest Sharpe ratio you would expect from {{ deflated().trials }} independent
+          trials of a strategy with no skill at all. It rises with the number of trials, which is
+          why a good-looking backtest means less the more of them you ran.
+        </p>
+      </div>
+    </app-validation-section>
+  </div>
+
+  <!-- 6 — PBO / CSCV -->
+  <app-validation-section
+    sectionId="pbo"
+    heading="Probability of backtest overfitting"
+    [status]="statusOf('pbo')"
+    [recalculating]="isRecalculating('pbo')"
+    [keepContent]="true"
+  >
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-wrap items-end gap-x-8 gap-y-3">
+        <div class="flex flex-col gap-1">
+          <label for="partitions" class="text-xs text-text-secondary">Partitions S</label>
+          <input
+            id="partitions"
+            type="number"
+            min="2"
+            step="2"
+            class="min-h-11 w-28 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+            [value]="partitions()"
+            [attr.aria-invalid]="partitionsInvalid() ? 'true' : null"
+            [attr.aria-describedby]="partitionsInvalid() ? 'partitions-error' : null"
+            (change)="onPartitions($event)"
+          />
+          @if (partitionsInvalid()) {
+            <p id="partitions-error" class="text-xs text-text-secondary">
+              S must be an even number of at least 2.
+            </p>
+          } @else {
+            <p class="text-xs text-text-secondary">
+              even → {{ pbo().combinations.toLocaleString() }} combinations
+            </p>
+          }
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="pbo-threshold" class="text-xs text-text-secondary">PBO threshold</label>
+          <input
+            id="pbo-threshold"
+            type="number"
+            min="0.01"
+            max="0.99"
+            step="0.01"
+            class="min-h-11 w-28 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+            [value]="pboThreshold()"
+            (change)="onPboThreshold($event)"
+          />
+        </div>
+      </div>
+
+      @if (partitionsInvalid()) {
+        <div role="alert" class="flex flex-col gap-2 rounded-md border border-border bg-surface-inset px-3 py-3">
+          <p class="text-sm font-medium text-text">The CSCV matrix cannot be partitioned.</p>
+          <p class="text-sm text-text-secondary">
+            S = {{ partitions() }} does not split into two equal halves, so no training/test
+            combinations can be formed. Choose an even S of at least 2.
+          </p>
+        </div>
+      } @else {
+        <app-bar-chart
+          title="Distribution of the logits λ"
+          subtitle="The mass left of zero is the PBO"
+          ariaLabel="Share of CSCV combinations by logit bucket, with the buckets left of zero identified"
+          [categories]="logitCategories()"
+          [series]="logitSeries()"
+          [valueFormatter]="percentFormatter"
+          unavailableLabel=""
+          categoryAxisName="λ"
+          valueAxisName="share"
+          [height]="260"
+          [loading]="isRecalculating('pbo')"
+        />
+
+        <dl class="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+          <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+            <dt class="text-sm text-text-secondary">PBO φ</dt>
+            <dd class="tabular-nums text-sm font-medium text-text">{{ pbo().pbo.toFixed(3) }}</dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+            <dt class="text-sm text-text-secondary">IS/OOS regression slope β</dt>
+            <dd class="tabular-nums text-sm text-text">
+              {{ pbo().regressionSlope.toFixed(2) }}
+              <span class="text-text-secondary">
+                (95% CI {{ pbo().slopeCiLow.toFixed(2) }} … {{ pbo().slopeCiHigh.toFixed(2) }})
+              </span>
+            </dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+            <dt class="text-sm text-text-secondary">P[OOS Sharpe &lt; 0]</dt>
+            <dd class="tabular-nums text-sm text-text">
+              {{ (pbo().probNegativeOos * 100).toFixed(0) }}%
+            </dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
+            <dt class="text-sm text-text-secondary">Second-order dominance</dt>
+            <dd class="text-sm text-text">
+              {{ pbo().secondOrderDominance ? 'dominates' : 'does not dominate' }}
+            </dd>
+          </div>
+        </dl>
+
+        <p class="text-sm text-text-secondary">
+          A negative slope says the backtests that looked best in-sample did worst out of it.
+          The share of combinations with a negative out-of-sample Sharpe can be high even when
+          the PBO is near zero — that would point at something other than overfitting.
+        </p>
+      }
+    </div>
+  </app-validation-section>
+
+  <!-- 7 — Economic rationale -->
+  <app-validation-section sectionId="rationale" heading="Economic rationale">
+    <app-economic-rationale />
+  </app-validation-section>
+
+  <!-- ActionButtonRow -->
+  <div class="flex flex-col gap-3">
+    <app-action-button-row align="start">
+      <button
+        type="button"
+        class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+        (click)="exportReport('csv')"
+      >
+        Save draft
+      </button>
+      <button
+        type="button"
+        class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+        [disabled]="!canGenerateReport()"
+        (click)="generateReport()"
+      >
+        Generate validation report
+      </button>
+      <button
+        type="button"
+        class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+        [disabled]="!reportGenerated()"
+        (click)="sendToApproval()"
+      >
+        Send to Approval Gate →
+      </button>
+    </app-action-button-row>
+
+    @if (!rationaleLocked()) {
+      <p class="text-sm text-text-secondary">
+        The report and the hand-off stay disabled until the economic rationale is locked — the
+        point of locking it is that it cannot then have been written to fit these results.
+      </p>
+    }
+
+    @if (hasFailed('report')) {
+      <p class="flex flex-wrap items-center gap-2 text-sm text-text-secondary" role="alert">
+        <app-status-badge label="report failed" tone="alert" />
+        Nothing else was changed; the locked rationale and every value you entered are intact.
+        <app-retry-button label="Retry report" (retry)="retry('report')" />
+      </p>
+    }
+    @if (hasFailed('send')) {
+      <p class="flex flex-wrap items-center gap-2 text-sm text-text-secondary" role="alert">
+        <app-status-badge label="send failed" tone="alert" />
+        The generated report is still available.
+        <app-retry-button label="Retry send" (retry)="retry('send')" />
+      </p>
+    }
+
+    <app-cross-page-link label="Back to Results & Frontier" route="/results/results-frontier" />
+  </div>
+}

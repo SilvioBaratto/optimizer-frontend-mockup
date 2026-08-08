@@ -1,0 +1,10 @@
+<section class="flex flex-col gap-3">
+  @if (label()) {
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+      {{ label() }}
+    </h2>
+  }
+  <div [class]="gridClass()" [attr.role]="ordered() ? 'list' : null">
+    <ng-content />
+  </div>
+</section>

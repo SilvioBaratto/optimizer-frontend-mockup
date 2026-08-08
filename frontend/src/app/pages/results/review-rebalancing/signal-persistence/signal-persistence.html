@@ -1,0 +1,151 @@
+<section class="rounded-lg border border-border bg-surface-raised">
+  <h2 class="sr-only">Signal persistence and turnover</h2>
+  <button
+    type="button"
+    class="flex w-full min-h-11 flex-wrap items-center justify-between gap-3 px-4 py-3 text-left"
+    [attr.aria-expanded]="open()"
+    aria-controls="signal-persistence-body"
+    (click)="open.set(!open())"
+  >
+    <span class="flex items-center gap-2 text-sm font-medium text-text">
+      <span aria-hidden="true" class="text-text-secondary">{{ open() ? '▾' : '▸' }}</span>
+      Signal persistence &amp; turnover
+    </span>
+    <span class="flex flex-wrap items-center gap-x-4 text-sm text-text-secondary">
+      <span>turnover T <span class="tabular-nums text-text">{{ turnover().toFixed(1) }}%</span></span>
+      <span>ρ<sub>f</sub> <span class="tabular-nums text-text">{{ factor().autocorrelation.toFixed(2) }}</span></span>
+    </span>
+  </button>
+
+  @if (open()) {
+    <div id="signal-persistence-body" class="flex flex-col gap-4 border-t border-border px-4 py-4">
+      <p class="text-sm text-text-secondary">
+        A signal that decays quickly changes from period to period and forces the portfolio to be
+        repositioned. This panel explains where the turnover above comes from; it changes nothing
+        in the revision itself.
+      </p>
+
+      <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
+        <div class="flex flex-col gap-1">
+          <label for="factor-picker" class="text-xs text-text-secondary">Factor / signal</label>
+          <select
+            id="factor-picker"
+            class="min-h-11 min-w-0 max-w-72 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+            (change)="onFactor($event)"
+          >
+            @for (f of factors; track f.id) {
+              <option [value]="f.id" [selected]="f.id === factorId()">{{ f.name }}</option>
+            }
+          </select>
+        </div>
+
+        <fieldset class="flex flex-col gap-1">
+          <legend class="text-xs text-text-secondary">Information coefficient</legend>
+          <div class="flex flex-wrap items-center gap-x-4">
+            @for (view of icViews; track view) {
+              <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+                <input
+                  type="radio"
+                  name="ic-view"
+                  class="accent-[var(--color-primary)]"
+                  [checked]="icView() === view"
+                  (change)="icView.set(view)"
+                />
+                {{ icViewLabel[view] }}
+              </label>
+            }
+          </div>
+        </fieldset>
+      </div>
+
+      <!--
+        Inferred chart: the source names an "IC comparison" in prose with no
+        axes or series given. Lag on x is the only reading that makes the decay
+        visible, which is what the panel is for.
+      -->
+      <app-line-chart
+        title="Information coefficient by lag"
+        subtitle="chart inferred — the specification names it without defining axes"
+        ariaLabel="Information coefficient against the lag between the factor and the return it predicts"
+        [x]="lagLabels()"
+        [series]="icSeries()"
+        [valueFormatter]="decimalFormatter"
+        xAxisName="lag"
+        yAxisName="IC"
+        [height]="200"
+        [showLegend]="icView() === 'conventional'"
+      />
+
+      <p class="text-sm text-text-secondary">
+        A lagged IC that stays positive means the information persists; one that fades or turns
+        negative means it is gone within a period or two. The horizon view accumulates it as
+        IC·√(h+1) — a persistent signal is worth more precisely because it keeps paying.
+      </p>
+
+      <div class="flex flex-col gap-2">
+        <label for="rho-target" class="text-xs text-text-secondary">
+          Target autocorrelation ρ<sub>target</sub>
+        </label>
+        <div class="flex flex-wrap items-center gap-3">
+          <input
+            id="rho-target"
+            type="range"
+            min="50"
+            max="98"
+            step="1"
+            class="h-11 w-56 accent-[var(--color-primary)]"
+            [value]="targetAutocorrelation() * 100"
+            [attr.aria-valuetext]="
+              'rho target ' + targetAutocorrelation().toFixed(2) +
+              ', turnover ' + turnover().toFixed(1) + ' percent, information ratio ' + informationRatio().toFixed(2)
+            "
+            (input)="onRho($event)"
+          />
+          <output for="rho-target" class="text-sm tabular-nums text-text">
+            ρ {{ targetAutocorrelation().toFixed(2) }} · T {{ turnover().toFixed(1) }}% · IR
+            {{ informationRatio().toFixed(2) }}
+          </output>
+        </div>
+      </div>
+
+      <!--
+        Two charts rather than one dual-axis chart. Turnover and the information
+        ratio share an x axis but nothing else, and a shared frame would invite
+        reading a crossing point that has no meaning.
+      -->
+      <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <app-line-chart
+          title="Turnover against ρ_target"
+          subtitle="chart inferred — falls monotonically, as T ∝ √(1 − ρ)"
+          ariaLabel="Portfolio turnover against the target forecast autocorrelation"
+          [x]="rhoLabels"
+          [series]="turnoverSeries()"
+          [valueFormatter]="decimalFormatter"
+          xAxisName="ρ_target"
+          yAxisName="T %"
+          [height]="200"
+          [showLegend]="false"
+        />
+        <app-line-chart
+          title="Information ratio against ρ_target"
+          subtitle="chart inferred — peaks, then falls as the lags dilute the alpha"
+          ariaLabel="Information ratio against the target forecast autocorrelation"
+          [x]="rhoLabels"
+          [series]="irSeries()"
+          [valueFormatter]="decimalFormatter"
+          xAxisName="ρ_target"
+          yAxisName="IR"
+          [height]="200"
+          [showLegend]="false"
+        />
+      </div>
+
+      <p class="text-sm text-text-secondary">
+        Averaging the factor with its own lags raises its autocorrelation and cuts turnover, but
+        lagged factors predict the next return more weakly, so the alpha falls with it. The
+        information ratio peaks near ρ {{ optimalRho.toFixed(2) }} — that peak, not the lowest
+        possible turnover, is the amount of trading this signal justifies.
+      </p>
+    </div>
+  }
+</section>

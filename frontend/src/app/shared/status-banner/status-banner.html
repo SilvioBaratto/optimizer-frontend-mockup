@@ -1,0 +1,39 @@
+<div
+  [attr.role]="variant() === 'error' ? 'alert' : 'status'"
+  class="flex flex-wrap items-center gap-3 rounded-md border px-4 py-3 text-sm"
+  [class.border-border]="variant() === 'success'"
+  [class.bg-surface-inset]="variant() === 'success'"
+  [class.border-danger]="variant() === 'error'"
+  [class.bg-primary-light]="variant() === 'error'"
+>
+  <!-- Glyph is decorative; the words carry the state. -->
+  <span aria-hidden="true" [class.text-success]="variant() === 'success'" [class.text-danger]="variant() === 'error'">
+    {{ variant() === 'success' ? '&#10003;' : '!' }}
+  </span>
+
+  <span class="flex-1 text-text">
+    {{ variant() === 'success' ? 'Success' : 'Error' }} — {{ message() }}
+    @if (timestamp() && variant() === 'success') {
+      <span class="ml-1 text-text-secondary">· {{ timestamp() }}</span>
+    }
+  </span>
+
+  @if (variant() === 'error') {
+    <button
+      type="button"
+      class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+      (click)="retried.emit()"
+    >
+      Retry
+    </button>
+  } @else {
+    <button
+      type="button"
+      class="inline-flex h-11 w-11 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-inset hover:text-text"
+      aria-label="Dismiss confirmation"
+      (click)="dismissed.emit()"
+    >
+      <span aria-hidden="true">&#10005;</span>
+    </button>
+  }
+</div>

@@ -1,0 +1,70 @@
+<div class="flex flex-col gap-6">
+  <section class="flex flex-col gap-3">
+    <h3 class="text-sm font-medium text-text">Filtered state probabilities</h3>
+    <p class="text-sm text-text-secondary">
+      The recursive filter's output at every date, over the {{ lookback() }} sample. The bands sum
+      to 100% at each point — that is a property of the filter, not a normalisation applied here.
+    </p>
+    <!-- Inferred chart: the source names this tab without giving axes. -->
+    <app-line-chart
+      title="Filtered probability by state"
+      subtitle="chart inferred — named in the specification without defined axes"
+      ariaLabel="Filtered probability of each regime state over the sample"
+      [x]="months()"
+      [series]="stateSeries()"
+      [valueFormatter]="percentFormatter"
+      [stack]="true"
+      [area]="true"
+      xAxisName="month"
+      yAxisName="P"
+      [height]="280"
+    />
+  </section>
+
+  <section class="flex flex-col gap-3">
+    <h3 class="text-sm font-medium text-text">Nowcast</h3>
+    <p class="text-sm text-text-secondary">
+      The current-quarter projection, rebuilt as each release lands. Missing series get zero weight
+      rather than an imputed value, so the projection reflects only what has actually been
+      published.
+    </p>
+    <app-line-chart
+      title="Nowcast of GDP growth"
+      subtitle="chart inferred — named in the specification without defined axes"
+      ariaLabel="Nowcast of current-quarter GDP growth over the sample"
+      [x]="months()"
+      [series]="nowcastSeries()"
+      [valueFormatter]="decimalFormatter"
+      xAxisName="month"
+      yAxisName="% annualised"
+      [height]="220"
+      [showLegend]="false"
+    />
+
+    <div class="relative overflow-x-auto">
+      <table class="w-full min-w-xl text-sm">
+        <caption class="sr-only">
+          How much each release moved the nowcast this month.
+        </caption>
+        <thead>
+          <tr class="border-b border-border text-xs text-text-secondary">
+            <th scope="col" class="px-3 py-2 text-left font-medium">Release</th>
+            <th scope="col" class="px-3 py-2 text-right font-medium">News</th>
+            <th scope="col" class="px-3 py-2 text-left font-medium">Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of news; track item.release) {
+            <tr class="border-b border-border-muted last:border-0">
+              <th scope="row" class="px-3 py-2 text-left font-normal text-text">{{ item.release }}</th>
+              <td class="px-3 py-2 text-right tabular-nums text-text">
+                {{ item.news > 0 ? '+' : '' }}{{ item.news.toFixed(2) }}
+              </td>
+              <td class="px-3 py-2 text-xs text-text-secondary">{{ item.note }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

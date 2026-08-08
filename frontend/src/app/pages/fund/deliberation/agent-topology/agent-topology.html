@@ -1,0 +1,57 @@
+<div class="flex flex-col items-center gap-0">
+  <!--
+    The four agents. Each links to its own detail page, which is where its work
+    is inspected; this diagram only shows where it sits and how far it has got.
+  -->
+  <ul class="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    @for (node of nodes(); track node.id) {
+      <li>
+        <a
+          [routerLink]="route[node.id]"
+          class="flex min-h-11 flex-col gap-1 rounded-md border border-border bg-surface px-3 py-2 transition-colors hover:bg-surface-inset"
+          [attr.aria-label]="nodeLabel(node)"
+        >
+          <span class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+            {{ node.label }}
+          </span>
+          <span class="flex items-center gap-1.5 text-sm" [class]="statusClass(node.status)">
+            <!-- Icon and word together: never the colour on its own. -->
+            <span aria-hidden="true">{{ statusIcon[node.status] }}</span>
+            <span>{{ statusLabel[node.status] }}</span>
+          </span>
+          <span class="font-mono text-xs tabular-nums text-text-secondary">
+            {{ node.at ?? '—' }}
+          </span>
+        </a>
+      </li>
+    }
+  </ul>
+
+  <!--
+    One arrow from all four into the shared state, and one out of it. Marked
+    aria-hidden: the relationship is stated in the caption below, where a screen
+    reader can read it as a sentence rather than as punctuation.
+  -->
+  <p aria-hidden="true" class="py-1 text-lg leading-none text-text-secondary">↓</p>
+
+  <div class="w-full max-w-sm rounded-md border border-border-control bg-surface-inset px-4 py-3 text-center">
+    <p class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+      Shared FundState
+    </p>
+    <p class="text-sm text-text">{{ stateSummary() }}</p>
+  </div>
+
+  <p aria-hidden="true" class="py-1 text-lg leading-none text-text-secondary">↓</p>
+
+  <div class="w-full max-w-sm rounded-md border border-border bg-surface px-4 py-3 text-center">
+    <p class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+      Proposed allocation
+    </p>
+    <p class="text-sm text-text">{{ allocationSummary() }}</p>
+  </div>
+
+  <p class="pt-3 text-xs text-text-secondary">
+    Every agent writes only to the shared state and reads only from it. No agent calls another,
+    which is why no arrow joins two of them.
+  </p>
+</div>

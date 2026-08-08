@@ -1,0 +1,191 @@
+<div class="flex flex-col divide-y divide-border">
+  <!-- Fixed: paid in every period, revised or not. -->
+  <div class="flex flex-wrap items-baseline justify-between gap-3 pb-3">
+    <div class="flex flex-col">
+      <span class="text-sm text-text">Data &amp; processing cost</span>
+      <span class="text-xs text-text-secondary">
+        fixed — incurred each period whether or not the portfolio is revised
+      </span>
+    </div>
+    <span class="tabular-nums text-sm font-medium text-text">
+      EUR {{ money(cost().dataProcessing) }}
+    </span>
+  </div>
+
+  <!-- Transaction: variable, and editable per asset. -->
+  <div class="flex flex-col gap-3 py-3">
+    <div class="flex flex-wrap items-baseline justify-between gap-3">
+      <button
+        type="button"
+        class="flex min-h-11 items-center gap-2 text-left text-sm text-text"
+        [attr.aria-expanded]="transactionOpen()"
+        aria-controls="transaction-detail"
+        (click)="transactionOpen.set(!transactionOpen())"
+      >
+        <span aria-hidden="true" class="text-text-secondary">{{ transactionOpen() ? '▾' : '▸' }}</span>
+        Transaction costs — per asset
+      </button>
+      <span class="tabular-nums text-sm font-medium text-text">
+        EUR {{ money(cost().transaction) }}
+      </span>
+    </div>
+
+    @if (transactionOpen()) {
+      <div id="transaction-detail" class="relative overflow-x-auto">
+        <table class="w-full min-w-xl text-sm">
+          <caption class="sr-only">
+            Buy and sell cost rates per asset, the amount traded and the resulting cost.
+          </caption>
+          <thead>
+            <tr class="border-b border-border text-xs text-text-secondary">
+              <th scope="col" class="px-3 py-2 text-left font-medium">Asset</th>
+              <th scope="col" class="px-3 py-2 text-right font-medium">bc<sub>i</sub> %</th>
+              <th scope="col" class="px-3 py-2 text-right font-medium">sc<sub>i</sub> %</th>
+              <th scope="col" class="px-3 py-2 text-right font-medium">Traded EUR</th>
+              <th scope="col" class="px-3 py-2 text-right font-medium">Cost EUR</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of tradingRows(); track row.ticker) {
+              <tr class="border-b border-border-muted last:border-0">
+                <th scope="row" class="px-3 py-2 text-left font-normal text-text">
+                  {{ row.ticker }} <span class="text-text-secondary">{{ row.name }}</span>
+                </th>
+                <td class="px-3 py-2 text-right">
+                  <label class="sr-only" [attr.for]="'bc-' + row.ticker">
+                    Buy cost for {{ row.name }}
+                  </label>
+                  <input
+                    [id]="'bc-' + row.ticker"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="min-h-11 w-20 rounded-md border border-border-control bg-surface-raised px-2 text-right text-sm tabular-nums text-text"
+                    [value]="row.buyCost"
+                    (change)="onBuyCost(row.ticker, $event)"
+                  />
+                </td>
+                <td class="px-3 py-2 text-right">
+                  <label class="sr-only" [attr.for]="'sc-' + row.ticker">
+                    Sell cost for {{ row.name }}
+                  </label>
+                  <input
+                    [id]="'sc-' + row.ticker"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="min-h-11 w-20 rounded-md border border-border-control bg-surface-raised px-2 text-right text-sm tabular-nums text-text"
+                    [value]="row.sellCost"
+                    (change)="onSellCost(row.ticker, $event)"
+                  />
+                </td>
+                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">
+                  {{ money(row.tradedAmount) }}
+                </td>
+                <td class="px-3 py-2 text-right tabular-nums text-text">
+                  {{ money(row.transactionCost) }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  <!-- Capital gain tax: owed only where a disposal realises a gain. -->
+  <div class="flex flex-col gap-3 py-3">
+    <div class="flex flex-wrap items-baseline justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          class="flex min-h-11 items-center gap-2 text-left text-sm text-text"
+          [attr.aria-expanded]="taxOpen()"
+          aria-controls="tax-detail"
+          (click)="taxOpen.set(!taxOpen())"
+        >
+          <span aria-hidden="true" class="text-text-secondary">{{ taxOpen() ? '▾' : '▸' }}</span>
+          Capital gain tax
+        </button>
+        <span class="flex items-center gap-2">
+          <label for="tax-rate" class="text-xs text-text-secondary">rate t<sub>cg</sub></label>
+          <input
+            id="tax-rate"
+            type="number"
+            min="0"
+            max="99"
+            step="1"
+            class="min-h-11 w-20 rounded-md border border-border-control bg-surface-raised px-2 text-right text-sm tabular-nums text-text"
+            [value]="taxRate()"
+            (change)="onTaxRate($event)"
+          />
+          <span class="text-xs text-text-secondary">%</span>
+        </span>
+      </div>
+      <span class="tabular-nums text-sm font-medium text-text">
+        EUR {{ money(cost().capitalGainTax) }}
+      </span>
+    </div>
+
+    @if (taxOpen()) {
+      <div id="tax-detail" class="relative overflow-x-auto">
+        <table class="w-full min-w-lg text-sm">
+          <caption class="sr-only">
+            Realised capital gain and tax due per disposal.
+          </caption>
+          <thead>
+            <tr class="border-b border-border text-xs text-text-secondary">
+              <th scope="col" class="px-3 py-2 text-left font-medium">Asset</th>
+              <th scope="col" class="px-3 py-2 text-right font-medium">Realised gain</th>
+              <th scope="col" class="px-3 py-2 text-right font-medium">Tax due</th>
+              <th scope="col" class="px-3 py-2 text-left font-medium">Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of disposalRows(); track row.ticker) {
+              <tr class="border-b border-border-muted last:border-0">
+                <th scope="row" class="px-3 py-2 text-left font-normal text-text">
+                  {{ row.ticker }} <span class="text-text-secondary">{{ row.name }}</span>
+                </th>
+                <td class="px-3 py-2 text-right tabular-nums text-text">
+                  @if (row.realisedGain > 0) {
+                    {{ money(row.realisedGain) }}
+                  } @else {
+                    <span class="text-text-secondary">—</span>
+                  }
+                </td>
+                <td class="px-3 py-2 text-right tabular-nums text-text">
+                  @if (row.taxDue > 0) {
+                    {{ money(row.taxDue) }}
+                  } @else {
+                    <span class="text-text-secondary">—</span>
+                  }
+                </td>
+                <td class="px-3 py-2 text-xs text-text-secondary">
+                  @if (row.realisedGain === 0) {
+                    @if (row.action === 'sell-short-increased') {
+                      short position increased, nothing realised
+                    } @else {
+                      no gain realised on this disposal
+                    }
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        <p class="px-3 pt-2 text-xs text-text-secondary">
+          Buys realise nothing, so they do not appear. The tax behaves as a variable cost: it is
+          owed only where the disposal books a gain.
+        </p>
+      </div>
+    }
+  </div>
+
+  <div class="flex flex-wrap items-baseline justify-between gap-3 pt-3">
+    <span class="text-sm font-semibold text-text">Total prc<sub>t+Δt</sub></span>
+    <span class="tabular-nums text-base font-semibold text-text">
+      EUR {{ money(cost().total) }}
+    </span>
+  </div>
+</div>

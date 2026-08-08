@@ -1,0 +1,125 @@
+<div class="flex flex-col gap-3">
+  @if (!hasRun()) {
+    <p class="rounded-md bg-surface-inset px-4 py-6 text-center text-sm text-text-secondary">
+      No checkpoints yet. Each agent write saves one; start a run to record them.
+    </p>
+  } @else {
+    <div class="relative overflow-x-auto">
+      <table class="w-full min-w-2xl text-sm">
+        <caption class="sr-only">
+          Every step at which the frozen state was saved: the step number, the field written, the
+          agent that wrote it and the time.
+        </caption>
+        <thead>
+          <tr class="border-b border-border text-xs text-text-secondary">
+            <th scope="col" class="px-3 py-2 text-left font-medium">
+              <span class="sr-only">Compare</span>
+            </th>
+            <th scope="col" class="px-3 py-2 text-left font-medium">step</th>
+            <th scope="col" class="px-3 py-2 text-left font-medium">field written</th>
+            <th scope="col" class="px-3 py-2 text-left font-medium">agent</th>
+            <th scope="col" class="px-3 py-2 text-left font-medium">timestamp</th>
+            <th scope="col" class="px-3 py-2 text-left font-medium">
+              <span class="sr-only">Inspect</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.step) {
+            <tr
+              class="border-b border-border-muted last:border-0"
+              [class.bg-surface-inset]="activeCheckpoint()?.step === row.step"
+              [attr.aria-current]="activeCheckpoint()?.step === row.step ? 'true' : null"
+            >
+              <td class="px-3 py-2">
+                <label class="flex min-h-11 items-center">
+                  <input
+                    type="checkbox"
+                    class="h-4 w-4 accent-[var(--color-primary)]"
+                    [checked]="isCompared(row.step)"
+                    (change)="toggleCompare(row.step)"
+                  />
+                  <span class="sr-only">Compare step {{ row.step }}</span>
+                </label>
+              </td>
+              <th scope="row" class="px-3 py-2 text-left font-medium tabular-nums text-text">
+                {{ row.step }}
+              </th>
+              <td class="px-3 py-2 font-mono text-text">
+                {{ row.fieldWritten ?? '(initial state)' }}
+              </td>
+              <td class="px-3 py-2 text-text-secondary">
+                {{ row.agent ? agentLabel[row.agent] : '—' }}
+              </td>
+              <td class="px-3 py-2 font-mono tabular-nums text-text-secondary">{{ row.at }}</td>
+              <td class="px-3 py-2 text-right">
+                <button
+                  type="button"
+                  class="min-h-11 rounded-md px-2 text-sm font-medium text-primary underline-offset-2 hover:underline"
+                  (click)="select(row.step)"
+                >
+                  Inspect
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <p class="text-xs text-text-secondary">
+        @if (comparisonSteps().length === 1) {
+          One step ticked — comparing needs at least two.
+        } @else if (canCompare()) {
+          Comparing steps {{ comparisonSteps().join(' and ') }}.
+        } @else {
+          Tick two or more steps to compare them.
+        }
+      </p>
+      @if (comparisonSteps().length > 0) {
+        <button
+          type="button"
+          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          (click)="clearComparison()"
+        >
+          Clear comparison
+        </button>
+      }
+    </div>
+
+    @if (showComparison()) {
+      <div class="relative overflow-x-auto rounded-md border border-border bg-surface-inset">
+        <table class="w-full min-w-xl text-sm">
+          <caption class="px-3 pt-3 text-left text-sm font-medium text-text">
+            Fund state compared across the selected checkpoints
+          </caption>
+          <thead>
+            <tr class="border-b border-border text-xs text-text-secondary">
+              <th scope="col" class="px-3 py-2 text-left font-medium">Field</th>
+              @for (c of compared(); track c.step) {
+                <th scope="col" class="px-3 py-2 text-left font-medium">step {{ c.step }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (field of fieldNames(); track field) {
+              <tr class="border-b border-border-muted last:border-0">
+                <th scope="row" class="px-3 py-2 text-left font-mono font-normal text-text">
+                  {{ field }}
+                  <!-- Difference stated in words, not carried by a highlight. -->
+                  @if (changed(field)) {
+                    <span class="ml-2 text-xs font-sans text-primary">changed</span>
+                  }
+                </th>
+                @for (c of compared(); track c.step) {
+                  <td class="px-3 py-2 text-text-secondary">{{ valueAt(c.step, field) }}</td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>

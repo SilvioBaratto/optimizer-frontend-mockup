@@ -1,0 +1,158 @@
+<!--
+  Regions follow `docs/13 Allocation Agent.md`. The shell renders the <h1>, so
+  headings here start at <h2>. Order is the spec's stated tab order, which puts
+  the diagnostics card after the two charts rather than beside the input card.
+-->
+
+<!-- HeroStatCard — sticky, so the agent's state stays readable down the page. -->
+<div
+  class="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-b border-border bg-surface px-4 py-3 md:-mx-8 md:px-8"
+>
+  <h2 class="sr-only">Allocation agent</h2>
+
+  <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+    <!-- Polite: the state changes on its own during a run and must not interrupt. -->
+    <p class="flex items-center gap-2" aria-live="polite">
+      <span class="text-sm text-text-secondary">Allocation agent</span>
+      <app-status-badge [label]="statusLabel[status()]" [tone]="statusTone()" />
+    </p>
+
+    <p class="text-sm text-text-secondary">
+      @if (lastRun()) {
+        Last run <span class="tabular-nums text-text">{{ lastRun() }}</span>
+      } @else {
+        Not yet run
+      }
+      · writes the proposed allocation to the fund state, read downstream by the Risk Agent
+    </p>
+
+    <div class="ml-auto flex flex-col items-start gap-1">
+      <button
+        type="button"
+        class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+        [disabled]="!canRun()"
+        (click)="run()"
+      >
+        {{ running() ? 'Running…' : 'Run agent' }}
+      </button>
+      @if (!hasMacroInput()) {
+        <p class="text-xs text-text-secondary">Waiting for a macro state.</p>
+      } @else if (targetReturnInvalid()) {
+        <p class="text-xs text-text-secondary">Target return π is below the GMVP.</p>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- InfoCard — the macro state read out of the shared fund state. -->
+<app-info-card title="Macro state z_t, from the Macro &amp; Regimes Agent">
+  <app-macro-input />
+</app-info-card>
+
+<!-- ParameterPanel — how the weights are to be obtained. -->
+<section class="rounded-lg border border-border bg-surface-raised">
+  <header class="border-b border-border px-4 py-3">
+    <h2 class="text-sm font-medium text-text">Estimation approach and objective</h2>
+  </header>
+  <div class="px-4 py-3">
+    <app-allocation-parameters />
+  </div>
+</section>
+
+@if (computeError(); as message) {
+  <!--
+    A compute error, not a publication one: the two never share a banner. This
+    one sits above the result it invalidates, and the result stays visible.
+  -->
+  <app-error-state
+    message="The allocation could not be computed"
+    [detail]="message"
+    cause="action"
+    (retry)="run()"
+  />
+}
+
+<!-- DataTable — the proposed allocation. -->
+<section class="rounded-lg border border-border bg-surface-raised">
+  <header class="border-b border-border px-4 py-3">
+    <h2 class="text-sm font-medium text-text">Proposed allocation</h2>
+  </header>
+  <div class="px-4 py-3">
+    @if (running()) {
+      <div aria-busy="true" aria-label="Solving the allocation">
+        <app-skeleton-block height="h-10" [lines]="7" />
+      </div>
+    } @else {
+      <app-proposed-allocation [superseded]="superseded()" />
+    }
+  </div>
+</section>
+
+<!-- The two charts: where the proposal sits, and what it costs in risk. -->
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+  <div class="flex flex-col gap-2">
+    <app-frontier-chart
+      title="Mean-variance frontier"
+      [subtitle]="'CAL drawn from r_f ' + summary().riskFreeRate.toFixed(1) + '%'"
+      ariaLabel="Mean-variance frontier with the GMVP, the tangency portfolio, the capital allocation line from the risk-free rate and the position of the proposed portfolio."
+      [curve]="curve()"
+      [inefficientBranch]="inefficientBranch()"
+      [riskFreeRate]="summary().riskFreeRate"
+      [markers]="markers()"
+      [loading]="running()"
+      [height]="360"
+      xAxisName="σ"
+      yAxisName="E(r)"
+      [valueFormatter]="percent"
+    >
+      <p class="border-t border-border px-4 py-2 text-xs text-text-secondary">
+        {{ frontierCaption() }}. Only the arc above the GMVP is efficient; the dashed branch below
+        it is dominated at every level of risk.
+      </p>
+    </app-frontier-chart>
+  </div>
+
+  <div class="flex flex-col gap-2">
+    <app-bar-chart
+      title="Weight vs total risk contribution"
+      subtitle="per asset, percent"
+      ariaLabel="Per-asset comparison of weight in capital against total contribution to portfolio risk."
+      [categories]="contributionCategories()"
+      [series]="contributionSeries()"
+      orientation="horizontal"
+      [loading]="running()"
+      [height]="contributionHeight()"
+      [valueFormatter]="percent"
+      categoryAxisName="Asset"
+    >
+      <p class="border-t border-border px-4 py-2 text-xs text-text-secondary">
+        Contributions add up to portfolio risk by Euler additivity: σ is homogeneous of degree one,
+        so σ(x) = Σ σ<sub>i</sub>(x) exactly. Where the two bars diverge, capital and risk are not
+        the same allocation — which is the whole premise of risk budgeting.
+      </p>
+    </app-bar-chart>
+  </div>
+</div>
+
+<!-- InfoCard — what the estimation stage cost. -->
+<app-info-card title="Estimation diagnostics">
+  @if (running()) {
+    <div aria-busy="true" aria-label="Recomputing the estimation diagnostics">
+      <app-skeleton-block height="h-6" [lines]="7" />
+    </div>
+  } @else {
+    <app-estimation-diagnostics />
+  }
+</app-info-card>
+
+<!-- StatusBanner — the agent's only output channel. -->
+<section class="flex flex-col gap-2">
+  <h2 class="text-sm font-medium text-text">Publication to the fund state</h2>
+  <app-publication-banner />
+</section>
+
+<!-- EventLogPanel — collapsed by default. -->
+<section class="flex flex-col gap-2">
+  <h2 class="sr-only">Run log</h2>
+  <app-run-log />
+</section>

@@ -1,0 +1,56 @@
+<div class="flex flex-col gap-3">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <label class="flex min-h-11 items-center gap-2 text-sm text-text">
+      <input
+        type="checkbox"
+        class="h-4 w-4 accent-[var(--color-primary)]"
+        [checked]="showValidatedOnly()"
+        (change)="showValidatedOnly.set($any($event.target).checked)"
+      />
+      Show validated only
+    </label>
+    <!-- The counts have to add up, so stale is named rather than folded away. -->
+    <p class="text-sm text-text-secondary">
+      {{ total }} signals · {{ validatedCount() }} validated · {{ excludedCount() }} excluded
+      @if (staleCount() > 0) {
+        · {{ staleCount() }} stale
+      }
+    </p>
+  </div>
+
+  <ul class="flex flex-col gap-3">
+    @for (signal of signals(); track signal.id) {
+      <li>
+        <a
+          [routerLink]="signal.route"
+          class="flex flex-col gap-1.5 rounded-lg border border-border bg-surface px-4 py-3 transition-colors hover:bg-surface-inset"
+        >
+          <span class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium text-text">{{ signal.name }}</span>
+            <app-status-badge [label]="signal.status" [tone]="tone(signal.status)" />
+          </span>
+          <span class="text-sm text-text-secondary">{{ signal.reading }}</span>
+          @if (signal.reason) {
+            <!--
+              The reason is the point of the badge. Without it, "excluded" and
+              "never tested" look the same on a dashboard.
+            -->
+            <span class="text-xs text-text-secondary">{{ signal.reason }}</span>
+          }
+          @if (signal.outOfSampleR2 !== null) {
+            <span class="text-xs tabular-nums text-text-secondary">
+              R²_OS {{ signal.outOfSampleR2 > 0 ? '+' : '' }}{{ signal.outOfSampleR2.toFixed(2) }}%
+              @if (signal.outOfSampleR2 <= 0) {
+                — the recursive historical mean forecast better
+              }
+            </span>
+          }
+        </a>
+      </li>
+    } @empty {
+      <li role="status" class="rounded-md bg-surface-inset px-4 py-6 text-center text-sm text-text-secondary">
+        No validated signals. Clear the filter to see the ones that were excluded and why.
+      </li>
+    }
+  </ul>
+</div>

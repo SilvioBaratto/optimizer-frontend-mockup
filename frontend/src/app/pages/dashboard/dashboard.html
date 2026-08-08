@@ -1,0 +1,227 @@
+<!--
+  Regions follow `docs/02 Dashboard.md` in order. The page renders no <h1>:
+  the shell renders it from the route, so headings here start at <h2>.
+-->
+
+@if (hasError()) {
+  <app-error-state
+    message="Unable to load dashboard data"
+    detail="The optimizer API did not return this portfolio's latest run."
+    cause="load"
+    (retry)="refresh()"
+  />
+} @else {
+  <!-- CollectionStatBar -->
+  <section
+    class="flex flex-col gap-3 rounded-lg border border-border bg-surface-raised px-4 py-3 lg:flex-row lg:items-center lg:justify-between"
+  >
+    <dl class="flex flex-wrap items-baseline gap-x-8 gap-y-2 text-sm">
+      <div class="flex items-baseline gap-2">
+        <dt class="text-text-secondary">Portfolio</dt>
+        <dd class="font-medium text-text">{{ portfolio()?.name ?? '—' }}</dd>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <dt class="text-text-secondary">W</dt>
+        <dd class="tabular-nums text-text">12,500,000 EUR</dd>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <dt class="text-text-secondary">N</dt>
+        <dd class="tabular-nums text-text">{{ portfolio()?.holdings?.length ?? 0 }} holdings</dd>
+      </div>
+      <div class="flex items-baseline gap-2">
+        <dt class="text-text-secondary">Last run</dt>
+        <dd class="tabular-nums text-text">{{ run()?.completedAt ?? '—' }}</dd>
+      </div>
+    </dl>
+
+    <div class="flex shrink-0 items-center gap-2">
+      @if (run(); as r) {
+        <app-status-badge label="Optimized" tone="ok" />
+        <!-- Stale sits *beside* Optimized, never replacing it. -->
+        @if (r.stale) {
+          <app-status-badge label="Stale" tone="warn" />
+        }
+      }
+      <app-refresh-control [busy]="isLoading()" (refresh)="refresh()" />
+    </div>
+  </section>
+
+  <!-- KEY METRICS -->
+  <app-section-card-grid label="Key metrics" [columns]="2">
+    <app-hero-stat-card title="Expected return">
+      @if (isLoading()) {
+        <app-skeleton-block height="h-9" />
+      } @else if (run(); as r) {
+        <p class="text-2xl font-semibold tabular-nums text-text">
+          {{ r.metrics.expectedReturn.toFixed(1) }}% p.a.
+        </p>
+        <p class="text-sm text-text-secondary">mean of return</p>
+      } @else {
+        <p class="text-2xl font-semibold text-text-tertiary">—</p>
+        <p class="text-sm text-text-secondary">mean of return</p>
+      }
+    </app-hero-stat-card>
+
+    <app-hero-stat-card title="Risk">
+      <div hero-action class="flex items-center gap-2">
+        <label for="risk-measure" class="text-xs text-text-secondary">Risk measure</label>
+        <select
+          id="risk-measure"
+          class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+          [value]="riskMeasure()"
+          (change)="onRiskMeasure($event)"
+        >
+          @for (m of riskMeasures; track m) {
+            <option [value]="m">{{ riskLabel[m] }}</option>
+          }
+        </select>
+      </div>
+
+      @if (isLoading()) {
+        <app-skeleton-block height="h-9" />
+      } @else if (riskValue(); as value) {
+        <p class="text-2xl font-semibold tabular-nums text-text">{{ value.toFixed(1) }}% p.a.</p>
+        <!-- The caption names the measure so the figure is never ambiguous. -->
+        <p class="text-sm text-text-secondary">{{ riskCaption() }}</p>
+      } @else {
+        <p class="text-2xl font-semibold text-text-tertiary">—</p>
+        <p class="text-sm text-text-secondary">{{ riskCaption() }}</p>
+      }
+    </app-hero-stat-card>
+  </app-section-card-grid>
+
+  <!-- Mean-risk position -->
+  @if (isLoading()) {
+    <app-skeleton-block height="h-64" />
+  } @else if (noRun()) {
+    <app-info-card [title]="positionTitle()">
+      <app-empty-state
+        title="No optimization result"
+        detail="This portfolio has no completed run yet."
+      >
+        <app-cross-page-link label="Build a run" route="/build/universe-data" />
+      </app-empty-state>
+    </app-info-card>
+  } @else {
+    <app-frontier-chart
+      [title]="positionTitle()"
+      subtitle="Summary — the interactive frontier lives in Results & Frontier"
+      [ariaLabel]="positionSummary()"
+      [curve]="frontierCurve()"
+      [markers]="currentMarker()"
+      [xAxisName]="riskCaption()"
+      yAxisName="E(r)"
+      [height]="260"
+      [showLegend]="false"
+    >
+      <div class="flex flex-col gap-2 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm text-text-secondary">{{ dominanceText() }}</p>
+        <app-cross-page-link label="View Efficient Frontier" route="/results/results-frontier" />
+      </div>
+    </app-frontier-chart>
+  }
+
+  <!-- ASSET ALLOCATION PROCESS -->
+  <app-section-card-grid label="Asset allocation process" [columns]="4" [ordered]="true">
+    @for (phase of snapshot()?.phases ?? []; track phase.step) {
+      <!--
+        Read-only stepper: it reflects state owned by the Build and Results
+        sections and is not editable from here.
+      -->
+      <div role="listitem" [attr.aria-current]="phase.status === 'current' ? 'step' : null">
+        <app-entity-card [title]="phase.step + '. ' + phase.name" [current]="phase.status === 'current'">
+          <app-status-badge [label]="phase.status" [tone]="phaseTone(phase.status)" />
+        </app-entity-card>
+      </div>
+    }
+  </app-section-card-grid>
+
+  <!-- OPERATIONAL ADVANTAGE — SIX CONDITIONS -->
+  <app-section-card-grid label="Operational advantage — six conditions" [columns]="3">
+    @for (condition of snapshot()?.conditions ?? []; track condition.id) {
+      <div class="flex flex-col gap-2">
+        <app-entity-card
+          [title]="condition.name"
+          [selectable]="true"
+          (selected)="toggleCondition(condition)"
+        >
+          <app-status-badge [label]="condition.status" [tone]="conditionTone(condition.status)" />
+        </app-entity-card>
+        @if (openCondition() === condition.id) {
+          <p class="rounded-md bg-surface-inset px-3 py-2 text-sm text-text-secondary">
+            {{ condition.detail }}
+          </p>
+        }
+      </div>
+    }
+  </app-section-card-grid>
+
+  <!-- FUND — 4-AGENT STATUS -->
+  <div class="flex flex-col gap-3">
+    <app-section-card-grid label="Fund — 4-agent status" [columns]="2">
+      @for (agent of snapshot()?.agents ?? []; track agent.id) {
+        <app-entity-card
+          [title]="agent.name"
+          [meta]="'updated ' + agent.updatedAt"
+          [route]="agent.route"
+        >
+          <app-status-badge [label]="agentLabel(agent.status)" [tone]="agentTone(agent.status)" />
+        </app-entity-card>
+      }
+    </app-section-card-grid>
+    <app-action-button-row>
+      <app-cross-page-link label="Open Fund Deliberation" route="/fund/deliberation" />
+    </app-action-button-row>
+  </div>
+
+  <!-- PENDING APPROVALS -->
+  <div class="flex flex-col gap-3">
+    <app-section-card-grid
+      [label]="'Pending approvals (' + (snapshot()?.approvals?.length ?? 0) + ')'"
+      [columns]="2"
+    >
+      @for (approval of snapshot()?.approvals ?? []; track approval.id) {
+        <app-entity-card
+          [title]="approval.title"
+          [meta]="approval.kind"
+          route="/approvals/approval-gate"
+        />
+      } @empty {
+        <app-empty-state title="No pending approvals" />
+      }
+    </app-section-card-grid>
+    <!-- The exit stays available even with nothing pending. -->
+    <app-action-button-row>
+      <app-cross-page-link label="Go to Approval Gate" route="/approvals/approval-gate" />
+    </app-action-button-row>
+  </div>
+
+  <!-- RECENT ACTIVITY -->
+  <app-info-card title="Recent activity">
+    @if (isLoading()) {
+      <app-skeleton-block height="h-6" [lines]="3" />
+    } @else if (activityFailed()) {
+      <!-- One section failing leaves the rest of the page populated. -->
+      <app-error-state message="Activity feed unavailable" (retry)="refresh()" />
+    } @else {
+      <ul class="flex flex-col">
+        @for (entry of snapshot()?.activity ?? []; track entry.id) {
+          <li class="border-b border-border-muted last:border-0">
+            <a
+              [href]="entry.route"
+              class="flex items-baseline gap-4 rounded-md py-2 text-sm transition-colors hover:bg-surface-inset"
+            >
+              <span class="shrink-0 tabular-nums text-text-secondary">{{ entry.at }}</span>
+              <span class="text-text">{{ entry.description }}</span>
+            </a>
+          </li>
+        } @empty {
+          <app-empty-state title="No recent activity" />
+        }
+      </ul>
+    }
+  </app-info-card>
+}
+
+<!-- Refresh outcome is announced without moving focus. -->
+<div aria-live="polite" class="sr-only">{{ announcement() }}</div>

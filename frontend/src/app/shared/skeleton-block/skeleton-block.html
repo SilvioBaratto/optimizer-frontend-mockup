@@ -1,0 +1,5 @@
+<div class="flex flex-col gap-2" aria-hidden="true">
+  @for (i of range(lines()); track i) {
+    <div [class]="'animate-shimmer rounded-md ' + height() + ' ' + width()"></div>
+  }
+</div>

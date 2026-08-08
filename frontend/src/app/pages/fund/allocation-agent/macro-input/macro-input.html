@@ -1,0 +1,57 @@
+@if (input(); as z) {
+  <div class="flex flex-col gap-3">
+    <dl class="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
+      <dt class="text-text-secondary">Regime</dt>
+      <dd class="text-text">{{ z.regime }}</dd>
+
+      <dt class="text-text-secondary">Term spread</dt>
+      <dd class="text-text">
+        <span class="tabular-nums">{{ z.termSpread > 0 ? '+' : '' }}{{ z.termSpread.toFixed(1) }}</span>
+        <span class="text-text-secondary"> · {{ z.termSpreadNote }}</span>
+      </dd>
+
+      <dt class="text-text-secondary">Credit spread</dt>
+      <dd class="text-text">{{ z.creditSpread }}</dd>
+
+      <dt class="text-text-secondary">Log dividend yield</dt>
+      <dd class="tabular-nums text-text">{{ z.logDividendYield.toFixed(1) }}%</dd>
+
+      <dt class="text-text-secondary">Risk budget</dt>
+      <dd class="text-text">
+        @if (z.riskBudget) {
+          {{ z.riskBudget }}
+        } @else {
+          <!-- Absent, not zero: the risk agent has not run since this z_t. -->
+          <span class="text-text-secondary">— not yet received from the Risk Agent</span>
+        }
+      </dd>
+
+      <dt class="text-text-secondary">Universe</dt>
+      <dd class="text-text">
+        <span class="tabular-nums">{{ z.universeSize }}</span> assets /
+        <span class="tabular-nums">{{ z.assetClasses.length }}</span> classes
+      </dd>
+    </dl>
+
+    <p class="text-sm text-text-secondary">{{ z.assetClasses.join(' · ') }}</p>
+
+    <p class="text-xs text-text-secondary">
+      Received <span class="tabular-nums text-text">{{ z.receivedAt }}</span> through the shared
+      fund state. The agents never call each other, so this is a copy of what the macro agent
+      published, not a live read.
+    </p>
+
+    <app-cross-page-link label="Open Macro &amp; Regimes Agent" route="/fund/macro-agent" />
+  </div>
+} @else {
+  <app-empty-state
+    title="Waiting for a macro state"
+    detail="The shared fund state holds no usable z_t yet. The allocation problem is conditional on that vector — regime, term spread, credit spread, dividend yield — so there is nothing to solve until the macro agent publishes one. Running the agent is disabled until then."
+  >
+    <app-cross-page-link
+      label="Open Macro &amp; Regimes Agent"
+      route="/fund/macro-agent"
+      emphasis="filled"
+    />
+  </app-empty-state>
+}

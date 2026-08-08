@@ -1,0 +1,70 @@
+<div class="flex flex-col gap-3">
+  @if (isHistoric()) {
+    <p class="rounded-md border border-border bg-surface-inset px-3 py-2 text-sm text-text-secondary">
+      Showing the state frozen at step {{ activeCheckpoint()?.step }}, not the newest one.
+    </p>
+  }
+
+  <div class="relative overflow-x-auto">
+    <table class="w-full min-w-xl text-sm">
+      <caption class="sr-only">
+        The five fields of the shared fund state, who writes each one, whether it is set at this
+        checkpoint, and when it was last written.
+      </caption>
+      <thead>
+        <tr class="border-b border-border text-xs text-text-secondary">
+          <th scope="col" class="px-3 py-2 text-left font-medium">Field</th>
+          <th scope="col" class="px-3 py-2 text-left font-medium">Written by</th>
+          <th scope="col" class="px-3 py-2 text-left font-medium">State</th>
+          <th scope="col" class="px-3 py-2 text-left font-medium">Updated</th>
+          <th scope="col" class="px-3 py-2 text-left font-medium">
+            <span class="sr-only">Detail</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of fields(); track row.field) {
+          <tr class="border-b border-border-muted">
+            <th scope="row" class="px-3 py-2 text-left font-normal">
+              <span class="font-mono text-text">{{ row.field }}</span>
+            </th>
+            <td class="px-3 py-2 text-text-secondary">{{ row.writtenBy }}</td>
+            <td class="px-3 py-2">
+              <app-status-badge
+                [label]="stateLabel(row.set, row.count)"
+                [tone]="row.set ? 'ok' : 'pending'"
+              />
+            </td>
+            <td class="px-3 py-2 font-mono tabular-nums text-text-secondary">
+              {{ row.updated ?? '—' }}
+            </td>
+            <td class="px-3 py-2 text-right">
+              @if (row.set) {
+                <button
+                  type="button"
+                  class="min-h-11 rounded-md px-2 text-sm font-medium text-primary underline-offset-2 hover:underline"
+                  [attr.aria-expanded]="openField() === row.field"
+                  [attr.aria-controls]="'detail-' + row.field"
+                  (click)="toggle(row.field, row.set)"
+                >
+                  {{ openField() === row.field ? 'Hide detail' : 'View field detail' }}
+                </button>
+              } @else {
+                <!-- An empty field has no value to open, and says so. -->
+                <span class="text-xs text-text-secondary">nothing written yet</span>
+              }
+            </td>
+          </tr>
+          @if (openField() === row.field && row.set) {
+            <tr class="border-b border-border-muted bg-surface-inset">
+              <td [id]="'detail-' + row.field" colspan="5" class="px-3 py-3">
+                <p class="text-sm font-medium text-text">{{ row.summary }}</p>
+                <p class="mt-1 text-sm text-text-secondary">{{ row.detail }}</p>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

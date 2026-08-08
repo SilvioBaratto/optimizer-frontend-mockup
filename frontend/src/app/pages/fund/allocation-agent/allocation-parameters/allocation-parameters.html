@@ -1,0 +1,232 @@
+<div class="flex flex-col gap-4">
+  <!-- Its own live region, separate from the agent's status announcements. -->
+  <p class="sr-only" aria-live="polite">{{ blockAnnouncement() }}</p>
+
+  <fieldset class="flex flex-wrap items-center gap-x-6 gap-y-2">
+    <legend class="text-xs text-text-secondary">Approach</legend>
+    @for (a of approaches; track a) {
+      <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+        <input
+          type="radio"
+          name="estimation-approach"
+          class="accent-[var(--color-primary)]"
+          [checked]="approach() === a"
+          (change)="onApproach(a)"
+        />
+        {{ approachLabel[a] }}
+      </label>
+    }
+  </fieldset>
+
+  <p class="text-sm text-text-secondary">
+    Plug-in estimates the conditional moments and then optimises over them; direct modelling skips
+    that stage. The choice is a trade with estimation error, not a matter of taste — plug-in is
+    consistent but imprecise, and grows worse as the universe does.
+  </p>
+
+  <!--
+    Never both at once: the two blocks ask different questions, and showing the
+    objective beside a method that has no objective would be a lie.
+  -->
+  @if (approach() === 'plug-in') {
+    <div class="flex flex-col gap-4 rounded-md border border-border bg-surface-inset px-4 py-3">
+      <h3 class="text-sm font-medium text-text">Plug-in, two-stage</h3>
+
+      <fieldset class="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <legend class="text-xs text-text-secondary">Estimation remedies</legend>
+        @for (r of remedyOptions; track r) {
+          <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+            <input
+              type="checkbox"
+              class="h-4 w-4 accent-[var(--color-primary)]"
+              [checked]="remedies().includes(r)"
+              (change)="toggleRemedy(r)"
+            />
+            {{ remedyLabel[r] }}
+          </label>
+        }
+      </fieldset>
+      <p class="text-xs text-text-secondary">
+        Each buys a reduction in variance at the price of some bias. Position limits do the same
+        job as covariance shrinkage, which is why constraints help even where no theory asked for
+        them.
+      </p>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="objective" class="text-xs text-text-secondary">Objective</label>
+          <select
+            id="objective"
+            class="min-h-11 min-w-0 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+            (change)="onObjective($event)"
+          >
+            @for (o of objectives; track o.id) {
+              <option [value]="o.id" [selected]="objective() === o.id">{{ o.label }}</option>
+            }
+          </select>
+          <p class="text-xs text-text-secondary">{{ activeObjective().note }}</p>
+        </div>
+
+        @if (activeObjective().needsTargetReturn) {
+          <div class="flex flex-col gap-1">
+            <label for="target-return" class="text-xs text-text-secondary">
+              Target return π, percent
+            </label>
+            <input
+              id="target-return"
+              type="number"
+              step="0.1"
+              class="min-h-11 w-32 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+              [value]="targetReturn()"
+              [attr.aria-invalid]="targetReturnInvalid() ? 'true' : null"
+              [attr.aria-describedby]="targetReturnInvalid() ? 'target-return-error' : null"
+              (change)="onNumber($event, targetReturn.set, -50, 100)"
+            />
+            @if (targetReturnInvalid()) {
+              <p id="target-return-error" class="text-xs text-text-secondary">
+                @if (targetBelowGmvp()) {
+                  π must exceed the GMVP's {{ gmvpReturn.toFixed(1) }}% — below the vertex the
+                  frontier still has points, but every one of them is dominated.
+                } @else {
+                  A long-only book reaches at most {{ longOnlyMaxReturn.toFixed(1) }}%. Past the
+                  tangency portfolio the mix is funded by shorting the quiet end of the book, so
+                  either lower π or allow short selling.
+                }
+                The agent will not run until π is inside the reachable range.
+              </p>
+            }
+          </div>
+        }
+
+        <div class="flex flex-col gap-1">
+          <label for="risk-free" class="text-xs text-text-secondary">
+            Risk-free rate r<sub>f</sub>, percent
+          </label>
+          <input
+            id="risk-free"
+            type="number"
+            step="0.1"
+            class="min-h-11 w-32 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+            [value]="riskFreeRate()"
+            (change)="onNumber($event, riskFreeRate.set, 0, 20)"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="position-limit" class="text-xs text-text-secondary">
+            Position limit per asset, percent
+          </label>
+          <input
+            id="position-limit"
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            class="min-h-11 w-32 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+            [value]="positionLimit()"
+            (change)="onNumber($event, positionLimit.set, 0, 100)"
+          />
+        </div>
+      </div>
+
+      <label class="flex min-h-11 items-center gap-2 text-sm text-text">
+        <input
+          type="checkbox"
+          class="h-4 w-4 accent-[var(--color-primary)]"
+          [checked]="allowShortSelling()"
+          (change)="allowShortSelling.set($any($event.target).checked)"
+        />
+        Allow short selling
+        <span class="text-xs text-text-secondary">
+          @if (allowShortSelling()) {
+            — the problem keeps its closed form
+          } @else {
+            — weights stay non-negative, so the problem is solved numerically
+          }
+        </span>
+      </label>
+    </div>
+  } @else {
+    <div class="flex flex-col gap-4 rounded-md border border-border bg-surface-inset px-4 py-3">
+      <h3 class="text-sm font-medium text-text">Direct weight modeling</h3>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="direct-method" class="text-xs text-text-secondary">Direct method</label>
+          <select
+            id="direct-method"
+            class="min-h-11 min-w-0 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+            (change)="onDirectMethod($event)"
+          >
+            @for (m of directMethods; track m) {
+              <option [value]="m" [selected]="directMethod() === m">{{ directMethodLabel[m] }}</option>
+            }
+          </select>
+        </div>
+
+        @if (directMethod() === 'parametric') {
+          <div class="flex flex-col gap-1">
+            <label for="benchmark" class="text-xs text-text-secondary">
+              Benchmark weights x̄
+            </label>
+            <select
+              id="benchmark"
+              class="min-h-11 min-w-0 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+              (change)="onBenchmark($event)"
+            >
+              @for (b of benchmarks; track b) {
+                <option [value]="b" [selected]="benchmarkWeights() === b">{{ benchmarkLabel[b] }}</option>
+              }
+            </select>
+          </div>
+        }
+      </div>
+
+      <fieldset class="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <legend class="text-xs text-text-secondary">Characteristics ŷ</legend>
+        @for (c of characteristicOptions; track c) {
+          <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+            <input
+              type="checkbox"
+              class="h-4 w-4 accent-[var(--color-primary)]"
+              [checked]="characteristics().includes(c)"
+              (change)="toggleCharacteristic(c)"
+            />
+            {{ characteristicLabel[c] }}
+          </label>
+        }
+      </fieldset>
+
+      <div class="flex flex-col gap-1">
+        <label for="risk-free-direct" class="text-xs text-text-secondary">
+          Risk-free rate r<sub>f</sub>, percent
+        </label>
+        <input
+          id="risk-free-direct"
+          type="number"
+          step="0.1"
+          class="min-h-11 w-32 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+          [value]="riskFreeRate()"
+          (change)="onNumber($event, riskFreeRate.set, 0, 20)"
+        />
+      </div>
+
+      <p class="text-sm text-text-secondary">
+        Objective — not applicable. The weights are modelled directly as a deviation from the
+        benchmark, so no covariance matrix is estimated and there is no objective to optimise over.
+      </p>
+    </div>
+  }
+
+  @if (modified()) {
+    <!--
+      Nothing on the page has changed yet, and saying so is the point: the
+      weights below still belong to the last run.
+    -->
+    <p class="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
+      <app-status-badge label="modified" tone="warn" />
+      The configuration differs from the last run. The allocation below is still the one that run
+      produced — run the agent to apply these settings.
+    </p>
+  }
+</div>

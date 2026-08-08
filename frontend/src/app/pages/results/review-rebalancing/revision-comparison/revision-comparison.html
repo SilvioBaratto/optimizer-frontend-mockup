@@ -1,0 +1,198 @@
+@if (method() === 'smith') {
+  <div class="flex flex-col gap-3">
+    <!--
+      `relative`: a `sr-only` label inside a wide scrolled table is absolutely
+      positioned, and without a positioned ancestor it escapes the scroller and
+      widens the whole page.
+    -->
+    <div class="relative overflow-x-auto">
+      <table class="w-full min-w-2xl text-sm">
+        <caption class="sr-only">
+          Current weight, revised weight, difference and resulting action for each asset.
+        </caption>
+        <thead>
+          <tr class="border-b border-border text-xs text-text-secondary">
+            <th scope="col" class="px-3 py-2 text-left font-medium">Asset</th>
+            <th scope="col" class="px-3 py-2 text-right font-medium">z*<sub>t</sub></th>
+            <th scope="col" class="px-3 py-2 text-right font-medium">z*<sub>t+Δt</sub></th>
+            <th scope="col" class="px-3 py-2 text-right font-medium">Δ</th>
+            <th scope="col" class="px-3 py-2 text-left font-medium">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of visibleRows(); track row.ticker) {
+            <tr class="border-b border-border-muted last:border-0">
+              <th scope="row" class="px-3 py-2 text-left font-normal">
+                <span class="font-medium text-text">{{ row.ticker }}</span>
+                <span class="ml-2 text-text-secondary">{{ row.name }}</span>
+              </th>
+              <td class="px-3 py-2 text-right tabular-nums text-text-secondary">
+                {{ row.currentWeight.toFixed(5) }}
+              </td>
+              <td class="px-3 py-2 text-right tabular-nums text-text-secondary">
+                {{ row.revisedWeight.toFixed(5) }}
+              </td>
+              <td class="px-3 py-2 text-right tabular-nums text-text">
+                {{ row.delta > 0 ? '+' : '' }}{{ row.delta.toFixed(5) }}
+              </td>
+              <td class="px-3 py-2">
+                <!-- The direction is words, never the colour of the badge alone. -->
+                <span class="flex flex-wrap items-center gap-1.5">
+                  <app-status-badge [label]="actionLabel[row.action]" [tone]="tone(row.action)" />
+                  @if (actionNote[row.action]) {
+                    <span class="text-xs text-text-secondary">{{ actionNote[row.action] }}</span>
+                  }
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="border-t-2 border-border text-sm font-medium">
+            <th scope="row" class="px-3 py-2 text-left">Sum Δ</th>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2 text-right tabular-nums text-text">
+              {{ deltaSum() > 0 ? '+' : '' }}{{ deltaSum().toFixed(5) }}
+            </td>
+            <td class="px-3 py-2">
+              @if (deltaSumAnomalous()) {
+                <app-status-badge label="does not net to zero" tone="alert" />
+              } @else {
+                <span class="text-sm font-normal text-text-secondary">
+                  buys − sells nets to zero
+                </span>
+              }
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    @if (deltaSumAnomalous()) {
+      <p role="alert" class="rounded-md border border-border bg-surface-inset px-3 py-2 text-sm text-text-secondary">
+        The weight changes do not net to zero, so the two vectors describe different amounts of
+        capital. Check this before sending: the costs below are computed on a trade that cannot be
+        executed as stated.
+      </p>
+    }
+
+    @if (hiddenCount() > 0 || expanded()) {
+      <div class="flex items-center justify-between gap-2">
+        <p class="text-xs text-text-secondary">
+          @if (!expanded()) {
+            … {{ hiddenCount() }} more assets
+          }
+        </p>
+        <button
+          type="button"
+          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          (click)="expanded.set(!expanded())"
+        >
+          {{ expanded() ? 'Show fewer' : 'View full table' }}
+        </button>
+      </div>
+    }
+  </div>
+} @else {
+  <!-- Stone-Hill: the same decision posed as an exchange (Fondamenti §3). -->
+  <div class="flex flex-col gap-4">
+    <p class="text-sm text-text-secondary">
+      Returns corrected for systematic risk, c<sub>i</sub> = r<sub>i</sub> − β<sub>i</sub>θ with
+      θ = {{ theta.toFixed(2) }}%. Buying i and selling j pays only when
+      c<sub>i</sub> − c<sub>j</sub> exceeds bc<sub>i</sub> + sc<sub>j</sub>.
+    </p>
+
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div class="flex flex-col gap-2">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+          Buy candidates — ranked by c<sub>i</sub> − bc<sub>i</sub>
+        </h3>
+        <div class="relative overflow-x-auto">
+          <table class="w-full min-w-sm text-sm">
+            <caption class="sr-only">Buy candidates ranked by corrected return net of buy cost.</caption>
+            <thead>
+              <tr class="border-b border-border text-xs text-text-secondary">
+                <th scope="col" class="px-3 py-2 text-left font-medium">Asset</th>
+                <th scope="col" class="px-3 py-2 text-right font-medium">c<sub>i</sub></th>
+                <th scope="col" class="px-3 py-2 text-right font-medium">bc<sub>i</sub></th>
+                <th scope="col" class="px-3 py-2 text-right font-medium">Rank score</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of topBuys(); track c.ticker; let first = $first) {
+                <tr class="border-b border-border-muted last:border-0" [class.bg-surface-inset]="first">
+                  <th scope="row" class="px-3 py-2 text-left font-normal text-text">{{ c.ticker }}</th>
+                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">
+                    {{ c.correctedReturn.toFixed(2) }}%
+                  </td>
+                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">
+                    {{ c.cost.toFixed(2) }}%
+                  </td>
+                  <td class="px-3 py-2 text-right tabular-nums text-text">{{ c.score.toFixed(2) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+          Held positions — ranked by c<sub>j</sub> + sc<sub>j</sub>
+        </h3>
+        <div class="relative overflow-x-auto">
+          <table class="w-full min-w-sm text-sm">
+            <caption class="sr-only">Held positions ranked by corrected return plus sell cost, lowest first.</caption>
+            <thead>
+              <tr class="border-b border-border text-xs text-text-secondary">
+                <th scope="col" class="px-3 py-2 text-left font-medium">Asset</th>
+                <th scope="col" class="px-3 py-2 text-right font-medium">c<sub>j</sub></th>
+                <th scope="col" class="px-3 py-2 text-right font-medium">sc<sub>j</sub></th>
+                <th scope="col" class="px-3 py-2 text-right font-medium">Rank score</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of topSells(); track c.ticker; let first = $first) {
+                <tr class="border-b border-border-muted last:border-0" [class.bg-surface-inset]="first">
+                  <th scope="row" class="px-3 py-2 text-left font-normal text-text">{{ c.ticker }}</th>
+                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">
+                    {{ c.correctedReturn.toFixed(2) }}%
+                  </td>
+                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">
+                    {{ c.cost.toFixed(2) }}%
+                  </td>
+                  <td class="px-3 py-2 text-right tabular-nums text-text">{{ c.score.toFixed(2) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    @if (proposedExchange(); as swap) {
+      <div class="flex flex-col gap-2 rounded-md border border-border bg-surface-inset px-4 py-3">
+        <p class="flex flex-wrap items-center gap-2 text-sm font-medium text-text">
+          Proposed exchange
+          <app-status-badge
+            [label]="swap.worthwhile ? 'clears the hurdle' : 'below the hurdle'"
+            [tone]="swap.worthwhile ? 'ok' : 'warn'"
+          />
+        </p>
+        <p class="text-sm text-text-secondary">
+          Buy <span class="font-medium text-text">{{ swap.buy.ticker }}</span>, sell
+          <span class="font-medium text-text">{{ swap.sell.ticker }}</span> —
+          advantage c<sub>i</sub> − c<sub>j</sub> = {{ swap.advantage.toFixed(2) }}% against a
+          hurdle bc<sub>i</sub> + sc<sub>j</sub> = {{ swap.hurdle.toFixed(2) }}%.
+        </p>
+        <p class="text-sm text-text-secondary">
+          Amount available within the f<sub>i</sub> limits:
+          <span class="tabular-nums text-text">
+            EUR {{ swap.amount.toLocaleString('en-GB', { maximumFractionDigits: 0 }) }}
+          </span>
+        </p>
+      </div>
+    }
+  </div>
+}

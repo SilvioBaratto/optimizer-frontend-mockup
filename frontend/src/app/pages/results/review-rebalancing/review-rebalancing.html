@@ -1,0 +1,303 @@
+<!--
+  Regions follow `docs/10 Review & Rebalancing.md` in order. The shell renders
+  the <h1>, so headings here start at <h2>.
+-->
+
+<!-- Toolbar -->
+<div class="flex flex-col gap-3">
+  <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+    <fieldset class="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <legend class="sr-only">Revision method</legend>
+      <span class="text-sm text-text-secondary">Method</span>
+      @for (m of methods; track m) {
+        <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+          <input
+            type="radio"
+            name="revision-method"
+            class="accent-[var(--color-primary)]"
+            [checked]="method() === m"
+            (change)="onMethod(m)"
+          />
+          {{ methodLabel[m] }}
+        </label>
+      }
+    </fieldset>
+
+    <p class="text-sm text-text-secondary">
+      As of t+Δt <span class="tabular-nums text-text">{{ asOf }}</span>
+      · t <span class="tabular-nums text-text">{{ previousAsOf }}</span>
+    </p>
+
+    <button
+      type="button"
+      class="ml-auto min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+      [disabled]="state() === 'loading'"
+      (click)="refresh()"
+    >
+      <span aria-hidden="true">⟳</span> Refresh data
+    </button>
+  </div>
+
+  <p class="text-xs text-text-secondary">
+    Switching method recomputes the candidate only — the data is not refetched.
+  </p>
+
+  @if (windowStale()) {
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border bg-surface-inset px-4 py-2">
+      <app-status-badge label="estimation window" tone="warn" />
+      <p class="text-sm text-text-secondary">
+        The window used closed {{ windowAgeDays() }} days ago. Parameters drift, and the candidate
+        below is only as current as the window it came from.
+      </p>
+    </div>
+  }
+</div>
+
+@if (state() === 'loading') {
+  <div role="status" class="flex flex-col gap-6">
+    <span class="sr-only">Recalculating the revision</span>
+    <div class="rounded-lg border border-border bg-surface-raised p-4">
+      <app-skeleton-block height="h-5" [lines]="2" />
+    </div>
+    <div class="rounded-lg border border-border bg-surface-raised p-4">
+      <app-skeleton-block height="h-64" />
+    </div>
+    <div class="rounded-lg border border-border bg-surface-raised p-4">
+      <app-skeleton-block height="h-5" [lines]="4" />
+    </div>
+  </div>
+} @else if (state() === 'error') {
+  <!-- Names the stage that failed, so the retry restarts only that one. -->
+  <app-error-state
+    [message]="'The recalculation failed while ' + stageLabel[failedStage() ?? 'data'] + '.'"
+    detail="The last successful values are no longer shown, because they were computed on a different window. Nothing has been sent."
+    (retry)="retryStage()"
+  />
+} @else if (state() === 'empty') {
+  <app-empty-state
+    title="No current portfolio to compare against"
+    detail="There is no z*_t on record for this scope, so there is nothing to revise. Complete a selection in Results & Frontier first."
+  >
+    <app-cross-page-link label="Results & Frontier" route="/results/results-frontier" />
+  </app-empty-state>
+} @else {
+  <!-- Revision classification — read-only, three mutually exclusive states. -->
+  <app-info-card title="Revision classification">
+    <div class="flex flex-col gap-3">
+      <p class="text-sm text-text-secondary">
+        Where z*<sub>t</sub> stands at t+Δt under the updated parameters.
+      </p>
+      <ul class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-6">
+        @for (c of classifications; track c) {
+          <li
+            class="flex items-center gap-2 text-sm"
+            [attr.aria-current]="classification() === c ? 'true' : null"
+          >
+            <!-- Text and a filled mark, never the colour alone. -->
+            <span aria-hidden="true" class="text-text-secondary">
+              {{ classification() === c ? '●' : '○' }}
+            </span>
+            <span [class.font-medium]="classification() === c" [class.text-text]="classification() === c" [class.text-text-secondary]="classification() !== c">
+              {{ classificationLabel[c] }}
+            </span>
+          </li>
+        }
+      </ul>
+      @if (!hasCandidate()) {
+        <p class="text-sm text-text-secondary">
+          No revision is proposed: a holding that is still optimal needs no change, and one that is
+          still efficient is assumed to satisfy the investor.
+        </p>
+      }
+    </div>
+  </app-info-card>
+
+  @if (!hasCandidate()) {
+    <app-empty-state
+      title="No revision"
+      detail="The current portfolio remains acceptable under the updated parameters, so there is no candidate to compare, cost or approve."
+    />
+  } @else {
+    <!-- Chart and comparison: side by side above 1024px, stacked below. -->
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      @if (method() === 'smith') {
+        <app-frontier-chart
+          title="New efficient frontier"
+          subtitle="z*_t now sits below it — A, B and C are the three points Smith identifies"
+          [ariaLabel]="frontierDescription()"
+          [curve]="frontierCurve()"
+          [markers]="frontierMarkers()"
+          [valueFormatter]="planeFormatter"
+          xAxisName="Var(X)"
+          yAxisName="E(X)"
+          [height]="320"
+        >
+          <div class="border-t border-border px-4 py-3">
+            <dl class="flex flex-col gap-1 text-sm">
+              @for (point of smithPoints(); track point.label) {
+                <div class="flex flex-wrap items-baseline gap-2">
+                  <dt class="font-medium text-text">{{ point.label }}</dt>
+                  <dd class="text-text-secondary">
+                    {{ point.description }}
+                    @if (!point.actionable) {
+                      <span class="text-xs">— not actionable</span>
+                    }
+                  </dd>
+                </div>
+              }
+            </dl>
+          </div>
+        </app-frontier-chart>
+      } @else {
+        <app-bar-chart
+          title="Returns corrected for systematic risk"
+          subtitle="c_i = r_i − β_i·θ — the ranking the exchange rule works from"
+          ariaLabel="Corrected return for each asset, used to rank the exchange"
+          [categories]="correctedCategories()"
+          [series]="correctedSeries()"
+          [valueFormatter]="planeFormatter"
+          categoryAxisName="asset"
+          valueAxisName="c_i"
+          [height]="320"
+          [showLegend]="false"
+        />
+      }
+
+      <app-info-card
+        [title]="method() === 'smith' ? 'Current vs revised weights' : 'Exchange ranking'"
+      >
+        <app-revision-comparison />
+      </app-info-card>
+    </div>
+
+    <!-- Revision cost -->
+    <app-info-card title="Revision cost">
+      <app-revision-cost />
+    </app-info-card>
+
+    <!-- Convenience verdict -->
+    <app-hero-stat-card title="Convenience verdict" eyebrow="Revision">
+      <div class="flex flex-col gap-4">
+        <app-bar-chart
+          ariaLabel="The expected return the revision adds, against what it costs"
+          [categories]="verdictCategories"
+          [series]="verdictSeries()"
+          [valueFormatter]="moneyFormatter"
+          valueAxisName="EUR"
+          [height]="150"
+          [showLegend]="false"
+        />
+        <p class="text-sm text-text-secondary">
+          Recomputed the moment a cost input or the candidate changes — no refetch.
+        </p>
+      </div>
+
+      <div hero-footer class="flex flex-col gap-1 border-t border-border px-4 py-3">
+        <p class="flex flex-wrap items-center gap-2">
+          <span class="text-sm font-semibold text-text">VERDICT</span>
+          <!-- Explicit words: never the length of a bar alone. -->
+          <app-status-badge
+            [label]="verdict().convenient ? 'REVISION CONVENIENT' : 'NOT CONVENIENT'"
+            [tone]="verdict().convenient ? 'ok' : 'warn'"
+          />
+        </p>
+        <p class="text-sm text-text-secondary">
+          @if (verdict().convenient) {
+            The gain exceeds the cost by
+            <span class="tabular-nums text-text">EUR {{ moneyFormatter(verdict().surplus) }}</span>.
+          } @else {
+            The cost exceeds the gain by
+            <span class="tabular-nums text-text">EUR {{ moneyFormatter(-verdict().surplus) }}</span>,
+            so holding the current portfolio is the better of the two.
+          }
+        </p>
+      </div>
+    </app-hero-stat-card>
+
+    <!-- Actions. The filled one follows the verdict; all three stay available. -->
+    <div class="flex flex-col gap-3">
+      <app-action-button-row align="start">
+        <button
+          type="button"
+          class="min-h-11 rounded-md px-4 text-sm font-medium transition-colors disabled:opacity-50"
+          [class]="
+            verdict().convenient
+              ? 'min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50'
+              : 'min-h-11 rounded-md border border-border-control px-4 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50'
+          "
+          [disabled]="outcome('approve').state === 'sending' || !hasCandidate()"
+          (click)="submit('approve')"
+        >
+          {{ outcome('approve').state === 'sending' ? sendingLabel('approve') : 'Approve & send to Execution & Orders Agent →' }}
+        </button>
+
+        <button
+          type="button"
+          [class]="
+            !verdict().convenient
+              ? 'min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50'
+              : 'min-h-11 rounded-md border border-border-control px-4 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50'
+          "
+          [disabled]="outcome('hold').state === 'sending'"
+          (click)="submit('hold')"
+        >
+          {{ outcome('hold').state === 'sending' ? sendingLabel('hold') : 'Hold current portfolio' }}
+        </button>
+
+        <button
+          type="button"
+          class="min-h-11 rounded-md border border-border-control px-4 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+          [disabled]="outcome('forward').state === 'sending'"
+          (click)="submit('forward')"
+        >
+          {{ outcome('forward').state === 'sending' ? sendingLabel('forward') : 'Send to Human Approval Gate →' }}
+        </button>
+      </app-action-button-row>
+
+      <p class="text-xs text-text-secondary">
+        The filled button follows the verdict; all three stay available as an override.
+      </p>
+
+      <!--
+        Reserved region: always in the layout, blank until an action is
+        submitted, and never showing a recalculation failure — that belongs to
+        the section that failed, not to the button that was pressed.
+      -->
+      <div class="min-h-11" aria-live="polite">
+        @if (banner(); as latest) {
+          @switch (latest.outcome.state) {
+            @case ('sending') {
+              <p class="flex items-center gap-2 rounded-md border border-border bg-surface-inset px-4 py-2 text-sm text-text-secondary">
+                <app-status-badge label="sending" tone="active" />
+                {{ actionTitle(latest.action) }} — in progress.
+              </p>
+            }
+            @case ('sent') {
+              <p class="flex flex-wrap items-center gap-2 rounded-md border border-border bg-surface-inset px-4 py-2 text-sm text-text-secondary">
+                <app-status-badge label="sent" tone="ok" />
+                {{ actionTitle(latest.action) }} — sent
+                <span class="tabular-nums text-text">{{ latest.outcome.at }}</span>
+                · queue ref
+                <span class="font-mono text-text">{{ latest.outcome.reference }}</span>
+              </p>
+            }
+            @case ('error') {
+              <p role="alert" class="flex flex-wrap items-center gap-2 rounded-md border border-border bg-surface-inset px-4 py-2 text-sm text-text-secondary">
+                <app-status-badge label="send failed" tone="alert" />
+                {{ latest.outcome.message }}
+                <app-retry-button
+                  [label]="'Retry ' + (latest.action === 'hold' ? 'record' : 'send')"
+                  (retry)="submit(latest.action)"
+                />
+              </p>
+            }
+          }
+        }
+      </div>
+    </div>
+
+    <!-- Two independent diagnostics, collapsed by default. -->
+    <app-signal-persistence />
+    <app-dynamic-trading-plan />
+  }
+}

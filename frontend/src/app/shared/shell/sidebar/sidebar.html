@@ -1,0 +1,72 @@
+<aside
+  class="fixed inset-y-0 left-0 z-40 flex w-[var(--sidebar-w)] flex-col border-r border-border bg-surface-raised transition-transform duration-200 md:translate-x-0"
+  [class.translate-x-0]="visible()"
+  [class.-translate-x-full]="!visible()"
+  [attr.inert]="isMobile() && !isOpen() ? '' : null"
+>
+  <div class="flex h-14 shrink-0 items-center border-b border-border px-4">
+    <a routerLink="/" class="text-sm font-semibold tracking-tight text-text"> Optimizer </a>
+  </div>
+
+  <nav aria-label="Primary" class="flex-1 overflow-y-auto px-2 py-3">
+    @for (section of sections; track section.label ?? $index) {
+      @if (section.label; as label) {
+        <!-- Collapsible group: the heading is the disclosure control. -->
+        <div class="mb-1">
+          <button
+            type="button"
+            class="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-semibold uppercase tracking-wider transition-colors hover:bg-surface-inset"
+            [class.text-primary]="holdsActivePage(label)"
+            [class.text-text-tertiary]="!holdsActivePage(label)"
+            [attr.aria-expanded]="isExpanded(label)"
+            [attr.aria-controls]="sectionId(label)"
+            (click)="toggle(label)"
+          >
+            <lucide-icon
+              [name]="isExpanded(label) ? 'chevron-down' : 'chevron-right'"
+              class="h-3.5 w-3.5 shrink-0"
+              aria-hidden="true"
+            />
+            <span class="flex-1">{{ label }}</span>
+            <!-- Keeps a collapsed section showing that it holds the open page. -->
+            @if (holdsActivePage(label) && !isExpanded(label)) {
+              <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+              <span class="sr-only">contains the current page</span>
+            }
+          </button>
+
+          @if (isExpanded(label)) {
+            <div [id]="sectionId(label)" class="mt-0.5 mb-2">
+              @for (link of section.links; track link.route) {
+                <a
+                  [routerLink]="link.route"
+                  routerLinkActive="bg-primary-light text-primary font-medium"
+                  ariaCurrentWhenActive="page"
+                  class="block rounded-md py-1.5 pr-2.5 pl-7 text-sm text-text-secondary transition-colors hover:bg-surface-inset hover:text-text"
+                  (click)="navigate.emit()"
+                >
+                  {{ link.label }}
+                </a>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- Ungrouped top-level rows: Dashboard and Report. -->
+        <div class="mb-1">
+          @for (link of section.links; track link.route) {
+            <a
+              [routerLink]="link.route"
+              routerLinkActive="bg-primary-light text-primary font-medium"
+              ariaCurrentWhenActive="page"
+              class="block rounded-md px-2.5 py-1.5 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-inset hover:text-text"
+              (click)="navigate.emit()"
+            >
+              {{ link.label }}
+            </a>
+          }
+        </div>
+      }
+    }
+  </nav>
+</aside>

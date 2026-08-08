@@ -1,0 +1,28 @@
+<header
+  class="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface-raised px-3 md:px-4"
+>
+  <button
+    type="button"
+    class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-inset hover:text-text md:hidden"
+    aria-controls="shell-sidebar"
+    [attr.aria-expanded]="sidebarOpen()"
+    [attr.aria-label]="sidebarOpen() ? 'Close navigation' : 'Open navigation'"
+    (click)="toggleSidebar.emit()"
+  >
+    <lucide-icon name="menu" class="h-5 w-5" aria-hidden="true" />
+  </button>
+
+  <span class="shrink-0 text-sm font-semibold tracking-tight text-text md:hidden">Optimizer</span>
+
+  <app-portfolio-scope-switcher />
+
+  <div class="ml-auto flex shrink-0 items-center gap-1">
+    <button
+      type="button"
+      class="inline-flex h-11 w-11 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-inset hover:text-text"
+      aria-label="Notifications"
+    >
+      <lucide-icon name="bell" class="h-5 w-5" aria-hidden="true" />
+    </button>
+  </div>
+</header>

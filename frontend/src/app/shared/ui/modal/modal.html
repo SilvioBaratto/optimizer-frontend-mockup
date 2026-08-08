@@ -1,0 +1,47 @@
+@if (open()) {
+  <!-- Backdrop -->
+  <div
+    class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+    data-testid="modal-backdrop"
+    (click)="handleClose()"
+    aria-hidden="true"
+  ></div>
+
+  <!-- Dialog panel -->
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="app-modal-title"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+    appFocusTrap
+    [active]="open()"
+    (close)="handleClose()"
+  >
+    <div
+      class="pointer-events-auto w-full max-w-lg rounded-xl shadow-xl
+             bg-surface-raised
+             border border-border
+             animate-fade-in-up"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Header -->
+      <div class="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
+        <h2 id="app-modal-title" class="text-base font-semibold text-text">{{ label() }}</h2>
+        <button
+          type="button"
+          class="inline-flex items-center justify-center rounded-md p-1.5 text-text-secondary
+                 hover:text-text hover:bg-surface-inset transition-colors
+                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          aria-label="Close dialog"
+          (click)="handleClose()"
+        >
+          <lucide-icon name="X" class="w-5 h-5" aria-hidden="true" />
+        </button>
+      </div>
+      <!-- Body -->
+      <div class="px-6 py-4">
+        <ng-content />
+      </div>
+    </div>
+  </div>
+}

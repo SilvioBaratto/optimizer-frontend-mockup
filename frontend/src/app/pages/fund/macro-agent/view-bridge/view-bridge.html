@@ -1,0 +1,70 @@
+<div class="flex flex-col gap-3">
+  <div class="flex flex-wrap items-center gap-2">
+    <label for="asset-class-filter" class="text-xs text-text-secondary">Asset class filter</label>
+    <select
+      id="asset-class-filter"
+      class="min-h-11 min-w-0 max-w-48 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+      (change)="onFilter($event)"
+    >
+      @for (f of filters; track f) {
+        <option [value]="f" [selected]="assetClassFilter() === f">{{ filterLabel[f] }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="relative overflow-x-auto">
+    <table class="w-full min-w-lg text-sm">
+      <caption class="sr-only">
+        Departure from equilibrium on expected return and on correlation, per asset class,
+        implied by the current regime.
+      </caption>
+      <thead>
+        <tr class="border-b border-border text-xs text-text-secondary">
+          <th scope="col" class="px-3 py-2 text-left font-medium">Asset class</th>
+          <th scope="col" class="px-3 py-2 text-right font-medium">ΔE[r]</th>
+          <th scope="col" class="px-3 py-2 text-right font-medium">ΔCorr</th>
+          <th scope="col" class="px-3 py-2 text-left font-medium">Direction</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (view of views(); track view.assetClass) {
+          <tr class="border-b border-border-muted last:border-0">
+            <th scope="row" class="px-3 py-2 text-left font-normal text-text">
+              {{ view.assetClass }}
+            </th>
+            <td class="px-3 py-2 text-right tabular-nums text-text">
+              {{ signed(view.expectedReturnDelta, 2) }}%
+            </td>
+            <td class="px-3 py-2 text-right tabular-nums text-text">
+              {{ signed(view.correlationDelta, 2) }}
+            </td>
+            <!-- The sign is stated in words as well as carried by the number. -->
+            <td class="px-3 py-2 text-xs text-text-secondary">
+              {{ view.expectedReturnDelta > 0 ? 'favoured by' : 'penalised by' }}
+              {{ estimate().driver }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <p class="text-sm text-text-secondary">
+    Confidence <span class="text-text">{{ confidence() }}</span> · driver
+    <span class="text-text">{{ estimate().driver }} {{ estimate().driverProbability }}%</span>.
+    @if (riskOn()) {
+      Growth-sensitive classes carry a higher expected return and slacker correlations; government
+      bonds move the other way.
+    } @else {
+      Growth-sensitive classes carry a lower expected return and tighter correlations; government
+      bonds move the other way.
+    }
+  </p>
+
+  <p class="text-xs text-text-secondary">
+    Nothing is recomputed here. These departures are published to Views Builder, where they meet
+    the market equilibrium.
+  </p>
+
+  <app-cross-page-link label="Open in Views Builder" route="/build/views-builder" />
+</div>

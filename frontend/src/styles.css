@@ -1,0 +1,262 @@
+@import 'tailwindcss';
+
+/**
+ * `src/app/pages/build/` has to be named as a source explicitly.
+ *
+ * Tailwind v4 discovers source files automatically but honours `.gitignore`,
+ * and this project's ignore file carries an unanchored `build/` rule meant for
+ * a top-level build output directory. That pattern also matches the Build
+ * section's page folder, so every class used only in those templates silently
+ * failed to generate — the markup looked right and the styles were simply
+ * absent. Naming the directory here makes the scan independent of the ignore
+ * rules.
+ */
+@source "./app/pages/build";
+
+/**
+ * Design tokens — `docs/template/00 Guscio, design token e libreria di pattern.md`.
+ *
+ * The template defines a dark-default palette with a light variant. This app
+ * ships the LIGHT palette only: there is no dark mode and no theme toggle, so
+ * the topbar's `◐` control in the page wireframes is deliberately absent.
+ *
+ * Token *names* stay on Tailwind's `--color-*` convention so the utility
+ * classes keep generating; only the values come from the template. Contrast
+ * ratios in the comments are the template's own, against `--color-surface-raised`.
+ */
+@theme {
+  /* Fonts */
+  --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Fira Code', ui-monospace, monospace;
+
+  /* Surface — template `--bg` / `--surface` */
+  --color-surface: #faf7f2;
+  --color-surface-raised: #ffffff;
+  --color-surface-inset: #f3eee7;
+
+  /* Border — decorative card edge; `border-control` identifies a control (3.9:1) */
+  --color-border: #e2dad0;
+  --color-border-muted: #f0eae2;
+  --color-border-control: #8a8078;
+
+  /* Text — 17.7:1 and 6.1:1 */
+  --color-text: #1c1813;
+  --color-text-secondary: #6b6156;
+  --color-text-tertiary: #8a8078;
+
+  /* Accent — terracotta, 5.9:1. Darker than the dark-theme accent on purpose:
+     the dark variant (#E0784A) is only 2.6:1 on white and unusable for text. */
+  --color-primary: #a8461e;
+  --color-primary-hover: #8d3a18;
+  --color-primary-light: #fbf0ea;
+  --color-on-primary: #ffffff;
+
+  /* Kept as aliases of the accent: the template defines one accent, and the
+     UI primitives were built against both names. */
+  --color-accent: #a8461e;
+  --color-accent-hover: #8d3a18;
+  --color-accent-light: #fbf0ea;
+
+  --color-signature: #1f6f5c;
+
+  /* Semantic — danger is the template's 6.5:1 value */
+  --color-danger: #b3261e;
+  --color-success: #1f6f5c;
+  --color-warning: #8a5a00;
+  --color-info: #1f5f8b;
+
+  /* Radii — three distinct steps; the hierarchy is what separates a chip from
+     a card from a dialog. Not one blanket rounding. */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  /* Motion */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+
+  /**
+   * Sidebar width. The template's 210px assumes a 3-5 entry nav; the optimizer
+   * shell carries 24 rows with labels as long as "Execution & Orders Agent",
+   * which wrap at 210px. Widened deliberately — same documented divergence as
+   * the nav-item count itself.
+   */
+  --sidebar-w: 260px;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Prevent iOS auto-zoom on focused inputs */
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
+
+  /* iOS safe-area inset utilities — require viewport-fit=cover in <meta viewport> */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .px-safe {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Programmatic focus targets must not paint a ring.
+     `#main-content` carries tabindex="-1" so the skip link and the shell's
+     route-change handler can move focus into it. It is not keyboard-reachable
+     by Tab, so a ring communicates nothing — and because the element spans the
+     full content area, the top edge renders as a stray accent rule under the
+     topbar on every navigation and on any click that lands on the background.
+     Elements the user can actually Tab to keep their ring from the rule above. */
+  [tabindex='-1']:focus,
+  [tabindex='-1']:focus-visible {
+    outline: none;
+  }
+
+  /* Skip navigation link — visually hidden until focused */
+  .skip-link {
+    position: fixed;
+    top: -100%;
+    left: 1rem;
+    z-index: 50;
+    padding: 0.5rem 1rem;
+    background-color: var(--color-surface-raised);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: top 0.1s;
+  }
+
+  .skip-link:focus {
+    top: 1rem;
+  }
+
+  /* Respect reduced-motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Hide scrollbar while keeping scroll functionality */
+  .scrollbar-hidden {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Set touch-action manipulation on tappable elements: removes the ~300ms double-tap-zoom
+     delay and double-tap zoom while keeping pinch-to-zoom and pan gestures intact.
+     Scoped to explicit tap targets only; native form controls manage their own touch events.
+     NEVER set user-scalable=no / maximum-scale=1 — pinch zoom must stay enabled (WCAG 1.4.4). */
+  a,
+  button,
+  [role="button"],
+  label {
+    touch-action: manipulation;
+  }
+
+  /* h-dvh / h-svh / h-lvh trade-offs — layout.html uses h-dvh on the shell root and
+     md:h-dvh on the main scroll container (overflow-y-auto):
+       dvh — dynamic: shrinks/grows as the mobile browser toolbar shows/hides. Best for
+             full-screen shells that must exactly track the visible viewport live.
+       svh — small: height with toolbar fully visible (conservative floor). Use when you
+             want a guaranteed minimum without content jumping.
+       lvh — large: height with toolbar fully hidden (expanded ceiling). Avoid for
+             interactive shells; content may be clipped behind the toolbar on iOS.
+     Known fragile: sticky footers + env(safe-area-inset-bottom) when the toolbar hides
+     on iOS Safari — always verify on a real device. Refs: research §1.7, §4. */
+
+  /* scroll-snap utilities (scroll-snap-type / scroll-snap-align / snap-*) are provided
+     by Tailwind v4 core at zero config cost. Apply snap-x snap-mandatory + snap-start
+     to carousel containers when a carousel component is built (YAGNI — none exists yet). */
+}
+
+@layer utilities {
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateX(-12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-inset) 25%,
+      var(--color-surface-raised) 50%,
+      var(--color-surface-inset) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.3s ease-out both;
+  }
+
+  .animate-slide-in {
+    animation: slide-in 0.25s ease-out both;
+  }
+}

@@ -1,0 +1,12 @@
+<div
+  [attr.role]="cause() === 'action' ? 'alert' : 'status'"
+  class="flex flex-col items-start gap-3 rounded-md border border-border bg-surface-inset px-4 py-6"
+>
+  <div class="flex flex-col gap-1">
+    <p class="text-sm font-medium text-danger">{{ message() }}</p>
+    @if (detail()) {
+      <p class="text-sm text-text-secondary">{{ detail() }}</p>
+    }
+  </div>
+  <app-retry-button (retry)="retry.emit()" />
+</div>

@@ -1,0 +1,73 @@
+<div class="mx-auto max-w-5xl space-y-12">
+  <div>
+    <h1 class="text-2xl font-semibold text-text">Component Catalog</h1>
+    <p class="mt-1 text-sm text-text-secondary">
+      Every shared UI component rendered for cross-platform QA (issue #24).
+    </p>
+  </div>
+
+  <!-- Core -->
+  <section data-section="Core">
+    <h2 class="mb-6 text-lg font-semibold text-text border-b border-border pb-2">Core</h2>
+    <app-core-section />
+  </section>
+
+  <!-- Forms -->
+  <section data-section="Forms">
+    <h2 class="mb-6 text-lg font-semibold text-text border-b border-border pb-2">Forms</h2>
+    <app-forms-section />
+  </section>
+
+  <!-- Navigation -->
+  <section data-section="Navigation">
+    <h2 class="mb-6 text-lg font-semibold text-text border-b border-border pb-2">Navigation</h2>
+    <app-navigation-section />
+  </section>
+
+  <!-- Overlays -->
+  <section data-section="Overlays">
+    <h2 class="mb-6 text-lg font-semibold text-text border-b border-border pb-2">Overlays</h2>
+    <p class="mb-4 text-xs text-text-secondary">
+      Overlays use fixed positioning and escape their local container.
+      At most one overlay opens at a time.
+    </p>
+    <div class="mb-4 rounded-lg border border-border bg-surface p-4">
+      <p class="mb-2 text-xs text-text-tertiary">Overlay Triggers</p>
+      <app-overlays-section (opened)="openOverlay($event)" />
+    </div>
+  </section>
+
+  <!-- Data Display -->
+  <section data-section="Data Display">
+    <h2 class="mb-6 text-lg font-semibold text-text border-b border-border pb-2">Data Display</h2>
+    <app-data-display-section />
+  </section>
+
+  <!-- Overlays rendered once at page root: fixed-position panels escape their
+       visual container, so a single instance per overlay avoids duplicate
+       panels stacking. At most one open at a time. -->
+  @if (activeOverlay() === 'modal') {
+    <app-modal [open]="true" label="Demo Modal" (closed)="closeOverlay()">
+      <p class="text-sm text-text">This is a demo modal dialog.</p>
+      <div class="mt-4">
+        <app-button variant="secondary" (clicked)="closeOverlay()">Close</app-button>
+      </div>
+    </app-modal>
+  }
+  @if (activeOverlay() === 'slide-over') {
+    <app-slide-over [open]="true" label="Demo Slide-over" (closed)="closeOverlay()">
+      <p class="p-4 text-sm text-text">Demo slide-over panel content.</p>
+      <div class="p-4">
+        <app-button variant="secondary" (clicked)="closeOverlay()">Close</app-button>
+      </div>
+    </app-slide-over>
+  }
+  @if (activeOverlay() === 'drawer') {
+    <app-drawer [open]="true" side="right" (close)="closeOverlay()">
+      <p class="p-4 text-sm text-text">Demo drawer panel content.</p>
+      <div class="p-4">
+        <app-button variant="secondary" (clicked)="closeOverlay()">Close</app-button>
+      </div>
+    </app-drawer>
+  }
+</div>

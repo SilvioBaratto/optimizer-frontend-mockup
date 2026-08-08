@@ -1,0 +1,9 @@
+@if (section()) {
+  <nav aria-label="Breadcrumb">
+    <ol class="flex items-center gap-1.5 text-xs text-text-secondary">
+      <li>{{ section() }}</li>
+      <li aria-hidden="true">&rsaquo;</li>
+      <li class="text-text" aria-current="page">{{ page() }}</li>
+    </ol>
+  </nav>
+}

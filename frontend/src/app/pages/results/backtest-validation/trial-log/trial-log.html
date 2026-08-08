@@ -1,0 +1,265 @@
+<div class="flex flex-col gap-4">
+  <p class="sr-only" aria-live="polite">{{ announcement() }}</p>
+
+  <div class="flex flex-wrap items-end gap-x-8 gap-y-3">
+    <div class="flex flex-col gap-1">
+      <label for="total-trials" class="text-xs text-text-secondary">Trials logged M</label>
+      <input
+        id="total-trials"
+        type="number"
+        min="1"
+        step="1"
+        class="min-h-11 w-28 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+        [value]="summary().totalTrials"
+        (change)="onTotalTrials($event)"
+      />
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <label for="avg-correlation" class="text-xs text-text-secondary">
+        Average pairwise correlation ρ
+      </label>
+      <input
+        id="avg-correlation"
+        type="number"
+        min="-0.99"
+        max="1"
+        step="0.01"
+        class="min-h-11 w-28 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+        [value]="summary().averageCorrelation"
+        (change)="onCorrelation($event)"
+      />
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <span class="text-xs text-text-secondary">Independent trials</span>
+      <p class="flex min-h-11 items-center gap-2 text-sm text-text">
+        <span class="text-text-secondary">N&#772; = ρ + (1 − ρ)M</span>
+        <span class="text-lg font-semibold tabular-nums">{{ summary().independentTrials }}</span>
+      </p>
+    </div>
+  </div>
+
+  <!--
+    Persistent while unconfirmed. It does not block anything — it downgrades the
+    badges that depend on this log, because a discount computed from an
+    understated M is an understated discount.
+  -->
+  @if (!confirmed()) {
+    <div class="flex flex-wrap items-start gap-x-3 gap-y-2 rounded-md border border-border bg-surface-inset px-4 py-3">
+      <app-status-badge label="unconfirmed" tone="warn" />
+      <p class="min-w-0 flex-1 text-sm text-text-secondary">
+        Until this log is confirmed complete, every criterion below it is reported as a warning
+        rather than a pass: a discount computed from an understated M is itself understated.
+      </p>
+    </div>
+  }
+
+  <label class="flex items-start gap-2 text-sm text-text">
+    <input
+      type="checkbox"
+      class="mt-1 h-4 w-4 accent-[var(--color-primary)]"
+      [checked]="confirmed()"
+      (change)="onConfirmed($event)"
+    />
+    <span>I confirm this log lists every variant tested, discarded ones included.</span>
+  </label>
+
+  <!--
+    `relative` matters as much as the scroll: a `sr-only` label inside a wide
+    table is absolutely positioned, and without a positioned ancestor its
+    containing block is the page, not this box. It then escapes the scroller,
+    parks at its static offset far to the right, and widens the document —
+    horizontal scroll on the whole page from an element nobody can see.
+  -->
+  <div class="relative overflow-x-auto">
+    <table class="w-full min-w-3xl text-sm">
+      <caption class="sr-only">
+        Every trial logged for this strategy, with its in-sample Sharpe ratio and outcome.
+      </caption>
+      <thead>
+        <tr class="border-b border-border text-xs text-text-secondary">
+          <th scope="col" class="px-3 py-2 text-left font-medium">Trial ID</th>
+          <th scope="col" class="px-3 py-2 text-left font-medium">Date</th>
+          <th scope="col" class="px-3 py-2 text-left font-medium">Strategy variant</th>
+          <th scope="col" class="px-3 py-2 text-right font-medium">Sharpe(IS)</th>
+          <th scope="col" class="px-3 py-2 text-left font-medium">Logged by</th>
+          <th scope="col" class="px-3 py-2 text-left font-medium">Outcome</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (trial of trials(); track trial.id) {
+          <tr
+            class="border-b border-border-muted last:border-0"
+            [class.bg-surface-inset]="trial.id === selected.trialId"
+          >
+            <th scope="row" class="px-3 py-2 text-left font-normal">
+              <!-- The anchor the haircut and deflation panels point back to. -->
+              <span [id]="trial.id === selected.trialId ? 'selected-trial-row' : null" class="font-mono text-text">
+                {{ trial.id }}
+              </span>
+            </th>
+            <td class="px-3 py-2 tabular-nums text-text-secondary">{{ trial.date }}</td>
+            <td class="px-3 py-2 text-text">{{ trial.variant }}</td>
+            <td class="px-3 py-2 text-right tabular-nums text-text">
+              @if (trial.sharpeIs !== null) {
+                {{ trial.sharpeIs.toFixed(2) }}
+              } @else {
+                <span class="text-text-secondary" title="No Sharpe was recorded for this trial">—</span>
+              }
+            </td>
+            <td class="px-3 py-2 text-text-secondary">{{ trial.loggedBy ?? '—' }}</td>
+            <td class="px-3 py-2">
+              @switch (trial.outcome) {
+                @case ('selected') {
+                  <app-status-badge label="selected" tone="active" />
+                }
+                @case ('no-record') {
+                  <app-status-badge label="no record" tone="warn" />
+                }
+                @default {
+                  <span class="text-sm text-text-secondary">discarded</span>
+                }
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <button
+      type="button"
+      class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+      [attr.aria-expanded]="logging()"
+      (click)="logging.set(!logging())"
+    >
+      Log a trial
+    </button>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <p class="text-xs tabular-nums text-text-secondary">{{ rangeLabel() }}</p>
+      <nav class="flex items-center gap-1" aria-label="Trial log pages">
+        <button
+          type="button"
+          class="min-h-11 rounded-md border border-border-control px-3 text-sm text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+          [disabled]="page() === 1"
+          (click)="go(-1)"
+        >
+          <span aria-hidden="true">‹</span> Previous
+        </button>
+        <span class="px-2 text-sm tabular-nums text-text-secondary">
+          Page {{ page() }} of {{ pageCount() }}
+        </span>
+        <button
+          type="button"
+          class="min-h-11 rounded-md border border-border-control px-3 text-sm text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+          [disabled]="page() === pageCount()"
+          (click)="go(1)"
+        >
+          Next <span aria-hidden="true">›</span>
+        </button>
+      </nav>
+      <div class="flex items-center gap-2">
+        <label for="page-size" class="text-xs text-text-secondary">Rows</label>
+        <select
+          id="page-size"
+          class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+          (change)="onPageSize($event)"
+        >
+          @for (size of pageSizes; track size) {
+            <option [value]="size" [selected]="size === pageSize()">{{ size }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  </div>
+
+  @if (logging()) {
+    <form class="flex flex-col gap-3 rounded-md border border-border bg-surface-inset p-4" (submit)="$event.preventDefault(); submitTrial()">
+      <h3 class="text-sm font-medium text-text">Log a trial</h3>
+      <p class="text-xs text-text-secondary">
+        Logging a trial raises M, which makes every discount below harsher — that is what an
+        honest trial count does.
+      </p>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label for="draft-variant" class="text-xs text-text-secondary">Strategy variant</label>
+          <input
+            id="draft-variant"
+            type="text"
+            required
+            class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+            [value]="draftVariant()"
+            (input)="onDraft(draftVariant, $event)"
+          />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="draft-date" class="text-xs text-text-secondary">Date</label>
+          <input
+            id="draft-date"
+            type="date"
+            required
+            class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+            [value]="draftDate()"
+            (input)="onDraft(draftDate, $event)"
+          />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="draft-sharpe" class="text-xs text-text-secondary">Sharpe(IS)</label>
+          <input
+            id="draft-sharpe"
+            type="number"
+            step="0.01"
+            required
+            class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+            [value]="draftSharpe()"
+            (input)="onDraft(draftSharpe, $event)"
+          />
+        </div>
+        <fieldset class="flex flex-col gap-1">
+          <legend class="text-xs text-text-secondary">Outcome</legend>
+          <div class="flex items-center gap-4">
+            <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+              <input
+                type="radio"
+                name="draft-outcome"
+                class="accent-[var(--color-primary)]"
+                [checked]="draftOutcome() === 'discarded'"
+                (change)="draftOutcome.set('discarded')"
+              />
+              Discarded
+            </label>
+            <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+              <input
+                type="radio"
+                name="draft-outcome"
+                class="accent-[var(--color-primary)]"
+                [checked]="draftOutcome() === 'selected'"
+                (change)="draftOutcome.set('selected')"
+              />
+              Selected
+            </label>
+          </div>
+        </fieldset>
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          type="submit"
+          class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+          [disabled]="!draftValid()"
+        >
+          Log trial
+        </button>
+        <button
+          type="button"
+          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          (click)="logging.set(false)"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  }
+</div>

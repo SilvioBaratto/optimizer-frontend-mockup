@@ -1,0 +1,10 @@
+<button
+  type="button"
+  class="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border-control px-3 text-sm text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+  [disabled]="busy()"
+  [attr.aria-busy]="busy() || null"
+  (click)="refresh.emit()"
+>
+  <span aria-hidden="true">&#8635;</span>
+  {{ label() }}
+</button>

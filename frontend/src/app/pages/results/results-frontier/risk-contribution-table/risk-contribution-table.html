@@ -1,0 +1,185 @@
+<div class="flex flex-col gap-3">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div class="flex flex-col gap-1">
+      <label for="asset-search" class="text-xs text-text-secondary">Asset search</label>
+      <input
+        id="asset-search"
+        type="search"
+        placeholder="Ticker or name…"
+        class="min-h-11 w-56 rounded-md border border-border-control bg-surface-raised px-3 text-sm text-text"
+        [value]="query()"
+        (input)="onQuery($event)"
+      />
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <label for="contribution-sort" class="text-xs text-text-secondary">Sort</label>
+      <select
+        id="contribution-sort"
+        class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+        (change)="onSort($event)"
+      >
+        @for (option of sortOptions; track option[0]) {
+          <option [value]="option[0]" [selected]="sort() === option[0]">{{ option[1] }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (noMatches()) {
+    <p role="status" class="rounded-md bg-surface-inset px-4 py-6 text-center text-sm text-text-secondary">
+      No asset matches “{{ query() }}”. The portfolio still holds
+      {{ rows().length }} positions — clear the search to see them.
+    </p>
+  } @else {
+    <!-- Scrolls inside its own box so the page never scrolls sideways. -->
+    <div class="relative overflow-x-auto">
+      <table class="w-full min-w-3xl text-sm">
+        <caption class="sr-only">
+          Volatility decomposition of the selected portfolio: weight, asset standard deviation,
+          correlation with the portfolio, contribution to portfolio standard deviation, share of it
+          and beta to the portfolio. Short positions are labelled.
+        </caption>
+        <thead>
+          <tr class="border-b border-border text-xs text-text-secondary">
+            <th scope="col" class="px-4 py-2 text-left font-medium">Asset</th>
+            <th scope="col" class="px-2 py-2 text-right font-medium">Weight</th>
+            <th scope="col" class="px-2 py-2 text-right font-medium">SD<sub>i</sub></th>
+            <th scope="col" class="px-2 py-2 text-right font-medium">Corr(i,P)</th>
+            <th scope="col" class="px-2 py-2 text-right font-medium">Contrib.</th>
+            <th scope="col" class="px-2 py-2 text-right font-medium">% of SD<sub>P</sub></th>
+            <th scope="col" class="px-4 py-2 text-right font-medium">β<sub>i</sub><sup>P</sup></th>
+            @if (expanded()) {
+              <th scope="col" class="px-4 py-2 text-left font-medium">Contribution</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of visibleRows(); track row.ticker) {
+            <tr
+              class="border-b border-border-muted last:border-0"
+              [class.bg-surface-inset]="highlighted() === row.ticker"
+            >
+              <th scope="row" class="px-4 py-1.5 text-left font-normal">
+                <!--
+                  A button rather than a focusable row: focusing it highlights
+                  the asset on the chart, which is the keyboard equivalent of
+                  hovering its point. Canvas markers cannot take focus.
+                -->
+                <button
+                  type="button"
+                  class="flex min-h-11 items-center gap-1.5 rounded text-left text-text"
+                  [attr.aria-pressed]="highlighted() === row.ticker"
+                  (focus)="highlight(row.ticker)"
+                  (click)="highlighted() === row.ticker ? clearHighlight() : highlight(row.ticker)"
+                >
+                  <span class="font-medium">{{ row.ticker }}</span>
+                  @if (row.weight < 0) {
+                    <!-- Stated, never left to the red bar alone. -->
+                    <span class="text-xs text-text-secondary">(short)</span>
+                  }
+                  <span class="sr-only">{{ row.name }}</span>
+                </button>
+              </th>
+              <td class="px-2 py-1.5 text-right tabular-nums text-text">
+                {{ row.weight.toFixed(2) }}%
+              </td>
+              <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">
+                {{ row.sdAsset.toFixed(1) }}%
+              </td>
+              <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">
+                {{ row.corrWithPortfolio.toFixed(2) }}
+              </td>
+              <td class="px-2 py-1.5 text-right tabular-nums text-text">
+                {{ row.contribution.toFixed(2) }}%
+              </td>
+              <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">
+                {{ row.shareOfSd.toFixed(1) }}%
+              </td>
+              <td class="px-4 py-1.5 text-right tabular-nums text-text-secondary">
+                {{ row.betaToPortfolio.toFixed(3) }}
+              </td>
+              @if (expanded()) {
+                <td class="px-4 py-1.5">
+                  <!--
+                    Bars grow from a shared centre line so a negative
+                    contribution reads as direction, not just a smaller bar.
+                  -->
+                  <span class="flex h-3 w-32 items-center" aria-hidden="true">
+                    <span class="flex h-full w-1/2 justify-end">
+                      @if (row.contribution < 0) {
+                        <span
+                          class="h-full bg-border-control"
+                          [style.width.%]="barWidth(row.contribution)"
+                        ></span>
+                      }
+                    </span>
+                    <span class="h-full w-px bg-border"></span>
+                    <span class="flex h-full w-1/2">
+                      @if (row.contribution >= 0) {
+                        <span
+                          class="h-full bg-primary"
+                          [style.width.%]="barWidth(row.contribution)"
+                        ></span>
+                      }
+                    </span>
+                  </span>
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="border-t-2 border-border text-sm font-medium">
+            <!--
+              Always the whole portfolio, never the filtered subset: the row is
+              the check that the decomposition closes, and a partial sum would
+              not be one. Says so whenever a filter is narrowing the view.
+            -->
+            <th scope="row" class="px-4 py-2 text-left">
+              TOTAL
+              @if (query().trim()) {
+                <span class="font-normal text-text-secondary">
+                  · all {{ rows().length }} positions
+                </span>
+              }
+            </th>
+            <td class="px-2 py-2 text-right tabular-nums text-text">
+              {{ weightTotal().toFixed(2) }}%
+            </td>
+            <td class="px-2 py-2 text-right text-text-secondary">—</td>
+            <td class="px-2 py-2 text-right text-text-secondary">—</td>
+            <td class="px-2 py-2 text-right tabular-nums text-text">
+              {{ contributionTotal().toFixed(2) }}%
+            </td>
+            <td class="px-2 py-2 text-right tabular-nums text-text">100.0%</td>
+            <td class="px-4 py-2 text-right text-text-secondary">—</td>
+            @if (expanded()) {
+              <td class="px-4 py-2"></td>
+            }
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <p class="text-xs text-text-secondary">
+        @if (!expanded() && hiddenCount() > 0) {
+          … {{ hiddenCount() }} more rows
+        } @else {
+          Contributions sum to the portfolio standard deviation
+          {{ portfolioSd().toFixed(2) }}%.
+        }
+      </p>
+      @if (hiddenCount() > 0 || expanded()) {
+        <button
+          type="button"
+          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          (click)="expanded.set(!expanded())"
+        >
+          {{ expanded() ? 'Show fewer' : 'View full table' }}
+        </button>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,11 @@
+<section class="rounded-lg border border-border bg-surface-raised">
+  @if (title()) {
+    <header class="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+      <h3 class="text-sm font-medium text-text">{{ title() }}</h3>
+      <ng-content select="[card-action]" />
+    </header>
+  }
+  <div class="px-4 py-3">
+    <ng-content />
+  </div>
+</section>

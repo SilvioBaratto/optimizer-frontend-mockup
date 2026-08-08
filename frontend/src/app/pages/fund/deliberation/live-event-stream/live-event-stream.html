@@ -1,0 +1,89 @@
+<div class="flex flex-col gap-3">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <label class="flex min-h-11 items-center gap-2 text-sm text-text">
+      <input
+        type="checkbox"
+        class="h-4 w-4 accent-[var(--color-primary)]"
+        [checked]="pauseAutoScroll()"
+        (change)="onPause($event)"
+      />
+      Pause auto-scroll
+    </label>
+
+    <p class="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
+      <app-status-badge
+        [label]="connection() === 'live' ? 'connected' : connection() === 'reconnecting' ? 'reconnecting' : 'closed'"
+        [tone]="connection() === 'live' ? 'ok' : connection() === 'reconnecting' ? 'warn' : 'neutral'"
+      />
+      <span>Last-Event-ID <span class="font-mono tabular-nums text-text">{{ lastEventId() }}</span></span>
+    </p>
+  </div>
+
+  @if (pauseAutoScroll()) {
+    <p class="text-xs text-text-secondary">
+      Scrolling is held; events continue to arrive and are appended behind the view.
+    </p>
+  }
+
+  @if (!hasRun()) {
+    <p class="rounded-md bg-surface-inset px-4 py-6 text-center text-sm text-text-secondary">
+      No events yet. Start a deliberation run to open the stream.
+    </p>
+  } @else if (visible().length === 0) {
+    <p role="status" class="rounded-md bg-surface-inset px-4 py-6 text-center text-sm text-text-secondary">
+      No events from this node yet. The filter changes what is shown, not what is received.
+    </p>
+  } @else {
+    <!--
+      polite: new events are announced between utterances rather than cutting
+      across whatever the reader is part-way through.
+    -->
+    <div
+      #list
+      aria-live="polite"
+      aria-relevant="additions"
+      class="relative max-h-80 overflow-y-auto overflow-x-auto"
+    >
+      <table class="w-full min-w-2xl text-sm">
+        <caption class="sr-only">
+          Server-sent events from the deliberation, newest first: event id, type, node, summary and
+          time.
+        </caption>
+        <thead class="sticky top-0 bg-surface-raised">
+          <tr class="border-b border-border text-xs text-text-secondary">
+            <th scope="col" class="px-3 py-2 text-left font-medium">id</th>
+            <th scope="col" class="px-3 py-2 text-left font-medium">event</th>
+            <th scope="col" class="px-3 py-2 text-left font-medium">node</th>
+            <th scope="col" class="px-3 py-2 text-left font-medium">summary</th>
+            <th scope="col" class="px-3 py-2 text-left font-medium">time</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (event of visible(); track event.id) {
+            <tr class="border-b border-border-muted last:border-0">
+              <th scope="row" class="px-3 py-1.5 text-left font-mono font-normal tabular-nums text-text-secondary">
+                {{ event.id }}
+              </th>
+              <td class="px-3 py-1.5 font-mono text-xs text-text">{{ event.event }}</td>
+              <td class="px-3 py-1.5 text-text-secondary">
+                {{ event.node ? agentLabel[event.node] : '—' }}
+              </td>
+              <td class="px-3 py-1.5 text-text">{{ event.summary }}</td>
+              <td class="px-3 py-1.5 font-mono tabular-nums text-text-secondary">{{ event.at }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="text-xs text-text-secondary">
+      @if (hiddenCount() > 0) {
+        … {{ hiddenCount() }} more events ·
+      }
+      append-only, replayed from Last-Event-ID on reconnect
+      @if (filtered()) {
+        · filtered by node — the stream itself is unchanged
+      }
+    </p>
+  }
+</div>
