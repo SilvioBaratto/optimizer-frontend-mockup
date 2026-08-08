@@ -38,7 +38,7 @@ export const TABS_CONTEXT = new InjectionToken<TabsContext>('TABS_CONTEXT');
       [attr.aria-selected]="isActive()"
       [attr.aria-controls]="ctx.tabsId + '-panel-' + tabIndex()"
       [attr.tabindex]="isActive() ? 0 : -1"
-      class="min-h-11 px-4 py-2 text-sm font-medium transition-colors
+      class="min-h-11 shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium transition-colors
              border-b-2 focus-visible:outline-none focus-visible:ring-2
              focus-visible:ring-primary focus-visible:ring-offset-2"
       [class]="tabClasses()"
@@ -63,6 +63,9 @@ export class TabComponent {
 // Tab panel
 // ---------------------------------------------------------------------------
 
+// Vertical padding only: horizontal padding here stacked on top of the page
+// gutter, so a tabbed page sat 16px further in than every untabbed page and its
+// edge-to-edge surfaces stopped 16px short of the screen.
 @Component({
   selector: 'ui-tab-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,7 +76,7 @@ export class TabComponent {
         role="tabpanel"
         [attr.aria-labelledby]="ctx.tabsId + '-tab-' + panelIndex()"
         tabindex="0"
-        class="p-4 focus-visible:outline-none focus-visible:ring-2
+        class="py-4 focus-visible:outline-none focus-visible:ring-2
                focus-visible:ring-primary focus-visible:ring-offset-2"
       >
         <ng-content />
@@ -99,9 +102,16 @@ let nextTabsId = 0;
   providers: [{ provide: TABS_CONTEXT, useExisting: TabsComponent }],
   host: { '(keydown)': 'onKeydown($event)' },
   template: `
+    <!--
+      overflow-x-auto plus shrink-0 on the buttons keeps every tab reachable: four
+      tabs previously squeezed into a 390px viewport, wrapped to three lines each,
+      and the last one was cut off past the right edge with no way to scroll to it.
+      The strip bleeds to the screen edges below sm so it reads as a full-width bar
+      like the sticky headers on the sibling build pages.
+    -->
     <div
       role="tablist"
-      class="flex border-b border-border bg-surface-raised"
+      class="flex overflow-x-auto scrollbar-hidden border-b border-border bg-surface-raised max-sm:-mx-4"
     >
       <ng-content select="ui-tab" />
     </div>
