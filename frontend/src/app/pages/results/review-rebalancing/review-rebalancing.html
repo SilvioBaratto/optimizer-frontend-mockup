@@ -56,13 +56,13 @@
 @if (state() === 'loading') {
   <div role="status" class="flex flex-col gap-6">
     <span class="sr-only">Recalculating the revision</span>
-    <div class="rounded-lg border border-border bg-surface-raised p-4">
+    <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 p-4">
       <app-skeleton-block height="h-5" [lines]="2" />
     </div>
-    <div class="rounded-lg border border-border bg-surface-raised p-4">
+    <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 p-4">
       <app-skeleton-block height="h-64" />
     </div>
-    <div class="rounded-lg border border-border bg-surface-raised p-4">
+    <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 p-4">
       <app-skeleton-block height="h-5" [lines]="4" />
     </div>
   </div>

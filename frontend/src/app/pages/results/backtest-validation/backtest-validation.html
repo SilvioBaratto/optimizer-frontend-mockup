@@ -7,10 +7,10 @@
 @if (state() === 'loading') {
   <div role="status" class="flex flex-col gap-6">
     <span class="sr-only">Loading validation results</span>
-    <div class="rounded-lg border border-border bg-surface-raised p-4">
+    <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 p-4">
       <app-skeleton-block height="h-6" [lines]="6" />
     </div>
-    <div class="rounded-lg border border-border bg-surface-raised p-4">
+    <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 p-4">
       <app-skeleton-block height="h-5" [lines]="4" />
     </div>
   </div>
@@ -110,7 +110,7 @@
   </div>
 
   <!-- SectionNav — real links, collapsing to a select on narrow viewports. -->
-  <nav aria-label="Validation sections" class="rounded-lg border border-border bg-surface-raised px-4 py-2">
+  <nav aria-label="Validation sections" class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 px-4 py-2">
     <ul class="hidden flex-wrap items-center gap-x-1 gap-y-1 md:flex">
       @for (section of sections; track section.id) {
         <li>
