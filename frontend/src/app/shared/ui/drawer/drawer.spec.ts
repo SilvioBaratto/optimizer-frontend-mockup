@@ -6,7 +6,7 @@ import { DrawerComponent } from './drawer';
   standalone: true,
   imports: [DrawerComponent],
   template: `
-    <app-drawer [side]="side" [open]="isOpen" (close)="onClose()">
+    <app-drawer [side]="side" [open]="isOpen" (closed)="onClose()">
       <button id="btn-a">A</button>
       <button id="btn-b">B</button>
     </app-drawer>

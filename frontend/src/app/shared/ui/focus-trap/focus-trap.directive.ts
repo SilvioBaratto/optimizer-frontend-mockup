@@ -18,7 +18,7 @@ const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:n
 })
 export class FocusTrapDirective implements OnDestroy {
   readonly active = input(false);
-  readonly close = output<void>();
+  readonly closed = output<void>();
 
   private readonly el = inject(ElementRef<HTMLElement>);
   private previousElement: Element | null = null;
@@ -37,7 +37,7 @@ export class FocusTrapDirective implements OnDestroy {
     if (!this.active()) return;
     if (event.key === 'Escape') {
       event.preventDefault();
-      this.close.emit();
+      this.closed.emit();
       return;
     }
     if (event.key === 'Tab') {

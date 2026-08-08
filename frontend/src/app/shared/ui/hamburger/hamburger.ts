@@ -22,7 +22,7 @@ import { LucideAngularModule } from 'lucide-angular';
       [attr.aria-expanded]="open()"
       [attr.aria-controls]="controls()"
       [attr.aria-label]="label()"
-      (click)="toggle.emit()"
+      (click)="toggled.emit()"
     >
       <lucide-icon [name]="open() ? 'X' : 'Menu'" class="w-5 h-5" aria-hidden="true" />
     </button>
@@ -32,7 +32,7 @@ export class HamburgerComponent {
   readonly open     = input(false);
   readonly controls = input('');
 
-  readonly toggle = output<void>();
+  readonly toggled = output<void>();
 
   readonly label = computed(() => this.open() ? 'Close menu' : 'Open menu');
 }

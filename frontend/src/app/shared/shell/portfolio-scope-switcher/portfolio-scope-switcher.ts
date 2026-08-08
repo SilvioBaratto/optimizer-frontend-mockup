@@ -18,7 +18,9 @@ import { FundService } from '../../../services/fund.service';
   // `min-w-0` lets the topbar shrink this below its content: a flex item
   // defaults to `min-width: auto`, so without it the portfolio name pushes the
   // header wider than a 320px viewport instead of truncating.
-  host: { class: 'flex min-w-0' },
+  // Escape is handled on the host rather than on the wrapper <div>, which is
+  // not focusable and so cannot legitimately carry a key handler itself.
+  host: { class: 'flex min-w-0', '(keydown.escape)': 'close()' },
   templateUrl: './portfolio-scope-switcher.html',
   styleUrl: './portfolio-scope-switcher.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

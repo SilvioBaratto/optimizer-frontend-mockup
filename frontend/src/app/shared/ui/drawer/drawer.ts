@@ -31,7 +31,7 @@ export class DrawerComponent {
   readonly drawerId  = input('');
   /** When false, the focus trap is suppressed even though the panel is visible (e.g. desktop sidebar). */
   readonly trapFocus = input(true);
-  readonly close     = output<void>();
+  readonly closed    = output<void>();
 
   readonly isTrapActive = computed(() => this.open() && this.trapFocus());
 
@@ -42,7 +42,7 @@ export class DrawerComponent {
   });
 
   handleClose(): void {
-    this.close.emit();
+    this.closed.emit();
   }
 
   onDocumentKeydown(event: KeyboardEvent): void {

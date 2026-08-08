@@ -76,8 +76,8 @@ export class RadioComponent implements ControlValueAccessor {
     this.errorText() ? `${INPUT_BASE} ${INPUT_ERROR}` : INPUT_BASE,
   );
 
-  private _onChange: (v: string) => void = () => {};
-  private _onTouched: () => void = () => {};
+  private _onChange: (v: string) => void = () => { /* no-op until Angular calls registerOnChange/registerOnTouched */ };
+  private _onTouched: () => void = () => { /* no-op until Angular calls registerOnChange/registerOnTouched */ };
 
   onChange(): void {
     this._onChange(this.value());

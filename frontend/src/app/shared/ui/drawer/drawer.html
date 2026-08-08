@@ -14,7 +14,7 @@
   [id]="drawerId() || null"
   appFocusTrap
   [active]="isTrapActive()"
-  (close)="handleClose()"
+  (closed)="handleClose()"
 >
   <ng-content />
 </aside>

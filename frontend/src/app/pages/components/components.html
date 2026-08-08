@@ -63,7 +63,7 @@
     </app-slide-over>
   }
   @if (activeOverlay() === 'drawer') {
-    <app-drawer [open]="true" side="right" (close)="closeOverlay()">
+    <app-drawer [open]="true" side="right" (closed)="closeOverlay()">
       <p class="p-4 text-sm text-text">Demo drawer panel content.</p>
       <div class="p-4">
         <app-button variant="secondary" (clicked)="closeOverlay()">Close</app-button>

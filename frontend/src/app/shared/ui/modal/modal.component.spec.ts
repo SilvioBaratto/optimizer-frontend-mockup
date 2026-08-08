@@ -12,12 +12,15 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component, DebugElement, signal } from '@angular/core';
-import { By } from '@angular/platform-browser';
+import { Component, signal } from '@angular/core';
 
 // The component under test — does not exist yet (Red phase).
 // The import will fail at build time until the component is created.
 import { ModalComponent } from './modal';
+
+// ModalComponent renders a lucide <lucide-icon>; without the app's icon
+// registry the close button throws "icon has not been provided".
+import { ICON_PROVIDER } from '../../../icons';
 
 // ---------------------------------------------------------------------------
 // Host stub for testing signal input / output bindings
@@ -50,6 +53,17 @@ function getModalPanel(fixture: ComponentFixture<unknown>): HTMLElement | null {
   return fixture.nativeElement.querySelector('[role="dialog"]');
 }
 
+// Mirrors the selector FocusTrapDirective uses, so the expected tab order here
+// is the same list the trap cycles through. Note the modal renders its own
+// "Close dialog" button ahead of the projected content, so it is focusable[0].
+const FOCUSABLE_SELECTOR =
+  'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+function getFocusables(fixture: ComponentFixture<unknown>): HTMLElement[] {
+  const panel = getModalPanel(fixture);
+  return panel ? Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)) : [];
+}
+
 function dispatchKeydown(target: EventTarget, key: string): void {
   target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
 }
@@ -65,6 +79,7 @@ describe('ModalComponent — ARIA contract', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [HostComponent],
+      providers: [ICON_PROVIDER],
     }).compileComponents();
 
     fixture = TestBed.createComponent(HostComponent);
@@ -111,6 +126,7 @@ describe('ModalComponent — focus trap', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [HostComponent],
+      providers: [ICON_PROVIDER],
     }).compileComponents();
 
     fixture = TestBed.createComponent(HostComponent);
@@ -126,36 +142,38 @@ describe('ModalComponent — focus trap', () => {
     host.isOpen.set(true);
     fixture.detectChanges();
 
-    const first = fixture.nativeElement.querySelector('#first-btn') as HTMLElement | null;
-    expect(document.activeElement).toBe(first);
+    const focusables = getFocusables(fixture);
+    expect(focusables.length).toBeGreaterThan(0);
+    expect(document.activeElement).toBe(focusables[0]);
+    expect(getModalPanel(fixture)?.contains(document.activeElement)).toBe(true);
   });
 
   it('when Tab is pressed on the last focusable element, focus wraps to the first', () => {
     host.isOpen.set(true);
     fixture.detectChanges();
 
-    const second = fixture.nativeElement.querySelector('#second-btn') as HTMLElement;
-    second.focus();
-    dispatchKeydown(second, 'Tab');
+    const focusables = getFocusables(fixture);
+    const last = focusables[focusables.length - 1];
+    last.focus();
+    dispatchKeydown(last, 'Tab');
     fixture.detectChanges();
 
-    const first = fixture.nativeElement.querySelector('#first-btn') as HTMLElement;
-    expect(document.activeElement).toBe(first);
+    expect(document.activeElement).toBe(focusables[0]);
   });
 
   it('when Shift+Tab is pressed on the first focusable element, focus wraps to the last', () => {
     host.isOpen.set(true);
     fixture.detectChanges();
 
-    const first = fixture.nativeElement.querySelector('#first-btn') as HTMLElement;
+    const focusables = getFocusables(fixture);
+    const first = focusables[0];
     first.focus();
     first.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true })
     );
     fixture.detectChanges();
 
-    const second = fixture.nativeElement.querySelector('#second-btn') as HTMLElement;
-    expect(document.activeElement).toBe(second);
+    expect(document.activeElement).toBe(focusables[focusables.length - 1]);
   });
 });
 
@@ -170,6 +188,7 @@ describe('ModalComponent — Escape key closes', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [HostComponent],
+      providers: [ICON_PROVIDER],
     }).compileComponents();
 
     fixture = TestBed.createComponent(HostComponent);
@@ -203,6 +222,7 @@ describe('ModalComponent — backdrop click closes', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [HostComponent],
+      providers: [ICON_PROVIDER],
     }).compileComponents();
 
     fixture = TestBed.createComponent(HostComponent);
@@ -251,6 +271,7 @@ describe('ModalComponent — background inert', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [HostComponent],
+      providers: [ICON_PROVIDER],
     }).compileComponents();
 
     fixture = TestBed.createComponent(HostComponent);
@@ -309,6 +330,7 @@ describe('ModalComponent — signal input/output API', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [HostComponent],
+      providers: [ICON_PROVIDER],
     }).compileComponents();
 
     fixture = TestBed.createComponent(HostComponent);
@@ -359,6 +381,7 @@ describe('ModalComponent — visible focus (focus-visible ring)', () => {
      */
     await TestBed.configureTestingModule({
       imports: [HostComponent],
+      providers: [ICON_PROVIDER],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(HostComponent);
@@ -385,6 +408,7 @@ describe('ModalComponent — design tokens', () => {
   it('when modal renders, no inline hardcoded hex colour is present', async () => {
     await TestBed.configureTestingModule({
       imports: [HostComponent],
+      providers: [ICON_PROVIDER],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(HostComponent);

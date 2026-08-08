@@ -1,4 +1,3 @@
-import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { TableComponent, TableColumn } from './table';
@@ -12,19 +11,6 @@ const ROWS = [
   { name: 'Alice', role: 'Admin' },
   { name: 'Bob',   role: 'User'  },
 ];
-
-// ---------------------------------------------------------------------------
-// Host wrapper for slot projection tests
-// ---------------------------------------------------------------------------
-
-@Component({
-  imports: [TableComponent],
-  template: `<ui-table [columns]="cols" [rows]="rows" />`,
-})
-class HostComponent {
-  cols = COLS;
-  rows = ROWS;
-}
 
 // ---------------------------------------------------------------------------
 // Helpers

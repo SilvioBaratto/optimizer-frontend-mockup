@@ -61,8 +61,8 @@ export class SelectComponent implements ControlValueAccessor {
     this.errorText() ? `${BASE} ${ERROR_BORDER}` : BASE,
   );
 
-  private _onChange: (v: string) => void = () => {};
-  private _onTouched: () => void = () => {};
+  private _onChange: (v: string) => void = () => { /* no-op until Angular calls registerOnChange/registerOnTouched */ };
+  private _onTouched: () => void = () => { /* no-op until Angular calls registerOnChange/registerOnTouched */ };
 
   onChange(event: Event): void {
     const v = (event.target as HTMLSelectElement).value;

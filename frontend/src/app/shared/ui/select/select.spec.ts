@@ -34,7 +34,7 @@ class SelectTestHost {
   labelText = 'Country';
   errorText = '';
   disabled = false;
-  options: Array<{ value: string; label: string }> = [
+  options: { value: string; label: string }[] = [
     { value: 'us', label: 'United States' },
     { value: 'de', label: 'Germany' },
   ];

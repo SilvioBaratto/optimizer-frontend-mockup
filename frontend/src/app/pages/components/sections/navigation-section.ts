@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { provideRouter } from '@angular/router';
 
 import { NavbarComponent } from '../../../shared/ui/navbar/navbar';
 import { HamburgerComponent } from '../../../shared/ui/hamburger/hamburger';

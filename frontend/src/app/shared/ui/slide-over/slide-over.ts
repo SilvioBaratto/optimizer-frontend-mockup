@@ -30,7 +30,7 @@ function setBodySiblingsInert(host: HTMLElement, inert: boolean): void {
   if (node.parentElement !== document.body) return;
   Array.from(document.body.children).forEach((sibling) => {
     if (sibling === node) return;
-    inert ? sibling.setAttribute('inert', '') : sibling.removeAttribute('inert');
+    if (inert) { sibling.setAttribute('inert', ''); } else { sibling.removeAttribute('inert'); }
   });
 }
 

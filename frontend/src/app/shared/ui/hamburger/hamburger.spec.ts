@@ -88,7 +88,7 @@ describe('HamburgerComponent — toggle output', () => {
   it('when the button is clicked, toggle event is emitted', async () => {
     const f = await setup();
     let count = 0;
-    f.componentInstance.toggle.subscribe(() => { count++; });
+    f.componentInstance.toggled.subscribe(() => { count++; });
     btn(f).click();
     expect(count).toBe(1);
   });

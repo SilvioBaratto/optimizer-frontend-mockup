@@ -13,7 +13,7 @@ import { FocusTrapDirective } from './focus-trap.directive';
   imports: [FocusTrapDirective],
   template: `
     <button id="trigger">Open</button>
-    <div appFocusTrap [active]="isActive()" (close)="onClose()">
+    <div appFocusTrap [active]="isActive()" (closed)="onClose()">
       <button id="first-btn">First</button>
       <button id="second-btn">Second</button>
     </div>
@@ -202,7 +202,6 @@ describe('FocusTrapDirective — sibling inert/aria-hidden', () => {
     host.isActive.set(true);
     fixture.detectChanges();
 
-    const trigger = fixture.nativeElement.querySelector('#trigger') as HTMLElement;
     // The trigger lives in the host element which is a sibling of the trap div inside
     // the fixture nativeElement. We need to check the trigger's parent (the wrapper
     // that contains both the trigger button and the trap div).

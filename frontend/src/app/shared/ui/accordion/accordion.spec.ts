@@ -83,12 +83,6 @@ function accordion(f: ComponentFixture<HostComponent>): AccordionComponent {
   return f.debugElement.children[0].componentInstance as AccordionComponent;
 }
 
-function dispatchKey(target: EventTarget, key: string): void {
-  target.dispatchEvent(
-    new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }),
-  );
-}
-
 // ===========================================================================
 // Criterion — button[aria-expanded][aria-controls] headers
 // ===========================================================================
