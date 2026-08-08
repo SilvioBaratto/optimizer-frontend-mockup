@@ -21,7 +21,7 @@ export class ListComponent {
   readonly variant = input<ListVariant>('default');
 
   readonly classes = computed(() => {
-    const base = 'rounded-lg border border-border bg-surface-raised text-text overflow-hidden';
+    const base = 'rounded-lg border border-border bg-surface-raised text-text overflow-hidden max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0';
     return `${base} ${VARIANT_CLASSES[this.variant()]}`.trim();
   });
 }

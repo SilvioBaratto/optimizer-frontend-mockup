@@ -22,7 +22,7 @@ export class AlertComponent {
   readonly variant = input<AlertVariant>('info');
 
   readonly classes = computed(() => {
-    const base = 'flex items-start gap-3 rounded-lg border px-4 py-3 text-sm';
+    const base = 'flex items-start gap-3 rounded-lg border px-4 py-3 text-sm max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0';
     return `${base} ${VARIANT_CLASSES[this.variant()]}`;
   });
 }

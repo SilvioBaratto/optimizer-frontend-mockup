@@ -30,7 +30,7 @@ import type { ChartPointClick, ChartTable } from './chart-types';
     provideEchartsCore({ echarts: () => import('./echarts-core').then((m) => m.default) }),
   ],
   template: `
-    <figure class="rounded-lg border border-border bg-surface-raised">
+    <figure class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
       @if (title() || subtitle() || table()) {
         <!--
           Stacked on narrow viewports: side-by-side squeezes a long title and a
