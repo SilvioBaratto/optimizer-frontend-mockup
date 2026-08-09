@@ -44,21 +44,21 @@ Per-task definition of done: model → service → sub-components → page templ
 
 ## Phase 3 — Risk monitoring & attribution
 
-- [ ] **T3.1 · doc 18 · Risk Monitoring** — `models/risk-monitoring.model.ts`, `services/risk-monitoring.service.ts`, `pages/risk/risk-monitoring/`
-  - [ ] Invariants under test: `VaR ≤ CVaR`, `Δ_0 = AvDD`, `Δ_1 = MaxDD`
-  - [ ] α slider updates readout + marker + highlighted row only; `aria-valuetext`, Home/End reach 0 and 1
-  - [ ] Drawdown-units toggle moves the metric card, the underwater chart and the threshold table together
-  - [ ] Insufficient history ⟹ inline note suggesting Parametric, no silent fallback
-  - [ ] Error keeps last known values, greyed, "stale data", with Retry
-  - [ ] Event-log entry click highlights the matching chart point
-- [ ] **T3.2 · doc 19 · Risk Attribution** — `models/risk-attribution.model.ts`, `services/risk-attribution.service.ts`, `pages/risk/risk-attribution/`
-  - [ ] **Owns EC, Σ stand-alone, DI** — doc 17 reads these signals
-  - [ ] Marginal ⟹ sum < 100% with an explicit badge; never silently normalised
-  - [ ] Volatility ⟹ Confidence + Estimation approach visible-but-disabled with reasons
-  - [ ] Hedge rows marked `▼` + "hedge"; undefined RORAC ⟹ `—`
-  - [ ] TOTAL row sticky through pagination
-  - [ ] Table ↔ chart selection synchronised; slide-over focus + Esc return
-  - [ ] Test: Euler sums to EC, Marginal does not
+- [x] **T3.1 · doc 18 · Risk Monitoring** — `models/risk-monitoring.model.ts`, `services/risk-monitoring.service.ts`, `pages/risk/risk-monitoring/`
+  - [x] Invariants under test: `VaR ≤ CVaR`, `Δ_0 = AvDD`, `Δ_1 = MaxDD`
+  - [x] α slider updates readout + marker + highlighted row only; `aria-valuetext`, Home/End reach 0 and 1
+  - [x] Drawdown-units toggle moves the metric card, the underwater chart and the threshold table together
+  - [x] Insufficient history ⟹ inline note suggesting Parametric, no silent fallback
+  - [x] Error keeps last known values, greyed, "stale data", with Retry
+  - [x] Event-log entry click highlights the matching chart point
+- [x] **T3.2 · doc 19 · Risk Attribution** — `models/risk-attribution.model.ts`, `services/risk-attribution.service.ts`, `pages/risk/risk-attribution/`
+  - [x] **Owns EC, Σ stand-alone, DI** — doc 17 reads these signals
+  - [x] Marginal ⟹ sum < 100% with an explicit badge; never silently normalised
+  - [x] Volatility ⟹ Confidence + Estimation approach visible-but-disabled with reasons
+  - [x] Hedge rows marked `▼` + "hedge"; undefined RORAC ⟹ `—`
+  - [x] TOTAL row sticky through pagination
+  - [x] Table ↔ chart selection synchronised; slide-over focus + Esc return
+  - [x] Test: Euler sums to EC, Marginal does not
 
 > **CHECKPOINT C** — 18 and 19 agree on the current portfolio's risk figures.
 
