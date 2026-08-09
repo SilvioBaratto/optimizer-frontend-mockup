@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { ConfirmDialog } from '../../../../shared/confirm-dialog/confirm-dialog';
 import { StatusBadge } from '../../../../shared/status-badge/status-badge';
 import { BacktestValidationService } from '../../../../services/backtest-validation.service';
+import { ButtonDirective } from '../../../../shared/ui/button/button.directive';
 
 /**
  * The second validation criterion (§7): a reason the strategy should work that
@@ -15,7 +16,9 @@ import { BacktestValidationService } from '../../../../services/backtest-validat
  */
 @Component({
   selector: 'app-economic-rationale',
-  imports: [ConfirmDialog, StatusBadge],
+  imports: [ConfirmDialog, StatusBadge,
+    ButtonDirective,
+  ],
   templateUrl: './economic-rationale.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

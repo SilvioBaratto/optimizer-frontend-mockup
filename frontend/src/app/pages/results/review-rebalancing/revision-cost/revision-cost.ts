@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 
 import { ReviewRebalancingService } from '../../../../services/review-rebalancing.service';
+import { MathVar } from '../../../../shared/math/math-var';
 
 /**
  * The three costs a revision incurs (Fondamenti §4).
@@ -13,6 +14,7 @@ import { ReviewRebalancingService } from '../../../../services/review-rebalancin
  */
 @Component({
   selector: 'app-revision-cost',
+  imports: [MathVar],
   templateUrl: './revision-cost.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

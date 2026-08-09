@@ -16,7 +16,7 @@
       <label for="contribution-sort" class="text-xs text-text-secondary">Sort</label>
       <select
         id="contribution-sort"
-        class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+        appSelect
         (change)="onSort($event)"
       >
         @for (option of sortOptions; track option[0]) {
@@ -33,7 +33,7 @@
     </p>
   } @else {
     <!-- Scrolls inside its own box so the page never scrolls sideways. -->
-    <div class="relative overflow-x-auto">
+    <div class="table-scroll">
       <table class="w-full min-w-3xl text-sm">
         <caption class="sr-only">
           Volatility decomposition of the selected portfolio: weight, asset standard deviation,
@@ -41,14 +41,14 @@
           and beta to the portfolio. Short positions are labelled.
         </caption>
         <thead>
-          <tr class="border-b border-border text-xs text-text-secondary">
+          <tr class="table-head-row">
             <th scope="col" class="px-4 py-2 text-left font-medium">Asset</th>
             <th scope="col" class="px-2 py-2 text-right font-medium">Weight</th>
-            <th scope="col" class="px-2 py-2 text-right font-medium">SD<sub>i</sub></th>
-            <th scope="col" class="px-2 py-2 text-right font-medium">Corr(i,P)</th>
+            <th scope="col" class="px-2 py-2 text-right font-medium"><app-math-var expr="SD_i" /></th>
+            <th scope="col" class="px-2 py-2 text-right font-medium"><app-math-var expr="Corr(i,P)" /></th>
             <th scope="col" class="px-2 py-2 text-right font-medium">Contrib.</th>
-            <th scope="col" class="px-2 py-2 text-right font-medium">% of SD<sub>P</sub></th>
-            <th scope="col" class="px-4 py-2 text-right font-medium">β<sub>i</sub><sup>P</sup></th>
+            <th scope="col" class="px-2 py-2 text-right font-medium">% of <app-math-var expr="SD_P" /></th>
+            <th scope="col" class="px-4 py-2 text-right font-medium"><app-math-var expr="β_i^P" label="beta of asset i to the portfolio" /></th>
             @if (expanded()) {
               <th scope="col" class="px-4 py-2 text-left font-medium">Contribution</th>
             }
@@ -57,7 +57,7 @@
         <tbody>
           @for (row of visibleRows(); track row.ticker) {
             <tr
-              class="border-b border-border-muted last:border-0"
+              class="table-row"
               [class.bg-surface-inset]="highlighted() === row.ticker"
             >
               <th scope="row" class="px-4 py-1.5 text-left font-normal">
@@ -68,7 +68,7 @@
                 -->
                 <button
                   type="button"
-                  class="flex min-h-11 items-center gap-1.5 rounded text-left text-text"
+                  class="flex min-h-11 min-w-11 items-center gap-1.5 rounded text-left text-text"
                   [attr.aria-pressed]="highlighted() === row.ticker"
                   (focus)="highlight(row.ticker)"
                   (click)="highlighted() === row.ticker ? clearHighlight() : highlight(row.ticker)"
@@ -174,7 +174,7 @@
       @if (hiddenCount() > 0 || expanded()) {
         <button
           type="button"
-          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          appButton="secondary"
           (click)="expanded.set(!expanded())"
         >
           {{ expanded() ? 'Show fewer' : 'View full table' }}

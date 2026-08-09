@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
+import { ICON_PROVIDER } from '../../../icons';
 import { ToastComponent } from './toast';
 import { ToastService, ToastVariant } from './toast.service';
 
@@ -104,6 +105,9 @@ describe('ToastComponent', () => {
     vi.useFakeTimers();
     await TestBed.configureTestingModule({
       imports: [ToastComponent],
+      // The dismiss button renders <lucide-icon name="x">, which throws without
+      // a registered provider. Every other spec that renders an icon does the same.
+      providers: [ICON_PROVIDER],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ToastComponent);
@@ -205,6 +209,9 @@ describe('ToastComponent variants', () => {
     vi.useFakeTimers();
     await TestBed.configureTestingModule({
       imports: [ToastComponent],
+      // The dismiss button renders <lucide-icon name="x">, which throws without
+      // a registered provider. Every other spec that renders an icon does the same.
+      providers: [ICON_PROVIDER],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ToastComponent);

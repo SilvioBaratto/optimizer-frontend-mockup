@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
+import { ButtonDirective } from '../ui/button/button.directive';
+
 /**
  * Re-reads one region's data.
  *
@@ -8,6 +10,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
  */
 @Component({
   selector: 'app-refresh-control',
+  imports: [ButtonDirective],
   templateUrl: './refresh-control.html',
   styleUrl: './refresh-control.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

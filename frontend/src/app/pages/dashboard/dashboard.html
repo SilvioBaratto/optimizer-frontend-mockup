@@ -13,7 +13,7 @@
 } @else {
   <!-- CollectionStatBar -->
   <section
-    class="flex flex-col gap-3 rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 px-4 py-3 lg:flex-row lg:items-center lg:justify-between"
+    class="flex flex-col gap-3 surface-card px-4 py-3 lg:flex-row lg:items-center lg:justify-between"
   >
     <dl class="flex flex-wrap items-baseline gap-x-8 gap-y-2 text-sm">
       <div class="flex items-baseline gap-2">
@@ -21,11 +21,11 @@
         <dd class="font-medium text-text">{{ portfolio()?.name ?? '—' }}</dd>
       </div>
       <div class="flex items-baseline gap-2">
-        <dt class="text-text-secondary">W</dt>
+        <dt class="text-text-secondary"><app-math-var expr="W" label="W, total wealth" /></dt>
         <dd class="tabular-nums text-text">12,500,000 EUR</dd>
       </div>
       <div class="flex items-baseline gap-2">
-        <dt class="text-text-secondary">N</dt>
+        <dt class="text-text-secondary"><app-math-var expr="N" /></dt>
         <dd class="tabular-nums text-text">{{ portfolio()?.holdings?.length ?? 0 }} holdings</dd>
       </div>
       <div class="flex items-baseline gap-2">
@@ -67,7 +67,7 @@
         <label for="risk-measure" class="text-xs text-text-secondary">Risk measure</label>
         <select
           id="risk-measure"
-          class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+          appSelect
           [value]="riskMeasure()"
           (change)="onRiskMeasure($event)"
         >
@@ -206,10 +206,10 @@
     } @else {
       <ul class="flex flex-col">
         @for (entry of snapshot()?.activity ?? []; track entry.id) {
-          <li class="border-b border-border-muted last:border-0">
+          <li class="table-row">
             <a
-              [href]="entry.route"
-              class="flex items-baseline gap-4 rounded-md py-2 text-sm transition-colors hover:bg-surface-inset"
+              [routerLink]="entry.route"
+              class="flex items-baseline gap-4 rounded-md py-3 text-sm transition-colors hover:bg-surface-inset"
             >
               <span class="shrink-0 tabular-nums text-text-secondary">{{ entry.at }}</span>
               <span class="text-text">{{ entry.description }}</span>

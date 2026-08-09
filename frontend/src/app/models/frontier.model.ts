@@ -140,6 +140,6 @@ export type ContributionSort = 'weight' | 'contribution' | 'share' | 'ticker';
 export const CONTRIBUTION_SORT_LABEL: Record<ContributionSort, string> = {
   weight: 'Weight',
   contribution: 'Contribution',
-  share: '% of σ_P',
+  share: '% of portfolio σ',
   ticker: 'Ticker (A–Z)',
 };

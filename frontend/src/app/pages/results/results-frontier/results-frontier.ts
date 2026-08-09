@@ -1,15 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core';
 
 import { ActionButtonRow } from '../../../shared/action-button-row/action-button-row';
+import { FrontierChartComponent } from '../../../shared/charts';
 import { CrossPageLink } from '../../../shared/cross-page-link/cross-page-link';
 import { EmptyState } from '../../../shared/empty-state/empty-state';
 import { EntityCard } from '../../../shared/entity-card/entity-card';
 import { ErrorState } from '../../../shared/error-state/error-state';
 import { InfoCard } from '../../../shared/info-card/info-card';
+import { PageContextBar } from '../../../shared/page-context-bar/page-context-bar';
 import { SectionCardGrid } from '../../../shared/section-card-grid/section-card-grid';
 import { SkeletonBlock } from '../../../shared/skeleton-block/skeleton-block';
 import { StatusBadge } from '../../../shared/status-badge/status-badge';
-import { FrontierChartComponent } from '../../../shared/charts';
 import type { ChartPointClick, FrontierMarker, Point } from '../../../shared/charts';
 import {
   CONSTRAINT_VIEW_LABEL,
@@ -18,6 +19,9 @@ import {
   type PortfolioMetrics,
 } from '../../../models/frontier.model';
 import { FrontierService } from '../../../services/frontier.service';
+import { ButtonDirective } from '../../../shared/ui/button/button.directive';
+import { SelectDirective } from '../../../shared/ui/select/select.directive';
+import { MathVar } from '../../../shared/math/math-var';
 import { RiskContributionTable } from './risk-contribution-table/risk-contribution-table';
 
 const CONSTRAINT_VIEWS: readonly ConstraintView[] = ['short-allowed', 'long-only'];
@@ -53,10 +57,14 @@ const ASSET_SERIES = 'Assets';
     ErrorState,
     FrontierChartComponent,
     InfoCard,
+    PageContextBar,
     RiskContributionTable,
     SectionCardGrid,
     SkeletonBlock,
     StatusBadge,
+    ButtonDirective,
+    SelectDirective,
+    MathVar,
   ],
   templateUrl: './results-frontier.html',
   styleUrl: './results-frontier.css',

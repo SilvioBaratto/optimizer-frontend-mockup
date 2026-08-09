@@ -6,6 +6,7 @@ import { EmptyState } from '../../../shared/empty-state/empty-state';
 import { ErrorState } from '../../../shared/error-state/error-state';
 import { HeroStatCard } from '../../../shared/hero-stat-card/hero-stat-card';
 import { InfoCard } from '../../../shared/info-card/info-card';
+import { MathVar } from '../../../shared/math/math-var';
 import { SkeletonBlock } from '../../../shared/skeleton-block/skeleton-block';
 import { StatusBadge, type StatusTone } from '../../../shared/status-badge/status-badge';
 import { TabComponent, TabPanelComponent, TabsComponent } from '../../../shared/ui/tabs/tabs';
@@ -20,6 +21,8 @@ import {
 } from '../../../models/factor-model.model';
 import { SignalsService } from '../../../services/signals.service';
 import { StepTracker } from '../step-tracker/step-tracker';
+import { ButtonDirective } from '../../../shared/ui/button/button.directive';
+import { SelectDirective } from '../../../shared/ui/select/select.directive';
 
 const SOURCES: readonly FactorSource[] = ['macroeconomic', 'style', 'statistical'];
 const CENTERINGS: readonly Centering[] = ['centered', 'traded'];
@@ -60,12 +63,15 @@ const INLINE_ROWS = 3;
     ErrorState,
     HeroStatCard,
     InfoCard,
+    MathVar,
     SkeletonBlock,
     StatusBadge,
     StepTracker,
     TabComponent,
     TabPanelComponent,
     TabsComponent,
+    ButtonDirective,
+    SelectDirective,
   ],
   templateUrl: './signals-factors.page.html',
   styleUrl: './signals-factors.page.css',

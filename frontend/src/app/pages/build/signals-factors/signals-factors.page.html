@@ -24,21 +24,21 @@
       <div class="flex flex-col gap-6 pt-6 lg:flex-row lg:items-start">
         <!-- Library column: stacks above the detail panel on narrow screens. -->
         <section class="flex flex-col gap-3 lg:w-80 lg:shrink-0" aria-labelledby="library-label">
-          <h2 id="library-label" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+          <h2 id="library-label" class="eyebrow">
             Factor model library
           </h2>
 
           <app-action-button-row align="start">
             <button
               type="button"
-              class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+              appButton="primary" size="md"
               [disabled]="isEstimating()"
             >
               + New Model
             </button>
             <button
               type="button"
-              class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+              appButton="secondary"
               [disabled]="isEstimating()"
             >
               Import
@@ -86,7 +86,8 @@
                     />
                   </span>
                   <span class="text-xs text-text-secondary">
-                    {{ sourceLabel[model.source] }} · K = {{ model.k }}
+                    {{ sourceLabel[model.source] }} ·
+                    <math><mi>K</mi><mo>=</mo><mn>{{ model.k }}</mn></math>
                   </span>
                 </button>
               </li>
@@ -111,7 +112,7 @@
                 }
                 <button
                   type="button"
-                  class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+                  appButton="primary" size="md"
                   [disabled]="isEstimating()"
                   (click)="requestRun()"
                 >
@@ -121,7 +122,7 @@
 
               <dl class="flex flex-wrap gap-x-8 gap-y-1 text-sm">
                 <div class="flex items-baseline gap-2">
-                  <dt class="text-text-secondary">K</dt>
+                  <dt class="text-text-secondary"><app-math-var expr="K" /></dt>
                   <dd class="tabular-nums text-text">{{ model.k }}</dd>
                 </div>
                 <div class="flex items-baseline gap-2">
@@ -155,11 +156,10 @@
                   <legend class="text-xs text-text-secondary">Source</legend>
                   <div class="flex flex-wrap gap-4">
                     @for (s of sources; track s) {
-                      <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+                      <label class="flex min-h-11 min-w-11 items-center gap-1.5 text-sm text-text">
                         <input
                           type="radio"
                           name="source"
-                          class="accent-[var(--color-primary)]"
                           [checked]="model.source === s"
                           (change)="onSource(s)"
                         />
@@ -171,10 +171,12 @@
 
                 <div class="flex flex-wrap gap-4">
                   <div class="flex flex-col gap-1">
-                    <label for="k-factors" class="text-xs text-text-secondary">K (factors)</label>
+                    <label for="k-factors" class="text-xs text-text-secondary">
+                      <app-math-var expr="K" /> (factors)
+                    </label>
                     <select
                       id="k-factors"
-                      class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+                      appSelect
                       [value]="model.k"
                       (change)="onK($event)"
                     >
@@ -187,7 +189,7 @@
                     <label for="centering" class="text-xs text-text-secondary">Centering</label>
                     <select
                       id="centering"
-                      class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+                      appSelect
                       [value]="model.centering"
                       (change)="onCentering($event)"
                     >
@@ -251,7 +253,7 @@
                     </label>
                     <select
                       id="estimation-method"
-                      class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+                      appSelect
                     >
                       <option>OLS</option>
                     </select>
@@ -259,7 +261,7 @@
                   <label class="flex min-h-11 items-center gap-2 text-sm text-text">
                     <input
                       type="checkbox"
-                      class="h-4 w-4 accent-[var(--color-primary)]"
+                      class="h-4 w-4"
                       [disabled]="!blumeAvailable()"
                     />
                     Blume shrinkage
@@ -280,23 +282,23 @@
                     detail="Run the estimation to see per-asset exposures."
                   />
                 } @else {
-                  <div class="relative overflow-x-auto">
+                  <div class="table-scroll">
                     <table class="w-full min-w-[38rem] text-sm">
                       <caption class="sr-only">
                         Factor exposures per asset with the regression fit
                       </caption>
                       <thead>
-                        <tr class="border-b border-border text-xs text-text-secondary">
+                        <tr class="table-head-row">
                           <th scope="col" class="py-2 pr-4 text-left font-medium">Asset</th>
                           @for (factor of model.factorNames; track factor) {
                             <th scope="col" class="py-2 pr-4 text-right font-medium">{{ factor }}</th>
                           }
-                          <th scope="col" class="py-2 text-right font-medium">R²</th>
+                          <th scope="col" class="py-2 text-right font-medium"><app-math-var expr="R^2" /></th>
                         </tr>
                       </thead>
                       <tbody>
                         @for (row of visibleExposures(); track row.ticker) {
-                          <tr class="border-b border-border-muted last:border-0">
+                          <tr class="table-row">
                             <th scope="row" class="py-2 pr-4 text-left font-medium text-text">
                               {{ row.ticker }}
                             </th>
@@ -323,7 +325,7 @@
                       </p>
                       <button
                         type="button"
-                        class="min-h-11 rounded-md px-3 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+                        appButton="ghost"
                         (click)="showAllExposures.set(!showAllExposures())"
                       >
                         {{ showAllExposures() ? 'Show fewer' : 'View full table' }}
@@ -352,7 +354,7 @@
                     <label for="tilt-factor" class="text-xs text-text-secondary">Target factor</label>
                     <select
                       id="tilt-factor"
-                      class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+                      appSelect
                       [value]="tiltFactor()"
                       (change)="tiltFactor.set($any($event.target).value)"
                     >
@@ -367,21 +369,19 @@
                   <fieldset class="flex flex-col gap-1">
                     <legend class="text-xs text-text-secondary">Objective</legend>
                     <div class="flex min-h-11 items-center gap-4">
-                      <label class="flex items-center gap-1.5 text-sm text-text">
+                      <label class="flex min-h-11 min-w-11 items-center gap-1.5 text-sm text-text">
                         <input
                           type="radio"
                           name="tilt-objective"
-                          class="accent-[var(--color-primary)]"
                           [checked]="tiltObjective() === 'max-exposure'"
                           (change)="tiltObjective.set('max-exposure')"
                         />
                         Max exposure
                       </label>
-                      <label class="flex items-center gap-1.5 text-sm text-text">
+                      <label class="flex min-h-11 min-w-11 items-center gap-1.5 text-sm text-text">
                         <input
                           type="radio"
                           name="tilt-objective"
-                          class="accent-[var(--color-primary)]"
                           [checked]="tiltObjective() === 'mean-variance'"
                           (change)="tiltObjective.set('mean-variance')"
                         />
@@ -391,7 +391,9 @@
                   </fieldset>
 
                   <div class="flex flex-col gap-1">
-                    <label for="gamma" class="text-xs text-text-secondary">Risk aversion γ</label>
+                    <label for="gamma" class="text-xs text-text-secondary">
+                      Risk aversion <app-math-var expr="γ" />
+                    </label>
                     <input
                       id="gamma"
                       type="number"
@@ -407,12 +409,12 @@
 
                 <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
                   <p class="text-sm text-text-secondary">
-                    Resulting β_p on {{ tiltFactor() }}
+                    Resulting <app-math-var expr="β_p" /> on {{ tiltFactor() }}
                     <span class="ml-2 font-medium tabular-nums text-text">0.84</span>
                   </p>
                   <button
                     type="button"
-                    class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+                    appButton="secondary"
                   >
                     Preview tilted weights
                   </button>
@@ -428,13 +430,13 @@
             <app-action-button-row>
               <button
                 type="button"
-                class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+                appButton="secondary"
               >
                 Save draft
               </button>
               <button
                 type="button"
-                class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+                appButton="primary" size="md"
                 [disabled]="!canSend()"
               >
                 Send to Views Builder →
@@ -455,7 +457,7 @@
   <ui-tab-panel [panelIndex]="1">
     <div class="flex flex-col gap-6 pt-6">
       <section class="flex flex-col gap-3" aria-labelledby="screen-filters">
-        <h2 id="screen-filters" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+        <h2 id="screen-filters" class="eyebrow">
           Ratio families
         </h2>
         <ul class="flex flex-wrap gap-2">
@@ -464,7 +466,7 @@
               <button
                 type="button"
                 aria-pressed="false"
-                class="min-h-11 rounded-full border border-border bg-surface-raised px-3 text-sm text-text transition-colors hover:bg-surface-inset"
+                class="min-h-11 rounded-full border border-border-control bg-surface-raised px-3 text-sm text-text transition-colors hover:bg-surface-inset"
               >
                 {{ family }}
               </button>
@@ -503,7 +505,7 @@
       </section>
 
       <section
-        class="flex flex-wrap items-end gap-6 rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 px-4 py-3"
+        class="flex flex-wrap items-end gap-6 surface-card px-4 py-3"
         aria-labelledby="screen-stats"
       >
         <h2 id="screen-stats" class="sr-only">Screen results</h2>
@@ -512,7 +514,9 @@
           <span class="ml-1 text-text-secondary">names selected</span>
         </p>
         <div class="flex flex-col gap-1">
-          <label for="top-n" class="text-xs text-text-secondary">Top-N</label>
+          <label for="top-n" class="text-xs text-text-secondary">
+            Top-<app-math-var expr="N" />
+          </label>
           <input
             id="top-n"
             type="number"
@@ -526,7 +530,7 @@
           <label for="weighting" class="text-xs text-text-secondary">Weighting</label>
           <select
             id="weighting"
-            class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+            appSelect
             [value]="weighting()"
             (change)="weighting.set($any($event.target).value)"
           >
@@ -550,11 +554,11 @@
         }
       </section>
 
-      <div class="overflow-x-auto rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+      <div class="table-scroll surface-card">
         <table class="w-full min-w-[34rem] text-sm">
           <caption class="sr-only">Names surviving the current screen</caption>
           <thead>
-            <tr class="border-b border-border text-xs text-text-secondary">
+            <tr class="table-head-row">
               <th scope="col" class="px-4 py-2 text-left font-medium">Ticker</th>
               <th scope="col" class="px-2 py-2 text-left font-medium">Name</th>
               <th scope="col" class="px-2 py-2 text-right font-medium">P/B</th>
@@ -564,7 +568,7 @@
           </thead>
           <tbody>
             @for (row of screened(); track row.ticker) {
-              <tr class="border-b border-border-muted last:border-0">
+              <tr class="table-row">
                 <th scope="row" class="px-4 py-2 text-left font-medium text-text">{{ row.ticker }}</th>
                 <td class="px-2 py-2 text-text-secondary">{{ row.name }}</td>
                 <td class="px-2 py-2 text-right tabular-nums text-text">{{ row.priceToBook }}</td>
@@ -581,7 +585,7 @@
   <!-- ============================ ALPHA SIGNALS ========================= -->
   <ui-tab-panel [panelIndex]="2">
     <div class="flex flex-col gap-3 pt-6">
-      <h2 class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+      <h2 class="eyebrow">
         Alpha signal library
       </h2>
       <ul role="list" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -640,7 +644,7 @@
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label for="lambda-r" class="text-xs text-text-secondary">Risk aversion λ_R</label>
+            <label for="lambda-r" class="text-xs text-text-secondary">Risk aversion <app-math-var expr="λ_R" /></label>
             <input
               id="lambda-r"
               type="number"
@@ -652,7 +656,9 @@
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label for="signal-rho" class="text-xs text-text-secondary">Signal correlation ρ</label>
+            <label for="signal-rho" class="text-xs text-text-secondary">
+              Signal correlation <app-math-var expr="ρ" />
+            </label>
             <input
               id="signal-rho"
               type="number"
@@ -666,7 +672,7 @@
           </div>
           <div class="flex flex-col gap-1">
             <label for="rho-target" class="text-xs text-text-secondary">
-              Target autocorrelation ρ_target
+              Target autocorrelation <app-math-var expr="ρ_target" />
             </label>
             <div class="flex min-h-11 items-center gap-2">
               <input
@@ -675,7 +681,7 @@
                 min="0"
                 max="1"
                 step="0.05"
-                class="accent-[var(--color-primary)]"
+                class="h-11"
                 [value]="targetAutocorrelation()"
                 (input)="onNumber($event, targetAutocorrelation.set)"
               />

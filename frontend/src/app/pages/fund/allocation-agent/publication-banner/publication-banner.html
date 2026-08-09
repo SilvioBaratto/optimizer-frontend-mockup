@@ -23,7 +23,7 @@
         <div class="flex flex-wrap gap-2">
           <button
             type="button"
-            class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+            appButton="primary" size="md"
             [disabled]="publishing()"
             (click)="confirming.set(true)"
           >
@@ -31,7 +31,7 @@
           </button>
           <button
             type="button"
-            class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+            appButton="secondary"
             [attr.aria-expanded]="detailOpen()"
             aria-controls="publish-failure-detail"
             (click)="detailOpen.set(!detailOpen())"
@@ -81,7 +81,7 @@
         <div class="flex flex-col gap-2">
           <button
             type="button"
-            class="min-h-11 self-start rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+            appButton="primary" size="md" class="self-start"
             [disabled]="!canPublish() || publishing()"
             (click)="confirming.set(true)"
           >

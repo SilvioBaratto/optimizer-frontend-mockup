@@ -46,10 +46,16 @@ describe('ButtonComponent', () => {
     expect(button().className).toContain('bg-primary');
   });
 
-  it('when variant is secondary, the secondary surface class is applied to the button', () => {
+  it('when variant is secondary, the secondary control border is applied to the button', () => {
+    /*
+     * Secondary is transparent with a control-weight border, not a raised
+     * surface: it sits beside a primary and has to read as the quieter of the
+     * two. `border-control` is the token that identifies a control (3.9:1),
+     * which a decorative `border` would not.
+     */
     fixture.componentRef.setInput('variant', 'secondary');
     fixture.detectChanges();
-    expect(button().className).toContain('bg-surface-raised');
+    expect(button().className).toContain('border-border-control');
   });
 
   it('when variant is ghost, the ghost class is applied to the button', () => {

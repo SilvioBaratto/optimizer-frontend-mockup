@@ -3,7 +3,7 @@
     <label class="flex min-h-11 items-center gap-2 text-sm text-text">
       <input
         type="checkbox"
-        class="h-4 w-4 accent-[var(--color-primary)]"
+        class="h-4 w-4"
         [checked]="sortByProbability()"
         (change)="sortByProbability.set($any($event.target).checked)"
       />
@@ -39,15 +39,17 @@
     The accessible alternative, and the only place the expected run appears —
     the chart carries one number per state, and this carries both.
   -->
-  <div class="relative overflow-x-auto">
+  <div class="table-scroll">
     <table class="w-full min-w-lg text-sm">
       <caption class="sr-only">
         Filtered probability and expected run for each regime state.
       </caption>
       <thead>
-        <tr class="border-b border-border text-xs text-text-secondary">
+        <tr class="table-head-row">
           <th scope="col" class="px-3 py-2 text-left font-medium">State</th>
-          <th scope="col" class="px-3 py-2 text-right font-medium">Filtered P</th>
+          <th scope="col" class="px-3 py-2 text-right font-medium">
+            Filtered <app-math-var expr="P" />
+          </th>
           <th scope="col" class="px-3 py-2 text-right font-medium">Expected run</th>
           <th scope="col" class="px-3 py-2 text-left font-medium">Reading</th>
         </tr>
@@ -55,7 +57,7 @@
       <tbody>
         @for (state of orderedStates(); track state.name) {
           <tr
-            class="border-b border-border-muted last:border-0"
+            class="table-row"
             [class.bg-surface-inset]="state.name === estimate().driver"
           >
             <th scope="row" class="px-3 py-2 text-left font-normal text-text">{{ state.name }}</th>

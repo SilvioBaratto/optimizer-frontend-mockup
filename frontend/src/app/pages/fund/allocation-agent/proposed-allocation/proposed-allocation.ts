@@ -3,6 +3,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { StatusBadge } from '../../../../shared/status-badge/status-badge';
 import { FLAG_LABEL, type AllocationRow } from '../../../../models/allocation-agent.model';
 import { AllocationAgentService } from '../../../../services/allocation-agent.service';
+import { ButtonDirective } from '../../../../shared/ui/button/button.directive';
+import { MathVar } from '../../../../shared/math/math-var';
 
 /** Rows shown before "View full table" is used. */
 const COLLAPSED_ROWS = 5;
@@ -23,7 +25,10 @@ const COLLAPSED_ROWS = 5;
  */
 @Component({
   selector: 'app-proposed-allocation',
-  imports: [StatusBadge],
+  imports: [StatusBadge,
+    ButtonDirective,
+    MathVar,
+  ],
   templateUrl: './proposed-allocation.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

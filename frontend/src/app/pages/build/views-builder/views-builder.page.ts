@@ -3,13 +3,17 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { ActionButtonRow } from '../../../shared/action-button-row/action-button-row';
 import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { EmptyState } from '../../../shared/empty-state/empty-state';
-import { InfoCard } from '../../../shared/info-card/info-card';
+import { CardTitle, InfoCard } from '../../../shared/info-card/info-card';
+import { MathVar } from '../../../shared/math/math-var';
+import { PageContextBar } from '../../../shared/page-context-bar/page-context-bar';
 import { SkeletonBlock } from '../../../shared/skeleton-block/skeleton-block';
 import { StatusBadge, type StatusTone } from '../../../shared/status-badge/status-badge';
 import { StatusBanner, type BannerVariant } from '../../../shared/status-banner/status-banner';
 import type { InvestorView, ViewStatus, ViewType } from '../../../models/macro-view.model';
 import { MAX_VIEWS, VIEW_ASSETS, ViewsService, statusOf } from '../../../services/views.service';
 import { StepTracker } from '../step-tracker/step-tracker';
+import { ButtonDirective } from '../../../shared/ui/button/button.directive';
+import { SelectDirective } from '../../../shared/ui/select/select.directive';
 
 const STATUS_TONE: Record<ViewStatus, StatusTone> = {
   complete: 'ok',
@@ -54,10 +58,15 @@ const BLANK_DRAFT: ViewDraft = {
     ConfirmDialog,
     EmptyState,
     InfoCard,
+    MathVar,
+    PageContextBar,
     SkeletonBlock,
     StatusBadge,
     StatusBanner,
     StepTracker,
+    ButtonDirective,
+    SelectDirective,
+    CardTitle,
   ],
   templateUrl: './views-builder.page.html',
   styleUrl: './views-builder.page.css',

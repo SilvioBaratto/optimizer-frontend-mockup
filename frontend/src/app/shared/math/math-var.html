@@ -1,0 +1,49 @@
+<!--
+  Everything stays inside <math>: Angular switches to the MathML namespace when it
+  parses that tag, and an <ng-template> hoisted outside it would be built as HTML,
+  so the identifier markup is written out in both branches rather than shared.
+-->
+<math [attr.aria-label]="label() || null">
+  @switch (parsed().kind) {
+    @case ('fn') {
+      <mi>{{ $any(parsed()).name }}</mi>
+      <mo stretchy="false">{{ $any(parsed()).open }}</mo>
+      @for (p of $any(parsed()).args; track $index) {
+        @if (!$first) {
+          <mo separator="true">,</mo>
+        }
+        @if (p.sub && p.sup) {
+          <msubsup><mi>{{ p.base }}</mi><mi>{{ p.sub }}</mi><mi>{{ p.sup }}</mi></msubsup>
+        } @else if (p.sub) {
+          <msub><mi>{{ p.base }}</mi><mi>{{ p.sub }}</mi></msub>
+        } @else if (p.sup) {
+          <msup><mi>{{ p.base }}</mi><mi>{{ p.sup }}</mi></msup>
+        } @else {
+          <mi>{{ p.base }}</mi>
+        }
+      }
+      <mo stretchy="false">{{ $any(parsed()).close }}</mo>
+    }
+    @case ('accent') {
+      <mover>
+        <mi>{{ $any(parsed()).base }}</mi>
+        <mo>{{ $any(parsed()).accent }}</mo>
+      </mover>
+    }
+    @default {
+      @if ($any(parsed()).part.sub && $any(parsed()).part.sup) {
+        <msubsup>
+          <mi>{{ $any(parsed()).part.base }}</mi>
+          <mi>{{ $any(parsed()).part.sub }}</mi>
+          <mi>{{ $any(parsed()).part.sup }}</mi>
+        </msubsup>
+      } @else if ($any(parsed()).part.sub) {
+        <msub><mi>{{ $any(parsed()).part.base }}</mi><mi>{{ $any(parsed()).part.sub }}</mi></msub>
+      } @else if ($any(parsed()).part.sup) {
+        <msup><mi>{{ $any(parsed()).part.base }}</mi><mi>{{ $any(parsed()).part.sup }}</mi></msup>
+      } @else {
+        <mi>{{ $any(parsed()).part.base }}</mi>
+      }
+    }
+  }
+</math>

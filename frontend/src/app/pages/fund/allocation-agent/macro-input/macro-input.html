@@ -21,7 +21,7 @@
         @if (z.riskBudget) {
           {{ z.riskBudget }}
         } @else {
-          <!-- Absent, not zero: the risk agent has not run since this z_t. -->
+          <!-- Absent, not zero: the risk agent has not run since this zₜ. -->
           <span class="text-text-secondary">— not yet received from the Risk Agent</span>
         }
       </dd>
@@ -46,7 +46,7 @@
 } @else {
   <app-empty-state
     title="Waiting for a macro state"
-    detail="The shared fund state holds no usable z_t yet. The allocation problem is conditional on that vector — regime, term spread, credit spread, dividend yield — so there is nothing to solve until the macro agent publishes one. Running the agent is disabled until then."
+    detail="The shared fund state holds no usable zₜ yet. The allocation problem is conditional on that vector — regime, term spread, credit spread, dividend yield — so there is nothing to solve until the macro agent publishes one. Running the agent is disabled until then."
   >
     <app-cross-page-link
       label="Open Macro &amp; Regimes Agent"

@@ -5,23 +5,23 @@
       positioned, and without a positioned ancestor it escapes the scroller and
       widens the whole page.
     -->
-    <div class="relative overflow-x-auto">
+    <div class="table-scroll">
       <table class="w-full min-w-2xl text-sm">
         <caption class="sr-only">
           Current weight, revised weight, difference and resulting action for each asset.
         </caption>
         <thead>
-          <tr class="border-b border-border text-xs text-text-secondary">
+          <tr class="table-head-row">
             <th scope="col" class="px-3 py-2 text-left font-medium">Asset</th>
-            <th scope="col" class="px-3 py-2 text-right font-medium">z*<sub>t</sub></th>
-            <th scope="col" class="px-3 py-2 text-right font-medium">z*<sub>t+Δt</sub></th>
-            <th scope="col" class="px-3 py-2 text-right font-medium">Δ</th>
+            <th scope="col" class="px-3 py-2 text-right font-medium"><app-math-var expr="z*_t" label="z star sub t, the current weight" /></th>
+            <th scope="col" class="px-3 py-2 text-right font-medium"><app-math-var expr="z*_t+Δt" label="z star sub t plus delta t, the revised weight" /></th>
+            <th scope="col" class="px-3 py-2 text-right font-medium"><app-math-var expr="Δ" label="delta, the change in weight" /></th>
             <th scope="col" class="px-3 py-2 text-left font-medium">Action</th>
           </tr>
         </thead>
         <tbody>
           @for (row of visibleRows(); track row.ticker) {
-            <tr class="border-b border-border-muted last:border-0">
+            <tr class="table-row">
               <th scope="row" class="px-3 py-2 text-left font-normal">
                 <span class="font-medium text-text">{{ row.ticker }}</span>
                 <span class="ml-2 text-text-secondary">{{ row.name }}</span>
@@ -49,7 +49,7 @@
         </tbody>
         <tfoot>
           <tr class="border-t-2 border-border text-sm font-medium">
-            <th scope="row" class="px-3 py-2 text-left">Sum Δ</th>
+            <th scope="row" class="px-3 py-2 text-left">Sum <app-math-var expr="Δ" /></th>
             <td class="px-3 py-2"></td>
             <td class="px-3 py-2"></td>
             <td class="px-3 py-2 text-right tabular-nums text-text">
@@ -86,7 +86,7 @@
         </p>
         <button
           type="button"
-          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          appButton="secondary"
           (click)="expanded.set(!expanded())"
         >
           {{ expanded() ? 'Show fewer' : 'View full table' }}
@@ -98,30 +98,43 @@
   <!-- Stone-Hill: the same decision posed as an exchange (Fondamenti §3). -->
   <div class="flex flex-col gap-4">
     <p class="text-sm text-text-secondary">
-      Returns corrected for systematic risk, c<sub>i</sub> = r<sub>i</sub> − β<sub>i</sub>θ with
-      θ = {{ theta.toFixed(2) }}%. Buying i and selling j pays only when
-      c<sub>i</sub> − c<sub>j</sub> exceeds bc<sub>i</sub> + sc<sub>j</sub>.
+      Returns corrected for systematic risk, <math>
+        <msub><mi>c</mi><mi>i</mi></msub>
+        <mo>=</mo>
+        <msub><mi>r</mi><mi>i</mi></msub>
+        <mo>&#x2212;</mo>
+        <msub><mi>β</mi><mi>i</mi></msub><mi>θ</mi>
+      </math> with
+      <math><mi>θ</mi><mo>=</mo><mn>{{ theta.toFixed(2) }}</mn><mo>%</mo></math>. Buying
+      <app-math-var expr="i" /> and selling <app-math-var expr="j" /> pays only when
+      <math>
+        <msub><mi>c</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>c</mi><mi>j</mi></msub>
+      </math> exceeds <math>
+        <msub><mi>bc</mi><mi>i</mi></msub><mo>+</mo><msub><mi>sc</mi><mi>j</mi></msub>
+      </math>.
     </p>
 
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <div class="flex flex-col gap-2">
-        <h3 class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
-          Buy candidates — ranked by c<sub>i</sub> − bc<sub>i</sub>
+        <h3 class="eyebrow">
+          Buy candidates — ranked by <math>
+            <msub><mi>c</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>bc</mi><mi>i</mi></msub>
+          </math>
         </h3>
-        <div class="relative overflow-x-auto">
+        <div class="table-scroll">
           <table class="w-full min-w-sm text-sm">
             <caption class="sr-only">Buy candidates ranked by corrected return net of buy cost.</caption>
             <thead>
-              <tr class="border-b border-border text-xs text-text-secondary">
+              <tr class="table-head-row">
                 <th scope="col" class="px-3 py-2 text-left font-medium">Asset</th>
-                <th scope="col" class="px-3 py-2 text-right font-medium">c<sub>i</sub></th>
-                <th scope="col" class="px-3 py-2 text-right font-medium">bc<sub>i</sub></th>
+                <th scope="col" class="px-3 py-2 text-right font-medium"><app-math-var expr="c_i" label="c sub i, the corrected return of asset i" /></th>
+                <th scope="col" class="px-3 py-2 text-right font-medium"><app-math-var expr="bc_i" label="b c sub i, the cost of buying asset i" /></th>
                 <th scope="col" class="px-3 py-2 text-right font-medium">Rank score</th>
               </tr>
             </thead>
             <tbody>
               @for (c of topBuys(); track c.ticker; let first = $first) {
-                <tr class="border-b border-border-muted last:border-0" [class.bg-surface-inset]="first">
+                <tr class="table-row" [class.bg-surface-inset]="first">
                   <th scope="row" class="px-3 py-2 text-left font-normal text-text">{{ c.ticker }}</th>
                   <td class="px-3 py-2 text-right tabular-nums text-text-secondary">
                     {{ c.correctedReturn.toFixed(2) }}%
@@ -138,23 +151,25 @@
       </div>
 
       <div class="flex flex-col gap-2">
-        <h3 class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
-          Held positions — ranked by c<sub>j</sub> + sc<sub>j</sub>
+        <h3 class="eyebrow">
+          Held positions — ranked by <math>
+            <msub><mi>c</mi><mi>j</mi></msub><mo>+</mo><msub><mi>sc</mi><mi>j</mi></msub>
+          </math>
         </h3>
-        <div class="relative overflow-x-auto">
+        <div class="table-scroll">
           <table class="w-full min-w-sm text-sm">
             <caption class="sr-only">Held positions ranked by corrected return plus sell cost, lowest first.</caption>
             <thead>
-              <tr class="border-b border-border text-xs text-text-secondary">
+              <tr class="table-head-row">
                 <th scope="col" class="px-3 py-2 text-left font-medium">Asset</th>
-                <th scope="col" class="px-3 py-2 text-right font-medium">c<sub>j</sub></th>
-                <th scope="col" class="px-3 py-2 text-right font-medium">sc<sub>j</sub></th>
+                <th scope="col" class="px-3 py-2 text-right font-medium"><app-math-var expr="c_j" label="c sub j, the corrected return of asset j" /></th>
+                <th scope="col" class="px-3 py-2 text-right font-medium"><app-math-var expr="sc_j" label="s c sub j, the cost of selling asset j" /></th>
                 <th scope="col" class="px-3 py-2 text-right font-medium">Rank score</th>
               </tr>
             </thead>
             <tbody>
               @for (c of topSells(); track c.ticker; let first = $first) {
-                <tr class="border-b border-border-muted last:border-0" [class.bg-surface-inset]="first">
+                <tr class="table-row" [class.bg-surface-inset]="first">
                   <th scope="row" class="px-3 py-2 text-left font-normal text-text">{{ c.ticker }}</th>
                   <td class="px-3 py-2 text-right tabular-nums text-text-secondary">
                     {{ c.correctedReturn.toFixed(2) }}%
@@ -183,11 +198,17 @@
         <p class="text-sm text-text-secondary">
           Buy <span class="font-medium text-text">{{ swap.buy.ticker }}</span>, sell
           <span class="font-medium text-text">{{ swap.sell.ticker }}</span> —
-          advantage c<sub>i</sub> − c<sub>j</sub> = {{ swap.advantage.toFixed(2) }}% against a
-          hurdle bc<sub>i</sub> + sc<sub>j</sub> = {{ swap.hurdle.toFixed(2) }}%.
+          advantage <math>
+            <msub><mi>c</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>c</mi><mi>j</mi></msub>
+            <mo>=</mo><mn>{{ swap.advantage.toFixed(2) }}</mn><mo>%</mo>
+          </math> against a
+          hurdle <math>
+            <msub><mi>bc</mi><mi>i</mi></msub><mo>+</mo><msub><mi>sc</mi><mi>j</mi></msub>
+            <mo>=</mo><mn>{{ swap.hurdle.toFixed(2) }}</mn><mo>%</mo>
+          </math>.
         </p>
         <p class="text-sm text-text-secondary">
-          Amount available within the f<sub>i</sub> limits:
+          Amount available within the <app-math-var expr="f_i" label="f sub i, the per-asset position limits" /> limits:
           <span class="tabular-nums text-text">
             EUR {{ swap.amount.toLocaleString('en-GB', { maximumFractionDigits: 0 }) }}
           </span>

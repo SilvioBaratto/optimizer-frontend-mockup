@@ -41,7 +41,7 @@ export const OBJECTIVES: readonly ObjectiveDefinition[] = [
     id: 'equal-risk-contribution',
     label: 'Equal Risk Contribution',
     requiresExpectedReturns: false,
-    formula: 'RC_i(w) = RC_j(w) ∀ i, j',
+    formula: 'RCᵢ(w) = RCⱼ(w) ∀ i, j',
     alsoKnownAs: 'Risk Budgeting',
   },
   { id: 'min-mad', label: 'Minimize MAD', requiresExpectedReturns: false, formula: 'min E|r − E(r)|' },

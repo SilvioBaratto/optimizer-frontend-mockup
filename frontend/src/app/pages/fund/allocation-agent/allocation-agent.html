@@ -4,12 +4,8 @@
   the diagnostics card after the two charts rather than beside the input card.
 -->
 
-<!-- HeroStatCard — sticky, so the agent's state stays readable down the page. -->
-<div
-  class="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-b border-border bg-surface px-4 py-3 md:-mx-8 md:px-8"
->
-  <h2 class="sr-only">Allocation agent</h2>
-
+<!-- Sticky, so the agent's state stays readable down the page. -->
+<app-page-context-bar heading="Allocation agent" [compact]="true">
   <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
     <!-- Polite: the state changes on its own during a run and must not interrupt. -->
     <p class="flex items-center gap-2" aria-live="polite">
@@ -29,7 +25,7 @@
     <div class="ml-auto flex flex-col items-start gap-1">
       <button
         type="button"
-        class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+        appButton="primary" size="md"
         [disabled]="!canRun()"
         (click)="run()"
       >
@@ -38,19 +34,22 @@
       @if (!hasMacroInput()) {
         <p class="text-xs text-text-secondary">Waiting for a macro state.</p>
       } @else if (targetReturnInvalid()) {
-        <p class="text-xs text-text-secondary">Target return π is below the GMVP.</p>
+        <p class="text-xs text-text-secondary">
+          Target return <app-math-var expr="π" /> is below the GMVP.
+        </p>
       }
     </div>
   </div>
-</div>
+</app-page-context-bar>
 
 <!-- InfoCard — the macro state read out of the shared fund state. -->
-<app-info-card title="Macro state z_t, from the Macro &amp; Regimes Agent">
+<app-info-card>
+  <h3 appCardTitle>Macro state <app-math-var expr="z_t" />, from the Macro &amp; Regimes Agent</h3>
   <app-macro-input />
 </app-info-card>
 
 <!-- ParameterPanel — how the weights are to be obtained. -->
-<section class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+<section class="surface-card">
   <header class="border-b border-border px-4 py-3">
     <h2 class="text-sm font-medium text-text">Estimation approach and objective</h2>
   </header>
@@ -73,7 +72,7 @@
 }
 
 <!-- DataTable — the proposed allocation. -->
-<section class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+<section class="surface-card">
   <header class="border-b border-border px-4 py-3">
     <h2 class="text-sm font-medium text-text">Proposed allocation</h2>
   </header>
@@ -93,7 +92,7 @@
   <div class="flex flex-col gap-2">
     <app-frontier-chart
       title="Mean-variance frontier"
-      [subtitle]="'CAL drawn from r_f ' + summary().riskFreeRate.toFixed(1) + '%'"
+      [subtitle]="'CAL drawn from the risk-free rate ' + summary().riskFreeRate.toFixed(1) + '%'"
       ariaLabel="Mean-variance frontier with the GMVP, the tangency portfolio, the capital allocation line from the risk-free rate and the position of the proposed portfolio."
       [curve]="curve()"
       [inefficientBranch]="inefficientBranch()"
@@ -126,8 +125,8 @@
       categoryAxisName="Asset"
     >
       <p class="border-t border-border px-4 py-2 text-xs text-text-secondary">
-        Contributions add up to portfolio risk by Euler additivity: σ is homogeneous of degree one,
-        so σ(x) = Σ σ<sub>i</sub>(x) exactly. Where the two bars diverge, capital and risk are not
+        Contributions add up to portfolio risk by Euler additivity: <app-math-var expr="σ" /> is homogeneous of degree one,
+        so <math><mi>σ</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><mo>&#x2211;</mo><msub><mi>σ</mi><mi>i</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo></math> exactly. Where the two bars diverge, capital and risk are not
         the same allocation — which is the whole premise of risk budgeting.
       </p>
     </app-bar-chart>

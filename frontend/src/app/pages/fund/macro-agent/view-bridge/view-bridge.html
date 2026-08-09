@@ -3,7 +3,7 @@
     <label for="asset-class-filter" class="text-xs text-text-secondary">Asset class filter</label>
     <select
       id="asset-class-filter"
-      class="min-h-11 min-w-0 max-w-48 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+      appSelect class="min-w-0 max-w-48"
       (change)="onFilter($event)"
     >
       @for (f of filters; track f) {
@@ -12,23 +12,27 @@
     </select>
   </div>
 
-  <div class="relative overflow-x-auto">
+  <div class="table-scroll">
     <table class="w-full min-w-lg text-sm">
       <caption class="sr-only">
         Departure from equilibrium on expected return and on correlation, per asset class,
         implied by the current regime.
       </caption>
       <thead>
-        <tr class="border-b border-border text-xs text-text-secondary">
+        <tr class="table-head-row">
           <th scope="col" class="px-3 py-2 text-left font-medium">Asset class</th>
-          <th scope="col" class="px-3 py-2 text-right font-medium">ΔE[r]</th>
-          <th scope="col" class="px-3 py-2 text-right font-medium">ΔCorr</th>
+          <th scope="col" class="px-3 py-2 text-right font-medium"><math>
+            <mo lspace="0">&#x0394;</mo><mi>E</mi><mo>[</mo><mi>r</mi><mo>]</mo>
+          </math></th>
+          <th scope="col" class="px-3 py-2 text-right font-medium"><math>
+            <mo lspace="0">&#x0394;</mo><mi>Corr</mi>
+          </math></th>
           <th scope="col" class="px-3 py-2 text-left font-medium">Direction</th>
         </tr>
       </thead>
       <tbody>
         @for (view of views(); track view.assetClass) {
-          <tr class="border-b border-border-muted last:border-0">
+          <tr class="table-row">
             <th scope="row" class="px-3 py-2 text-left font-normal text-text">
               {{ view.assetClass }}
             </th>

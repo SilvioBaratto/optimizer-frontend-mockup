@@ -9,11 +9,14 @@ import {
   type Point,
 } from '../../../shared/charts';
 import { ErrorState } from '../../../shared/error-state/error-state';
-import { InfoCard } from '../../../shared/info-card/info-card';
+import { CardTitle, InfoCard } from '../../../shared/info-card/info-card';
+import { MathVar } from '../../../shared/math/math-var';
+import { PageContextBar } from '../../../shared/page-context-bar/page-context-bar';
 import { SkeletonBlock } from '../../../shared/skeleton-block/skeleton-block';
 import { StatusBadge, type StatusTone } from '../../../shared/status-badge/status-badge';
 import { AGENT_STATUS_LABEL, type AgentStatus } from '../../../models/allocation-agent.model';
 import { AllocationAgentService } from '../../../services/allocation-agent.service';
+import { ButtonDirective } from '../../../shared/ui/button/button.directive';
 import { AllocationParameters } from './allocation-parameters/allocation-parameters';
 import { EstimationDiagnostics } from './estimation-diagnostics/estimation-diagnostics';
 import { MacroInput } from './macro-input/macro-input';
@@ -54,11 +57,15 @@ const STATUS_TONE: Record<AgentStatus, StatusTone> = {
     FrontierChartComponent,
     InfoCard,
     MacroInput,
+    MathVar,
+    PageContextBar,
     ProposedAllocation,
     PublicationBanner,
     RunLog,
     SkeletonBlock,
     StatusBadge,
+    ButtonDirective,
+    CardTitle,
   ],
   templateUrl: './allocation-agent.html',
   styleUrl: './allocation-agent.css',

@@ -3,7 +3,7 @@
     <label class="flex min-h-11 items-center gap-2 text-sm text-text">
       <input
         type="checkbox"
-        class="h-4 w-4 accent-[var(--color-primary)]"
+        class="h-4 w-4"
         [checked]="pauseAutoScroll()"
         (change)="onPause($event)"
       />
@@ -42,7 +42,7 @@
       #list
       aria-live="polite"
       aria-relevant="additions"
-      class="relative max-h-80 overflow-y-auto overflow-x-auto"
+      class="table-scroll max-h-80 overflow-y-auto"
     >
       <table class="w-full min-w-2xl text-sm">
         <caption class="sr-only">
@@ -50,7 +50,7 @@
           time.
         </caption>
         <thead class="sticky top-0 bg-surface-raised">
-          <tr class="border-b border-border text-xs text-text-secondary">
+          <tr class="table-head-row">
             <th scope="col" class="px-3 py-2 text-left font-medium">id</th>
             <th scope="col" class="px-3 py-2 text-left font-medium">event</th>
             <th scope="col" class="px-3 py-2 text-left font-medium">node</th>
@@ -60,7 +60,7 @@
         </thead>
         <tbody>
           @for (event of visible(); track event.id) {
-            <tr class="border-b border-border-muted last:border-0">
+            <tr class="table-row">
               <th scope="row" class="px-3 py-1.5 text-left font-mono font-normal tabular-nums text-text-secondary">
                 {{ event.id }}
               </th>

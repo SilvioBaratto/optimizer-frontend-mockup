@@ -3,12 +3,8 @@
   the <h1>, so headings here start at <h2>.
 -->
 
-<!-- HeroStatCard — sticky, so the agent's state stays readable across tabs. -->
-<div
-  class="sticky top-0 z-20 -mx-4 flex flex-col gap-3 border-b border-border bg-surface px-4 py-3 md:-mx-8 md:px-8"
->
-  <h2 class="sr-only">Current regime</h2>
-
+<!-- Sticky, so the agent's state stays readable across tabs. -->
+<app-page-context-bar heading="Current regime">
   <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
     <p class="flex flex-wrap items-center gap-2">
       <span class="text-sm text-text-secondary">Regime</span>
@@ -32,7 +28,7 @@
         <label for="regime-model" class="text-sm text-text-secondary">Model</label>
         <select
           id="regime-model"
-          class="min-h-11 min-w-0 max-w-56 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+          appSelect class="min-w-0 max-w-56"
           (change)="onModel($event)"
         >
           @for (m of models; track m.id) {
@@ -45,7 +41,7 @@
         <label for="lookback" class="text-sm text-text-secondary">Lookback</label>
         <select
           id="lookback"
-          class="min-h-11 min-w-0 max-w-40 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+          appSelect class="min-w-0 max-w-40"
           (change)="onLookback($event)"
         >
           @for (l of lookbacks; track l) {
@@ -56,7 +52,7 @@
 
       <button
         type="button"
-        class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+        appButton="primary" size="md"
         [disabled]="recomputing()"
         (click)="recompute()"
       >
@@ -86,7 +82,7 @@
       </span>
     }
   </div>
-</div>
+</app-page-context-bar>
 
 @if (errorMessage(); as message) {
   <app-error-state

@@ -11,13 +11,17 @@ import {
 } from '@angular/core';
 
 import { ActionButtonRow } from '../../../shared/action-button-row/action-button-row';
+import { CrossPageLink } from '../../../shared/cross-page-link/cross-page-link';
 import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { ErrorState } from '../../../shared/error-state/error-state';
 import { InfoCard } from '../../../shared/info-card/info-card';
+import { MathVar } from '../../../shared/math/math-var';
 import { StatusBadge, type StatusTone } from '../../../shared/status-badge/status-badge';
 import { OBJECTIVES, type ObjectiveId, type SolverKind } from '../../../models/allocation.model';
 import { ObjectiveService, type FeasibilityOutcome } from '../../../services/objective.service';
 import { StepTracker } from '../step-tracker/step-tracker';
+import { ButtonDirective } from '../../../shared/ui/button/button.directive';
+import { SelectDirective } from '../../../shared/ui/select/select.directive';
 
 const FEASIBILITY_TONE: Record<FeasibilityOutcome, StatusTone> = {
   unknown: 'pending',
@@ -50,11 +54,15 @@ const FEASIBILITY_LABEL: Record<FeasibilityOutcome, string> = {
   imports: [
     ActionButtonRow,
     ConfirmDialog,
+    CrossPageLink,
     ErrorState,
     InfoCard,
+    MathVar,
     NgTemplateOutlet,
     StatusBadge,
     StepTracker,
+    ButtonDirective,
+    SelectDirective,
   ],
   templateUrl: './objective-constraints.page.html',
   styleUrl: './objective-constraints.page.css',

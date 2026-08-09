@@ -3,7 +3,7 @@
     <label class="flex min-h-11 items-center gap-2 text-sm text-text">
       <input
         type="checkbox"
-        class="h-4 w-4 accent-[var(--color-primary)]"
+        class="h-4 w-4"
         [checked]="showValidatedOnly()"
         (change)="showValidatedOnly.set($any($event.target).checked)"
       />
@@ -39,7 +39,7 @@
           }
           @if (signal.outOfSampleR2 !== null) {
             <span class="text-xs tabular-nums text-text-secondary">
-              R²_OS {{ signal.outOfSampleR2 > 0 ? '+' : '' }}{{ signal.outOfSampleR2.toFixed(2) }}%
+              <app-math-var expr="R_OS^2" label="R squared out of sample" /> {{ signal.outOfSampleR2 > 0 ? '+' : '' }}{{ signal.outOfSampleR2.toFixed(2) }}%
               @if (signal.outOfSampleR2 <= 0) {
                 — the recursive historical mean forecast better
               }

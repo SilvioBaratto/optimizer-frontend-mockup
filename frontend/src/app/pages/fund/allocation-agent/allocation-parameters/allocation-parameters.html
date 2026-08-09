@@ -9,7 +9,6 @@
         <input
           type="radio"
           name="estimation-approach"
-          class="accent-[var(--color-primary)]"
           [checked]="approach() === a"
           (change)="onApproach(a)"
         />
@@ -38,7 +37,7 @@
           <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
             <input
               type="checkbox"
-              class="h-4 w-4 accent-[var(--color-primary)]"
+              class="h-4 w-4"
               [checked]="remedies().includes(r)"
               (change)="toggleRemedy(r)"
             />
@@ -57,7 +56,7 @@
           <label for="objective" class="text-xs text-text-secondary">Objective</label>
           <select
             id="objective"
-            class="min-h-11 min-w-0 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+            appSelect class="min-w-0"
             (change)="onObjective($event)"
           >
             @for (o of objectives; track o.id) {
@@ -70,7 +69,7 @@
         @if (activeObjective().needsTargetReturn) {
           <div class="flex flex-col gap-1">
             <label for="target-return" class="text-xs text-text-secondary">
-              Target return π, percent
+              Target return <app-math-var expr="π" />, percent
             </label>
             <input
               id="target-return"
@@ -85,14 +84,14 @@
             @if (targetReturnInvalid()) {
               <p id="target-return-error" class="text-xs text-text-secondary">
                 @if (targetBelowGmvp()) {
-                  π must exceed the GMVP's {{ gmvpReturn.toFixed(1) }}% — below the vertex the
+                  <app-math-var expr="π" /> must exceed the GMVP's {{ gmvpReturn.toFixed(1) }}% — below the vertex the
                   frontier still has points, but every one of them is dominated.
                 } @else {
                   A long-only book reaches at most {{ longOnlyMaxReturn.toFixed(1) }}%. Past the
                   tangency portfolio the mix is funded by shorting the quiet end of the book, so
-                  either lower π or allow short selling.
+                  either lower <app-math-var expr="π" /> or allow short selling.
                 }
-                The agent will not run until π is inside the reachable range.
+                The agent will not run until <app-math-var expr="π" /> is inside the reachable range.
               </p>
             }
           </div>
@@ -100,7 +99,7 @@
 
         <div class="flex flex-col gap-1">
           <label for="risk-free" class="text-xs text-text-secondary">
-            Risk-free rate r<sub>f</sub>, percent
+            Risk-free rate <app-math-var expr="r_f" />, percent
           </label>
           <input
             id="risk-free"
@@ -132,7 +131,7 @@
       <label class="flex min-h-11 items-center gap-2 text-sm text-text">
         <input
           type="checkbox"
-          class="h-4 w-4 accent-[var(--color-primary)]"
+          class="h-4 w-4"
           [checked]="allowShortSelling()"
           (change)="allowShortSelling.set($any($event.target).checked)"
         />
@@ -155,7 +154,7 @@
           <label for="direct-method" class="text-xs text-text-secondary">Direct method</label>
           <select
             id="direct-method"
-            class="min-h-11 min-w-0 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+            appSelect class="min-w-0"
             (change)="onDirectMethod($event)"
           >
             @for (m of directMethods; track m) {
@@ -167,11 +166,11 @@
         @if (directMethod() === 'parametric') {
           <div class="flex flex-col gap-1">
             <label for="benchmark" class="text-xs text-text-secondary">
-              Benchmark weights x̄
+              Benchmark weights <app-math-var expr="x̄" />
             </label>
             <select
               id="benchmark"
-              class="min-h-11 min-w-0 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+              appSelect class="min-w-0"
               (change)="onBenchmark($event)"
             >
               @for (b of benchmarks; track b) {
@@ -183,12 +182,12 @@
       </div>
 
       <fieldset class="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <legend class="text-xs text-text-secondary">Characteristics ŷ</legend>
+        <legend class="text-xs text-text-secondary">Characteristics <app-math-var expr="ŷ" /></legend>
         @for (c of characteristicOptions; track c) {
           <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
             <input
               type="checkbox"
-              class="h-4 w-4 accent-[var(--color-primary)]"
+              class="h-4 w-4"
               [checked]="characteristics().includes(c)"
               (change)="toggleCharacteristic(c)"
             />
@@ -199,7 +198,7 @@
 
       <div class="flex flex-col gap-1">
         <label for="risk-free-direct" class="text-xs text-text-secondary">
-          Risk-free rate r<sub>f</sub>, percent
+          Risk-free rate <app-math-var expr="r_f" />, percent
         </label>
         <input
           id="risk-free-direct"

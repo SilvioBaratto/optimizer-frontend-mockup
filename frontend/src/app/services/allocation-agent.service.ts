@@ -368,7 +368,7 @@ export class AllocationAgentService {
   readonly computeError = this._computeError.asReadonly();
 
   private readonly _log = signal<readonly RunLogEntry[]>([
-    { at: '09:14', message: 'received z_t from Macro & Regimes Agent (regime Expansion)' },
+    { at: '09:14', message: 'received zₜ from Macro & Regimes Agent (regime Expansion)' },
     { at: '09:14', message: 'solving mean-variance problem, target π = 6.0%' },
     { at: '09:15', message: 'applying mean and covariance shrinkage remedies' },
     { at: '09:15', message: 'SMCI dropped — insufficient history for the covariance estimate' },
@@ -673,7 +673,7 @@ export class AllocationAgentService {
         label: 'Tangency',
         volatility: volatilityAt(7.5),
         expectedReturn: 7.5,
-        description: 'steepest capital allocation line from r_f',
+        description: 'steepest capital allocation line from the risk-free rate',
       },
       {
         label: 'Proposed',
@@ -743,7 +743,7 @@ export class AllocationAgentService {
 
     this._status.set('running');
     this._computeError.set(null);
-    this._log.set([{ at: this.clock(), message: 'received z_t from the shared state' }]);
+    this._log.set([{ at: this.clock(), message: 'received zₜ from the shared state' }]);
 
     await delay(RUN_MS);
 

@@ -1,0 +1,7 @@
+/*
+  The host must not introduce a line box of its own: these sit mid-sentence in
+  labels and table headers, and an inline-block would break the baseline.
+*/
+:host {
+  display: inline;
+}

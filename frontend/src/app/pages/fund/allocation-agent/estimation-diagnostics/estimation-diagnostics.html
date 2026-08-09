@@ -27,7 +27,20 @@
   </dl>
 
   <p class="text-xs text-text-secondary">
-    CE − E[ĈE] ≈ (γ/2)·tr[cov[x̂*]Σ] — the utility given up by optimising over estimated moments
+    <math>
+      <mi>CE</mi>
+      <mo>&#x2212;</mo>
+      <mi>E</mi><mo>[</mo><mover><mi>CE</mi><mo>^</mo></mover><mo>]</mo>
+      <mo>&#x2248;</mo>
+      <mfrac><mi>γ</mi><mn>2</mn></mfrac>
+      <mo>&#x2062;</mo>
+      <mi>tr</mi><mo>[</mo>
+      <mi>cov</mi><mo>[</mo>
+      <msup><mover><mi>x</mi><mo>^</mo></mover><mo>&#x2217;</mo></msup>
+      <mo>]</mo>
+      <mi>Σ</mi>
+      <mo>]</mo>
+    </math> — the utility given up by optimising over estimated moments
     rather than the true ones. Shrinkage and position limits reduce the variance of the estimate at
     the cost of bias, which is why the loss falls as remedies are added.
   </p>

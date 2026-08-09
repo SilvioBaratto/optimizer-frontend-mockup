@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { ActionButtonRow } from '../../../shared/action-button-row/action-button-row';
 import { CrossPageLink } from '../../../shared/cross-page-link/cross-page-link';
 import { InfoCard } from '../../../shared/info-card/info-card';
+import { PageContextBar } from '../../../shared/page-context-bar/page-context-bar';
 import { StatusBadge, type StatusTone } from '../../../shared/status-badge/status-badge';
 import {
   AGENT_IDS,
@@ -12,6 +13,8 @@ import {
   type RunStatus,
 } from '../../../models/fund-state.model';
 import { DeliberationService } from '../../../services/deliberation.service';
+import { ButtonDirective } from '../../../shared/ui/button/button.directive';
+import { SelectDirective } from '../../../shared/ui/select/select.directive';
 import { AgentTopology } from './agent-topology/agent-topology';
 import { AuditCheckpoints } from './audit-checkpoints/audit-checkpoints';
 import { FundStateInspector } from './fund-state-inspector/fund-state-inspector';
@@ -46,7 +49,10 @@ const RUN_TONE: Record<RunStatus, StatusTone> = {
     FundStateInspector,
     InfoCard,
     LiveEventStream,
+    PageContextBar,
     StatusBadge,
+    ButtonDirective,
+    SelectDirective,
   ],
   templateUrl: './deliberation.html',
   styleUrl: './deliberation.css',

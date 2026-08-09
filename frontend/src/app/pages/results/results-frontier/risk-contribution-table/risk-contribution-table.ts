@@ -1,4 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { MathVar } from '../../../../shared/math/math-var';
+import { ButtonDirective } from '../../../../shared/ui/button/button.directive';
+import { SelectDirective } from '../../../../shared/ui/select/select.directive';
 
 import {
   CONTRIBUTION_SORT_LABEL,
@@ -23,6 +26,7 @@ const COLLAPSED_ROWS = 4;
  */
 @Component({
   selector: 'app-risk-contribution-table',
+  imports: [ButtonDirective, MathVar, SelectDirective],
   templateUrl: './risk-contribution-table.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

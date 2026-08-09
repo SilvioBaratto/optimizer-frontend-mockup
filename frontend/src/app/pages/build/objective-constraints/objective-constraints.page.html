@@ -19,19 +19,17 @@
       }
       — every other objective stays selectable.
     </p>
-    <a
-      routerLink="/build/views-builder"
-      href="/build/views-builder"
-      class="min-h-11 self-start text-sm font-medium text-primary underline underline-offset-2"
-    >
-      Go to Views Builder →
-    </a>
+    <app-cross-page-link
+      class="self-start"
+      label="Go to Views Builder"
+      route="/build/views-builder"
+    />
   </div>
 }
 
 <!-- Objective type -->
 <section class="flex flex-col gap-3" aria-labelledby="objective-label">
-  <h2 id="objective-label" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+  <h2 id="objective-label" class="eyebrow">
     Objective type · single selection · {{ objectives.length }} objectives available
   </h2>
 
@@ -76,7 +74,7 @@
   <button
     card-action
     type="button"
-    class="min-h-11 rounded-md px-2 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+    appButton="ghost" size="xs"
     [attr.aria-expanded]="whatChangesOpen()"
     aria-controls="what-changes"
     (click)="whatChangesOpen.set(!whatChangesOpen())"
@@ -103,7 +101,7 @@
         @case ('mean-variance-skewness') {
           <ng-container [ngTemplateOutlet]="riskAversionBlock" />
           <div class="flex flex-col gap-1">
-            <label for="lambda" class="text-xs text-text-secondary">Skewness preference λ</label>
+            <label for="lambda" class="text-xs text-text-secondary">Skewness preference <app-math-var expr="λ" /></label>
             <input
               id="lambda"
               type="number"
@@ -118,7 +116,7 @@
           <ng-container [ngTemplateOutlet]="riskAversionBlock" />
           <div class="flex flex-wrap gap-4">
             <div class="flex flex-col gap-1">
-              <label for="theta" class="text-xs text-text-secondary">Uncertainty set θ</label>
+              <label for="theta" class="text-xs text-text-secondary">Uncertainty set <app-math-var expr="θ" /></label>
               <input
                 id="theta"
                 type="number"
@@ -130,7 +128,7 @@
               />
             </div>
             <div class="flex flex-col gap-1">
-              <label for="sigma-max" class="text-xs text-text-secondary">σ max (%)</label>
+              <label for="sigma-max" class="text-xs text-text-secondary"><app-math-var expr="σ" /> max (%)</label>
               <input
                 id="sigma-max"
                 type="number"
@@ -145,7 +143,7 @@
         }
         @case ('min-cvar') {
           <div class="flex flex-col gap-1">
-            <label for="confidence" class="text-xs text-text-secondary">Confidence level α</label>
+            <label for="confidence" class="text-xs text-text-secondary">Confidence level <app-math-var expr="α" /></label>
             <input
               id="confidence"
               type="number"
@@ -178,7 +176,7 @@
 <ng-template #riskAversionBlock>
   <div class="flex flex-col gap-2">
     <label for="risk-aversion" class="text-xs text-text-secondary">
-      Risk aversion coefficient A
+      Risk aversion coefficient <app-math-var expr="A" />
     </label>
     <div class="flex flex-wrap items-center gap-3">
       <input
@@ -187,7 +185,7 @@
         min="-2"
         max="10"
         step="0.25"
-        class="flex-1 accent-[var(--color-primary)]"
+        class="h-11 flex-1"
         [value]="parameters().riskAversion"
         [attr.aria-valuetext]="riskAversionText(parameters().riskAversion)"
         (input)="onRiskAversion($event)"
@@ -215,12 +213,11 @@
     <fieldset>
       <legend class="text-xs text-text-secondary">Target return constraint</legend>
       <div class="flex flex-wrap gap-4">
-        @for (mode of [{ id: 'none', label: 'None' }, { id: 'at-least', label: '≥ r_min' }, { id: 'exactly', label: '= r_min' }]; track mode.id) {
+        @for (mode of [{ id: 'none', label: 'None' }, { id: 'at-least', label: '≥ rₘᵢₙ' }, { id: 'exactly', label: '= rₘᵢₙ' }]; track mode.id) {
           <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
             <input
               type="radio"
               name="target-mode"
-              class="accent-[var(--color-primary)]"
               [checked]="parameters().targetMode === mode.id"
               (change)="onTargetMode($any(mode.id))"
             />
@@ -230,7 +227,7 @@
       </div>
     </fieldset>
     <div class="flex flex-col gap-1">
-      <label for="r-min" class="text-xs text-text-secondary">r_min (% annualized)</label>
+      <label for="r-min" class="text-xs text-text-secondary"><app-math-var expr="r_min" label="r sub min, the minimum target return" /> (% annualized)</label>
       <input
         id="r-min"
         type="number"
@@ -252,13 +249,17 @@
       <label class="flex min-h-11 items-center gap-2 text-text">
         <input
           type="checkbox"
-          class="h-4 w-4 accent-[var(--color-primary)]"
+          class="h-4 w-4"
           [checked]="longOnly()"
           (change)="longOnly.set($any($event.target).checked)"
         />
         Long-only
       </label>
-      <span class="text-text-secondary">Budget Σw = 100% (fixed)</span>
+      <span class="text-text-secondary">Budget <math>
+        <mo>&#x2211;</mo><mi>w</mi>
+        <mo>=</mo>
+        <mn>100</mn><mo>%</mo>
+      </math> (fixed)</span>
       <span class="text-text-secondary">{{ bounds().length }} rows</span>
     </div>
 
@@ -275,7 +276,7 @@
           Per-asset weight bounds with lot size and whether the bound is hard or soft
         </caption>
         <thead class="sticky top-0 bg-surface-raised">
-          <tr class="border-b border-border text-xs text-text-secondary">
+          <tr class="table-head-row">
             <th scope="col" class="py-2 pr-4 text-left font-medium">Asset / class</th>
             <th scope="col" class="py-2 pr-4 text-right font-medium">Min %</th>
             <th scope="col" class="py-2 pr-4 text-right font-medium">Max %</th>
@@ -285,7 +286,7 @@
         </thead>
         <tbody>
           @for (bound of bounds(); track bound.id) {
-            <tr class="border-b border-border-muted last:border-0">
+            <tr class="table-row">
               <th scope="row" class="py-2 pr-4 text-left font-medium text-text">{{ bound.name }}</th>
               <td class="py-2 pr-4 text-right">
                 <input
@@ -325,7 +326,7 @@
               <td class="py-2">
                 <select
                   [attr.aria-label]="'Bound strength for ' + bound.name"
-                  class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+                  appSelect
                   (change)="onBoundStrength(bound.id, $event)"
                 >
                   <option value="hard" [selected]="bound.strength === 'hard'">Hard</option>
@@ -348,7 +349,7 @@
     <div class="flex justify-end">
       <button
         type="button"
-        class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+        appButton="secondary"
         (click)="addBound()"
       >
         + Add row
@@ -364,14 +365,14 @@
       <label class="flex min-h-11 items-center gap-2 text-sm text-text">
         <input
           type="checkbox"
-          class="h-4 w-4 accent-[var(--color-primary)]"
+          class="h-4 w-4"
           [checked]="limitHoldings()"
           (change)="limitHoldings.set($any($event.target).checked)"
         />
         Limit number of holdings
       </label>
       <div class="flex flex-col gap-1">
-        <label for="k-holdings" class="text-xs text-text-secondary">K</label>
+        <label for="k-holdings" class="text-xs text-text-secondary"><app-math-var expr="K" label="K, the maximum number of holdings" /></label>
         <input
           id="k-holdings"
           type="number"
@@ -388,7 +389,7 @@
       <label class="flex min-h-11 items-center gap-2 text-sm text-text">
         <input
           type="checkbox"
-          class="h-4 w-4 accent-[var(--color-primary)]"
+          class="h-4 w-4"
           [checked]="requireMinLots()"
           (change)="requireMinLots.set($any($event.target).checked)"
         />
@@ -439,7 +440,7 @@
         <label class="flex min-h-11 min-w-64 items-center gap-2 text-sm text-text">
           <input
             type="checkbox"
-            class="h-4 w-4 accent-[var(--color-primary)]"
+            class="h-4 w-4"
             [checked]="cap.id === 'nu1' ? capMaxDrawdown() : cap.id === 'nu2' ? capAvgDrawdown() : capCdar()"
             (change)="
               cap.id === 'nu1'
@@ -473,7 +474,7 @@
         </div>
         @if (cap.id === 'nu3') {
           <div class="flex flex-col gap-1">
-            <label for="cdar-alpha" class="text-xs text-text-secondary">α</label>
+            <label for="cdar-alpha" class="text-xs text-text-secondary"><app-math-var expr="α" label="alpha, the CDaR confidence level" /></label>
             <input
               id="cdar-alpha"
               type="number"
@@ -497,7 +498,7 @@
   <button
     card-action
     type="button"
-    class="min-h-11 rounded-md px-2 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+    appButton="ghost" size="xs"
     [attr.aria-expanded]="advancedOpen()"
     aria-controls="advanced-solver"
     (click)="advancedOpen.set(!advancedOpen())"
@@ -508,7 +509,7 @@
   @if (advancedOpen()) {
     <div id="advanced-solver" class="flex flex-col gap-4">
       <div class="flex flex-col gap-1">
-        <label for="penalty" class="text-xs text-text-secondary">Penalty factor ε</label>
+        <label for="penalty" class="text-xs text-text-secondary">Penalty factor <app-math-var expr="ε" /></label>
         <input
           id="penalty"
           type="number"
@@ -527,7 +528,6 @@
             <input
               type="radio"
               name="solver"
-              class="accent-[var(--color-primary)]"
               [checked]="solver() === 'exact'"
               (change)="onSolver('exact')"
             />
@@ -537,7 +537,6 @@
             <input
               type="radio"
               name="solver"
-              class="accent-[var(--color-primary)]"
               [checked]="solver() === 'pso'"
               (change)="onSolver('pso')"
             />
@@ -587,12 +586,12 @@
         </div>
         @if (selected() === 'mean-variance' || selected() === 'mean-variance-skewness' || selected() === 'robust-mean-variance') {
           <div class="flex items-baseline gap-2">
-            <dt class="text-text-secondary">A</dt>
+            <dt class="text-text-secondary"><app-math-var expr="A" label="A, the risk aversion coefficient" /></dt>
             <dd class="tabular-nums text-text">{{ parameters().riskAversion.toFixed(2) }}</dd>
           </div>
           @if (parameters().targetMode !== 'none') {
             <div class="flex items-baseline gap-2">
-              <dt class="text-text-secondary">r_min</dt>
+              <dt class="text-text-secondary"><app-math-var expr="r_min" /></dt>
               <dd class="tabular-nums text-text">
                 {{ parameters().targetMode === 'at-least' ? '≥' : '=' }}
                 {{ parameters().targetReturn.toFixed(1) }}%
@@ -627,7 +626,7 @@
         </p>
         <button
           type="button"
-          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+          appButton="secondary"
           [disabled]="feasibility() === 'checking'"
           (click)="checkFeasibility()"
         >
@@ -654,20 +653,20 @@
   <app-action-button-row>
     <button
       type="button"
-      class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+      appButton="secondary"
       (click)="confirmReset.set(true)"
     >
       Reset to defaults
     </button>
     <button
       type="button"
-      class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+      appButton="secondary"
     >
       Save draft
     </button>
     <button
       type="button"
-      class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+      appButton="primary" size="md"
       [disabled]="!canContinue()"
     >
       Continue → Run &amp; Solver Diagnostics

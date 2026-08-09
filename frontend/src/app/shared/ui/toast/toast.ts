@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 
+import { LucideAngularModule } from 'lucide-angular';
+
 import { Toast, ToastService, ToastVariant } from './toast.service';
 
 const VARIANT_CLASSES: Record<ToastVariant, string> = {
@@ -14,6 +16,7 @@ const ITEM_BASE =
 
 @Component({
   selector: 'app-toast',
+  imports: [LucideAngularModule],
   templateUrl: './toast.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

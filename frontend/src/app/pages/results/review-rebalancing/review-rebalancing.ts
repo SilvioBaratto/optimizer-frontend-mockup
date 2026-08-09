@@ -6,6 +6,7 @@ import { EmptyState } from '../../../shared/empty-state/empty-state';
 import { ErrorState } from '../../../shared/error-state/error-state';
 import { HeroStatCard } from '../../../shared/hero-stat-card/hero-stat-card';
 import { InfoCard } from '../../../shared/info-card/info-card';
+import { MathVar } from '../../../shared/math/math-var';
 import { RetryButton } from '../../../shared/retry-button/retry-button';
 import { SkeletonBlock } from '../../../shared/skeleton-block/skeleton-block';
 import { StatusBadge } from '../../../shared/status-badge/status-badge';
@@ -20,6 +21,8 @@ import {
   type SubmitAction,
 } from '../../../models/review-rebalancing.model';
 import { ReviewRebalancingService } from '../../../services/review-rebalancing.service';
+import { ButtonDirective } from '../../../shared/ui/button/button.directive';
+import { RefreshControl } from '../../../shared/refresh-control/refresh-control';
 import { DynamicTradingPlan } from './dynamic-trading-plan/dynamic-trading-plan';
 import { RevisionComparison } from './revision-comparison/revision-comparison';
 import { RevisionCost } from './revision-cost/revision-cost';
@@ -58,12 +61,15 @@ const STALE_AFTER_DAYS = 7;
     FrontierChartComponent,
     HeroStatCard,
     InfoCard,
+    MathVar,
     RetryButton,
     RevisionComparison,
     RevisionCost,
     SignalPersistence,
     SkeletonBlock,
     StatusBadge,
+    ButtonDirective,
+    RefreshControl,
   ],
   templateUrl: './review-rebalancing.html',
   styleUrl: './review-rebalancing.css',
@@ -118,7 +124,7 @@ export class ReviewRebalancing {
 
   protected readonly frontierMarkers = computed<FrontierMarker[]>(() => [
     {
-      name: 'z*_t',
+      name: 'z*ₜ',
       x: this.currentPoint.variance,
       y: this.currentPoint.expectedReturn,
     },
@@ -135,7 +141,7 @@ export class ReviewRebalancing {
     const named = this.smithPoints()
       .map((p) => `${p.label} at variance ${p.variance.toFixed(3)}, return ${p.expectedReturn.toFixed(2)}%`)
       .join('; ');
-    return `The updated efficient frontier. The current holding z*_t sits at variance ${this.currentPoint.variance.toFixed(
+    return `The updated efficient frontier. The current holding z*ₜ sits at variance ${this.currentPoint.variance.toFixed(
       3,
     )} and return ${this.currentPoint.expectedReturn.toFixed(2)}%, below the frontier. ${named}. The table below carries the same weights.`;
   });
@@ -145,7 +151,7 @@ export class ReviewRebalancing {
   protected readonly correctedCategories = computed(() => this.rows().map((r) => r.ticker));
 
   protected readonly correctedSeries = computed<CategorySeries[]>(() => [
-    { name: 'Corrected return c_i', data: this.rows().map((r) => r.correctedReturn) },
+    { name: 'Corrected return cᵢ', data: this.rows().map((r) => r.correctedReturn) },
   ]);
 
   // --- verdict bars ---------------------------------------------------------

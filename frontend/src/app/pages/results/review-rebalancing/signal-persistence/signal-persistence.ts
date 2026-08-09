@@ -4,6 +4,8 @@ import { LineChartComponent, decimal } from '../../../../shared/charts';
 import type { CategorySeries } from '../../../../shared/charts';
 import { IC_VIEW_LABEL, type IcView } from '../../../../models/review-rebalancing.model';
 import { ReviewRebalancingService } from '../../../../services/review-rebalancing.service';
+import { MathVar } from '../../../../shared/math/math-var';
+import { SelectDirective } from '../../../../shared/ui/select/select.directive';
 
 /** ρ_target grid the trade-off is plotted over. */
 const RHO_GRID = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.89, 0.92, 0.95, 0.98];
@@ -22,7 +24,10 @@ const RHO_GRID = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.89, 0.92, 0.95, 
  */
 @Component({
   selector: 'app-signal-persistence',
-  imports: [LineChartComponent],
+  imports: [LineChartComponent,
+    MathVar,
+    SelectDirective,
+  ],
   templateUrl: './signal-persistence.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

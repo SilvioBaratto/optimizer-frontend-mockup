@@ -15,6 +15,8 @@ import {
   type Remedy,
 } from '../../../../models/allocation-agent.model';
 import { AllocationAgentService } from '../../../../services/allocation-agent.service';
+import { MathVar } from '../../../../shared/math/math-var';
+import { SelectDirective } from '../../../../shared/ui/select/select.directive';
 
 const APPROACHES: readonly EstimationApproach[] = ['plug-in', 'direct'];
 const REMEDIES: readonly Remedy[] = ['mean-shrinkage', 'covariance-shrinkage', 'factor-structure'];
@@ -34,7 +36,10 @@ const CHARACTERISTICS: readonly Characteristic[] = ['value', 'momentum', 'size',
  */
 @Component({
   selector: 'app-allocation-parameters',
-  imports: [StatusBadge],
+  imports: [StatusBadge,
+    MathVar,
+    SelectDirective,
+  ],
   templateUrl: './allocation-parameters.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

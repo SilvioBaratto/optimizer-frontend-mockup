@@ -5,6 +5,9 @@ import { StatusBadge } from '../../../../shared/status-badge/status-badge';
 import { BarChartComponent, percent } from '../../../../shared/charts';
 import type { CategorySeries } from '../../../../shared/charts';
 import { MacroRegimeService } from '../../../../services/macro-regime.service';
+import { MathVar } from '../../../../shared/math/math-var';
+import { ButtonDirective } from '../../../../shared/ui/button/button.directive';
+import { SelectDirective } from '../../../../shared/ui/select/select.directive';
 
 /**
  * The stress workbench, and its read-only summary.
@@ -20,7 +23,11 @@ import { MacroRegimeService } from '../../../../services/macro-regime.service';
  */
 @Component({
   selector: 'app-stress-panel',
-  imports: [BarChartComponent, CrossPageLink, StatusBadge],
+  imports: [BarChartComponent, CrossPageLink, StatusBadge,
+    ButtonDirective,
+    MathVar,
+    SelectDirective,
+  ],
   templateUrl: './stress-panel.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

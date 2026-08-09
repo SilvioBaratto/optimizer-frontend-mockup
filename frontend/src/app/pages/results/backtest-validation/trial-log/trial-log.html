@@ -3,7 +3,7 @@
 
   <div class="flex flex-wrap items-end gap-x-8 gap-y-3">
     <div class="flex flex-col gap-1">
-      <label for="total-trials" class="text-xs text-text-secondary">Trials logged M</label>
+      <label for="total-trials" class="text-xs text-text-secondary">Trials logged <app-math-var expr="M" /></label>
       <input
         id="total-trials"
         type="number"
@@ -17,7 +17,7 @@
 
     <div class="flex flex-col gap-1">
       <label for="avg-correlation" class="text-xs text-text-secondary">
-        Average pairwise correlation ρ
+        Average pairwise correlation <app-math-var expr="ρ" />
       </label>
       <input
         id="avg-correlation"
@@ -34,7 +34,16 @@
     <div class="flex flex-col gap-1">
       <span class="text-xs text-text-secondary">Independent trials</span>
       <p class="flex min-h-11 items-center gap-2 text-sm text-text">
-        <span class="text-text-secondary">N&#772; = ρ + (1 − ρ)M</span>
+        <span class="text-text-secondary">
+          <math>
+            <mover><mi>N</mi><mo>&#x00AF;</mo></mover>
+            <mo>=</mo>
+            <mi>ρ</mi>
+            <mo>+</mo>
+            <mo stretchy="false">(</mo><mn>1</mn><mo>&#x2212;</mo><mi>ρ</mi><mo stretchy="false">)</mo>
+            <mi>M</mi>
+          </math>
+        </span>
         <span class="text-lg font-semibold tabular-nums">{{ summary().independentTrials }}</span>
       </p>
     </div>
@@ -50,15 +59,15 @@
       <app-status-badge label="unconfirmed" tone="warn" />
       <p class="min-w-0 flex-1 text-sm text-text-secondary">
         Until this log is confirmed complete, every criterion below it is reported as a warning
-        rather than a pass: a discount computed from an understated M is itself understated.
+        rather than a pass: a discount computed from an understated <app-math-var expr="M" /> is itself understated.
       </p>
     </div>
   }
 
-  <label class="flex items-start gap-2 text-sm text-text">
+  <label class="flex min-h-11 items-start gap-2 text-sm text-text">
     <input
       type="checkbox"
-      class="mt-1 h-4 w-4 accent-[var(--color-primary)]"
+      class="mt-1 h-4 w-4"
       [checked]="confirmed()"
       (change)="onConfirmed($event)"
     />
@@ -72,13 +81,13 @@
     parks at its static offset far to the right, and widens the document —
     horizontal scroll on the whole page from an element nobody can see.
   -->
-  <div class="relative overflow-x-auto">
+  <div class="table-scroll">
     <table class="w-full min-w-3xl text-sm">
       <caption class="sr-only">
         Every trial logged for this strategy, with its in-sample Sharpe ratio and outcome.
       </caption>
       <thead>
-        <tr class="border-b border-border text-xs text-text-secondary">
+        <tr class="table-head-row">
           <th scope="col" class="px-3 py-2 text-left font-medium">Trial ID</th>
           <th scope="col" class="px-3 py-2 text-left font-medium">Date</th>
           <th scope="col" class="px-3 py-2 text-left font-medium">Strategy variant</th>
@@ -90,7 +99,7 @@
       <tbody>
         @for (trial of trials(); track trial.id) {
           <tr
-            class="border-b border-border-muted last:border-0"
+            class="table-row"
             [class.bg-surface-inset]="trial.id === selected.trialId"
           >
             <th scope="row" class="px-3 py-2 text-left font-normal">
@@ -131,7 +140,7 @@
   <div class="flex flex-wrap items-center justify-between gap-3">
     <button
       type="button"
-      class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+      appButton="secondary"
       [attr.aria-expanded]="logging()"
       (click)="logging.set(!logging())"
     >
@@ -143,7 +152,7 @@
       <nav class="flex items-center gap-1" aria-label="Trial log pages">
         <button
           type="button"
-          class="min-h-11 rounded-md border border-border-control px-3 text-sm text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+          appButton="secondary"
           [disabled]="page() === 1"
           (click)="go(-1)"
         >
@@ -154,7 +163,7 @@
         </span>
         <button
           type="button"
-          class="min-h-11 rounded-md border border-border-control px-3 text-sm text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+          appButton="secondary"
           [disabled]="page() === pageCount()"
           (click)="go(1)"
         >
@@ -165,7 +174,7 @@
         <label for="page-size" class="text-xs text-text-secondary">Rows</label>
         <select
           id="page-size"
-          class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+          appSelect
           (change)="onPageSize($event)"
         >
           @for (size of pageSizes; track size) {
@@ -180,7 +189,7 @@
     <form class="flex flex-col gap-3 rounded-md border border-border bg-surface-inset p-4" (submit)="$event.preventDefault(); submitTrial()">
       <h3 class="text-sm font-medium text-text">Log a trial</h3>
       <p class="text-xs text-text-secondary">
-        Logging a trial raises M, which makes every discount below harsher — that is what an
+        Logging a trial raises <app-math-var expr="M" />, which makes every discount below harsher — that is what an
         honest trial count does.
       </p>
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -225,7 +234,6 @@
               <input
                 type="radio"
                 name="draft-outcome"
-                class="accent-[var(--color-primary)]"
                 [checked]="draftOutcome() === 'discarded'"
                 (change)="draftOutcome.set('discarded')"
               />
@@ -235,7 +243,6 @@
               <input
                 type="radio"
                 name="draft-outcome"
-                class="accent-[var(--color-primary)]"
                 [checked]="draftOutcome() === 'selected'"
                 (change)="draftOutcome.set('selected')"
               />
@@ -247,14 +254,14 @@
       <div class="flex items-center gap-2">
         <button
           type="submit"
-          class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+          appButton="primary" size="md"
           [disabled]="!draftValid()"
         >
           Log trial
         </button>
         <button
           type="button"
-          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          appButton="secondary"
           (click)="logging.set(false)"
         >
           Cancel

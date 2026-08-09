@@ -7,10 +7,10 @@
 @if (state() === 'loading') {
   <div role="status" class="flex flex-col gap-6">
     <span class="sr-only">Loading validation results</span>
-    <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 p-4">
+    <div class="surface-card p-4">
       <app-skeleton-block height="h-6" [lines]="6" />
     </div>
-    <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 p-4">
+    <div class="surface-card p-4">
       <app-skeleton-block height="h-5" [lines]="4" />
     </div>
   </div>
@@ -33,7 +33,7 @@
       <div hero-action class="relative">
         <button
           type="button"
-          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          appButton="secondary"
           aria-haspopup="menu"
           [attr.aria-expanded]="exportMenuOpen()"
           (click)="exportMenuOpen.set(!exportMenuOpen())"
@@ -74,7 +74,7 @@
           <li class="flex flex-col gap-0.5 border-b border-border-muted py-1.5">
             <span class="flex flex-wrap items-center gap-2">
               <a
-                class="text-sm font-medium text-text underline-offset-2 hover:underline"
+                class="inline-flex min-h-11 items-center text-sm font-medium text-text underline-offset-2 hover:underline"
                 [href]="'#' + criterion.section"
                 (click)="goToSection(criterion.section, $event)"
               >
@@ -110,7 +110,7 @@
   </div>
 
   <!-- SectionNav — real links, collapsing to a select on narrow viewports. -->
-  <nav aria-label="Validation sections" class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 px-4 py-2">
+  <nav aria-label="Validation sections" class="surface-card px-4 py-2">
     <ul class="hidden flex-wrap items-center gap-x-1 gap-y-1 md:flex">
       @for (section of sections; track section.id) {
         <li>
@@ -129,7 +129,7 @@
       <label for="section-jump" class="text-xs text-text-secondary">Jump to</label>
       <select
         id="section-jump"
-        class="min-h-11 min-w-0 flex-1 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+        appSelect class="min-w-0 flex-1"
         (change)="onNavSelect($event)"
       >
         @for (section of sections; track section.id) {
@@ -169,7 +169,7 @@
               min="10"
               max="90"
               step="5"
-              class="h-11 w-48 accent-[var(--color-primary)]"
+              class="h-11 w-48"
               [value]="inSamplePercent()"
               [attr.aria-valuetext]="
                 'In-sample ' + inSamplePercent() + ' percent, out-of-sample ' + (100 - inSamplePercent()) + ' percent'
@@ -198,13 +198,13 @@
         [height]="260"
       />
 
-      <div class="relative overflow-x-auto">
+      <div class="table-scroll">
         <table class="w-full min-w-md text-sm">
           <caption class="sr-only">
             Sharpe ratio and maximum drawdown for the in-sample and out-of-sample periods.
           </caption>
           <thead>
-            <tr class="border-b border-border text-xs text-text-secondary">
+            <tr class="table-head-row">
               <th scope="col" class="px-3 py-2 text-left font-medium">Period</th>
               <th scope="col" class="px-3 py-2 text-right font-medium">Sharpe</th>
               <th scope="col" class="px-3 py-2 text-right font-medium">Max drawdown</th>
@@ -236,7 +236,7 @@
       <p class="text-sm text-text-secondary">
         Holdout re-runs so far
         <span class="tabular-nums text-text">{{ outOfSample().holdoutReruns }}</span>
-        — every re-run is itself a trial and adds to M above. A holdout repeated often enough
+        — every re-run is itself a trial and adds to <app-math-var expr="M" /> above. A holdout repeated often enough
         stops being out-of-sample.
       </p>
     </div>
@@ -252,7 +252,7 @@
     <div class="flex flex-col gap-4">
       <div class="flex flex-wrap items-end gap-x-8 gap-y-3">
         <div class="flex flex-col gap-1">
-          <label for="alpha" class="text-xs text-text-secondary">Significance α</label>
+          <label for="alpha" class="text-xs text-text-secondary">Significance <app-math-var expr="α" /></label>
           <input
             id="alpha"
             type="number"
@@ -265,35 +265,35 @@
           />
         </div>
         <p class="text-sm text-text-secondary">
-          M (trials) <span class="tabular-nums text-text">{{ trialSummary().totalTrials }}</span>
+          <app-math-var expr="M" /> (trials) <span class="tabular-nums text-text">{{ trialSummary().totalTrials }}</span>
         </p>
         <p class="text-sm text-text-secondary">
-          N̄ <span class="tabular-nums text-text">{{ trialSummary().independentTrials }}</span>
+          <app-math-var expr="N̄" label="N bar, implied independent trials" /> <span class="tabular-nums text-text">{{ trialSummary().independentTrials }}</span>
         </p>
         <p class="text-sm text-text-secondary">
-          Unadjusted p
+          Unadjusted <app-math-var expr="p" />
           <span class="tabular-nums text-text">{{ multipleTesting().singleP.toExponential(2) }}</span>
         </p>
       </div>
 
-      <div class="relative overflow-x-auto">
+      <div class="table-scroll">
         <table class="w-full min-w-lg text-sm">
           <caption class="sr-only">
             Adjusted p-value and decision for each multiple-testing correction.
           </caption>
           <thead>
-            <tr class="border-b border-border text-xs text-text-secondary">
+            <tr class="table-head-row">
               <th scope="col" class="px-3 py-2 text-left font-medium">Method</th>
               <th scope="col" class="px-3 py-2 text-left font-medium">Controls</th>
               <th scope="col" class="px-3 py-2 text-right font-medium">Adjusted p-value</th>
-              <th scope="col" class="px-3 py-2 text-left font-medium">Reject H₀?</th>
+              <th scope="col" class="px-3 py-2 text-left font-medium">Reject <app-math-var expr="H_0" label="H nought, the null hypothesis" />?</th>
               <th scope="col" class="px-3 py-2 text-left font-medium">Drives the verdict</th>
             </tr>
           </thead>
           <tbody>
             @for (row of multipleTesting().rows; track row.method) {
               <tr
-                class="border-b border-border-muted last:border-0"
+                class="table-row"
                 [class.bg-surface-inset]="row.method === multipleTesting().method"
               >
                 <th scope="row" class="px-3 py-2 text-left font-normal text-text">{{ row.label }}</th>
@@ -307,7 +307,6 @@
                     <input
                       type="radio"
                       name="correction-method"
-                      class="accent-[var(--color-primary)]"
                       [checked]="row.method === multipleTesting().method"
                       (change)="onMethod(row.method)"
                     />
@@ -364,7 +363,7 @@
 
         <dl class="flex flex-col gap-2">
           <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
-            <dt class="text-sm text-text-secondary">Multiple-testing p-value p<sup>M</sup></dt>
+            <dt class="text-sm text-text-secondary">Multiple-testing p-value <app-math-var expr="p^M" /></dt>
             <dd class="tabular-nums text-sm text-text">{{ haircut().multipleP.toFixed(4) }}</dd>
           </div>
           <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
@@ -374,7 +373,7 @@
             </dd>
           </div>
           <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
-            <dt class="text-sm text-text-secondary">Proportional discount hc</dt>
+            <dt class="text-sm text-text-secondary">Proportional discount <app-math-var expr="hc" label="h c, the proportional haircut" /></dt>
             <dd class="tabular-nums text-sm text-text">
               {{ (haircut().proportionalDiscount * 100).toFixed(0) }}%
             </dd>
@@ -452,11 +451,11 @@
         @if (momentsUnavailable()) {
           <div role="alert" class="flex flex-col gap-2 rounded-md border border-border bg-surface-inset px-3 py-3">
             <p class="text-sm font-medium text-text">
-              The series is too short to estimate γ₃ and γ₄.
+              The series is too short to estimate <app-math-var expr="γ_3" /> and <app-math-var expr="γ_4" />.
             </p>
             <p class="text-sm text-text-secondary">
-              T = {{ sampleLength() }} observations. The deflation depends on the skewness and
-              kurtosis of the returns, so it cannot be computed here. Raise T to at least 30.
+              <math><mi>T</mi><mo>=</mo><mn>{{ sampleLength() }}</mn></math> observations. The deflation depends on the skewness and
+              kurtosis of the returns, so it cannot be computed here. Raise <app-math-var expr="T" /> to at least 30.
             </p>
           </div>
         }
@@ -464,7 +463,8 @@
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div class="flex flex-col gap-1">
             <label for="dsr-trials" class="text-xs text-text-secondary">
-              N trials — prefilled from N̄, editable
+              <app-math-var expr="N" /> trials — prefilled from
+              <app-math-var expr="N̄" label="N bar, implied independent trials" />, editable
             </label>
             <input
               id="dsr-trials"
@@ -477,7 +477,7 @@
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label for="dsr-variance" class="text-xs text-text-secondary">V[SR<sub>n</sub>]</label>
+            <label for="dsr-variance" class="text-xs text-text-secondary"><app-math-var expr="V[SR_n]" label="variance of the Sharpe ratio of trial n" /></label>
             <input
               id="dsr-variance"
               type="number"
@@ -489,7 +489,7 @@
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label for="dsr-t" class="text-xs text-text-secondary">T (observations)</label>
+            <label for="dsr-t" class="text-xs text-text-secondary"><app-math-var expr="T" /> (observations)</label>
             <input
               id="dsr-t"
               type="number"
@@ -524,13 +524,13 @@
 
         <dl class="flex flex-col gap-2">
           <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
-            <dt class="text-sm text-text-secondary">Skewness γ₃ · kurtosis γ₄</dt>
+            <dt class="text-sm text-text-secondary">Skewness <app-math-var expr="γ_3" /> · kurtosis <app-math-var expr="γ_4" /></dt>
             <dd class="tabular-nums text-sm text-text">
               {{ deflated().skewness.toFixed(2) }} · {{ deflated().kurtosis.toFixed(2) }}
             </dd>
           </div>
           <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
-            <dt class="text-sm text-text-secondary">Expected maximum SR₀</dt>
+            <dt class="text-sm text-text-secondary">Expected maximum <app-math-var expr="SR_0" /></dt>
             <dd class="tabular-nums text-sm text-text">
               {{ deflated().expectedMaxSharpe.toFixed(2) }}
             </dd>
@@ -544,7 +544,7 @@
         </dl>
 
         <p class="text-sm text-text-secondary">
-          SR₀ is the highest Sharpe ratio you would expect from {{ deflated().trials }} independent
+          <app-math-var expr="SR_0" /> is the highest Sharpe ratio you would expect from {{ deflated().trials }} independent
           trials of a strategy with no skill at all. It rises with the number of trials, which is
           why a good-looking backtest means less the more of them you ran.
         </p>
@@ -563,7 +563,7 @@
     <div class="flex flex-col gap-4">
       <div class="flex flex-wrap items-end gap-x-8 gap-y-3">
         <div class="flex flex-col gap-1">
-          <label for="partitions" class="text-xs text-text-secondary">Partitions S</label>
+          <label for="partitions" class="text-xs text-text-secondary">Partitions <app-math-var expr="S" /></label>
           <input
             id="partitions"
             type="number"
@@ -577,7 +577,7 @@
           />
           @if (partitionsInvalid()) {
             <p id="partitions-error" class="text-xs text-text-secondary">
-              S must be an even number of at least 2.
+              <app-math-var expr="S" /> must be an even number of at least 2.
             </p>
           } @else {
             <p class="text-xs text-text-secondary">
@@ -604,8 +604,8 @@
         <div role="alert" class="flex flex-col gap-2 rounded-md border border-border bg-surface-inset px-3 py-3">
           <p class="text-sm font-medium text-text">The CSCV matrix cannot be partitioned.</p>
           <p class="text-sm text-text-secondary">
-            S = {{ partitions() }} does not split into two equal halves, so no training/test
-            combinations can be formed. Choose an even S of at least 2.
+            <math><mi>S</mi><mo>=</mo><mn>{{ partitions() }}</mn></math> does not split into two equal halves, so no training/test
+            combinations can be formed. Choose an even <app-math-var expr="S" /> of at least 2.
           </p>
         </div>
       } @else {
@@ -625,11 +625,11 @@
 
         <dl class="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
           <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
-            <dt class="text-sm text-text-secondary">PBO φ</dt>
+            <dt class="text-sm text-text-secondary">PBO <app-math-var expr="φ" /></dt>
             <dd class="tabular-nums text-sm font-medium text-text">{{ pbo().pbo.toFixed(3) }}</dd>
           </div>
           <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
-            <dt class="text-sm text-text-secondary">IS/OOS regression slope β</dt>
+            <dt class="text-sm text-text-secondary">IS/OOS regression slope <app-math-var expr="β" /></dt>
             <dd class="tabular-nums text-sm text-text">
               {{ pbo().regressionSlope.toFixed(2) }}
               <span class="text-text-secondary">
@@ -638,7 +638,13 @@
             </dd>
           </div>
           <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
-            <dt class="text-sm text-text-secondary">P[OOS Sharpe &lt; 0]</dt>
+            <dt class="text-sm text-text-secondary">
+              <math aria-label="probability that the out-of-sample Sharpe ratio is below zero">
+                <mi>P</mi><mo stretchy="false">[</mo>
+                <mtext>OOS Sharpe</mtext><mo>&lt;</mo><mn>0</mn>
+                <mo stretchy="false">]</mo>
+              </math>
+            </dt>
             <dd class="tabular-nums text-sm text-text">
               {{ (pbo().probNegativeOos * 100).toFixed(0) }}%
             </dd>
@@ -670,14 +676,14 @@
     <app-action-button-row align="start">
       <button
         type="button"
-        class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+        appButton="secondary"
         (click)="exportReport('csv')"
       >
         Save draft
       </button>
       <button
         type="button"
-        class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+        appButton="secondary"
         [disabled]="!canGenerateReport()"
         (click)="generateReport()"
       >
@@ -685,7 +691,7 @@
       </button>
       <button
         type="button"
-        class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+        appButton="primary" size="md"
         [disabled]="!reportGenerated()"
         (click)="sendToApproval()"
       >

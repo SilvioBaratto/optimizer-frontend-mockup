@@ -12,6 +12,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 
 import { ErrorState } from '../../../shared/error-state/error-state';
 import { InfoCard } from '../../../shared/info-card/info-card';
+import { PageContextBar } from '../../../shared/page-context-bar/page-context-bar';
 import { StatusBadge, type StatusTone } from '../../../shared/status-badge/status-badge';
 import {
   LOOKBACK_LABEL,
@@ -21,6 +22,8 @@ import {
   type RegimeModelId,
 } from '../../../models/macro-regime.model';
 import { MacroRegimeService } from '../../../services/macro-regime.service';
+import { ButtonDirective } from '../../../shared/ui/button/button.directive';
+import { SelectDirective } from '../../../shared/ui/select/select.directive';
 import { CorrelationsByRegime } from './correlations-by-regime/correlations-by-regime';
 import { HandoffPanel } from './handoff-panel/handoff-panel';
 import { PredictiveSignals } from './predictive-signals/predictive-signals';
@@ -61,12 +64,15 @@ const DRIVER_TONE: Record<string, StatusTone> = {
     ErrorState,
     HandoffPanel,
     InfoCard,
+    PageContextBar,
     PredictiveSignals,
     RegimeFilterNowcast,
     RegimeProbabilities,
     StatusBadge,
     StressPanel,
     ViewBridge,
+    ButtonDirective,
+    SelectDirective,
   ],
   templateUrl: './macro-agent.html',
   styleUrl: './macro-agent.css',
