@@ -1,0 +1,46 @@
+<div class="flex flex-col gap-3">
+  <!--
+    `summary` rides the bar's own polite live region, so switching a chip
+    announces the combination now on screen instead of silently swapping five
+    numbers under the reader's feet.
+  -->
+  <app-filter-chip-bar [summary]="measuresLabel()">
+    <div class="flex flex-col gap-1">
+      <span class="text-xs text-text-secondary">Confidence</span>
+      <app-segmented-control
+        [options]="confidenceOptions"
+        [value]="confidenceValue()"
+        label="Confidence"
+        (valueChange)="onConfidence($event)"
+      />
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <span class="text-xs text-text-secondary">Method</span>
+      <app-segmented-control
+        [options]="methodOptions"
+        [value]="methodValue()"
+        label="Method"
+        (valueChange)="onMethod($event)"
+      />
+    </div>
+  </app-filter-chip-bar>
+
+  <p data-testid="filter-note" class="text-xs text-text-secondary">{{ filterNote }}</p>
+
+  <!--
+    The spec's "informational icon pointing at the definition" as text rather
+    than a hover target: the definition of the level and of the method is the
+    reason the numbers differ, and it costs two lines to just say it.
+  -->
+  <dl class="flex flex-col gap-1 text-xs text-text-secondary">
+    <div class="flex flex-wrap gap-x-2">
+      <dt class="font-medium text-text"><span aria-hidden="true">ⓘ</span> Confidence</dt>
+      <dd class="min-w-0 flex-1">{{ confidenceDefinition() }}</dd>
+    </div>
+    <div class="flex flex-wrap gap-x-2">
+      <dt class="font-medium text-text"><span aria-hidden="true">ⓘ</span> Method</dt>
+      <dd class="min-w-0 flex-1">{{ methodDefinition() }}</dd>
+    </div>
+  </dl>
+</div>

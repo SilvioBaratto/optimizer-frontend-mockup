@@ -1,0 +1,57 @@
+<app-info-card title="RiskVerdict — model interpretation">
+  @if (verdict(); as v) {
+    <div class="flex flex-col gap-3">
+      <app-status-badge
+        data-testid="verdict-badge"
+        class="self-start"
+        [label]="verdictLabel[v.state]"
+        [tone]="verdictTone[v.state]"
+      />
+
+      <blockquote
+        data-testid="verdict-rationale"
+        class="border-l-2 border-border pl-3 text-sm text-text"
+      >
+        &ldquo;{{ v.rationale }}&rdquo;
+      </blockquote>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs text-text-secondary">Drivers</span>
+        @for (driver of v.drivers; track driver) {
+          <app-status-badge [label]="driver" tone="neutral" />
+        } @empty {
+          <span class="text-xs text-text-secondary">none flagged</span>
+        }
+      </div>
+
+      <p class="text-xs text-text-secondary">{{ interpretationNote }}</p>
+
+      <!--
+        Kept in the DOM and hidden, not destroyed: `aria-controls` has to point
+        at something that exists for the relationship to mean anything.
+      -->
+      <button
+        type="button"
+        appButton="secondary"
+        class="self-start"
+        data-testid="raw-verdict-toggle"
+        [attr.aria-expanded]="open()"
+        aria-controls="risk-raw-verdict"
+        (click)="toggle()"
+      >
+        {{ open() ? 'Hide raw RiskVerdict' : 'View raw RiskVerdict' }}
+      </button>
+
+      <div id="risk-raw-verdict" class="table-scroll" [hidden]="!open()">
+        <pre
+          data-testid="raw-verdict"
+          class="rounded-md bg-surface-inset px-3 py-2 text-xs text-text-secondary"
+        >{{ raw() }}</pre>
+      </div>
+    </div>
+  } @else {
+    <p class="text-sm text-text-secondary">
+      Nothing has been written to state.risk_verdict for this run.
+    </p>
+  }
+</app-info-card>

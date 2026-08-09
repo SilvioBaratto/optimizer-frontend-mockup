@@ -1,0 +1,54 @@
+<app-info-card title="Tool call log (audit)">
+  <div class="flex flex-col gap-3">
+    <button
+      type="button"
+      appButton="secondary"
+      class="self-start"
+      data-testid="tool-call-log-toggle"
+      [attr.aria-expanded]="open()"
+      aria-controls="risk-tool-call-log"
+      (click)="toggle()"
+    >
+      {{ open() ? 'Collapse tool call log' : 'Expand tool call log' }}
+    </button>
+
+    <div id="risk-tool-call-log" class="table-scroll" [hidden]="!open()">
+      <table class="w-full min-w-2xl text-sm">
+        <caption class="sr-only">
+          Every tool the risk agent called during the selected run, with its kind, duration and
+          outcome.
+        </caption>
+        <thead>
+          <tr class="table-head-row">
+            <th scope="col" class="px-3 py-2 text-left font-medium">Time</th>
+            <th scope="col" class="px-3 py-2 text-left font-medium">Tool</th>
+            <th scope="col" class="px-3 py-2 text-left font-medium">Kind</th>
+            <th scope="col" class="px-3 py-2 text-right font-medium">Duration</th>
+            <th scope="col" class="px-3 py-2 text-left font-medium">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (call of calls(); track call.id) {
+            <tr class="table-row">
+              <th scope="row" class="px-3 py-2 text-left font-normal tabular-nums text-text">
+                {{ clock(call) }}
+              </th>
+              <td class="px-3 py-2 text-text">{{ call.tool }}</td>
+              <td class="px-3 py-2 text-text-secondary">{{ call.kind }}</td>
+              <td class="px-3 py-2 text-right tabular-nums text-text">{{ duration(call) }}</td>
+              <td class="px-3 py-2">
+                <app-status-badge [label]="statusLabel[call.status]" [tone]="statusTone[call.status]" />
+              </td>
+            </tr>
+          } @empty {
+            <tr class="table-row">
+              <td colspan="5" class="px-3 py-6 text-center text-text-secondary">
+                No tool calls were recorded for this run.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</app-info-card>

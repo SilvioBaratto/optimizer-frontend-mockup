@@ -1,0 +1,39 @@
+<app-section-card-grid label="Input from FundState" [columns]="2">
+  @for (input of inputs(); track input.field) {
+    <div class="flex flex-col gap-2">
+      <!--
+        The card is a read-only summary, not a link: `EntityCard`'s contract is
+        that a card carrying `route` is itself the one interactive element, and
+        the spec puts a CrossPageLink of its own in every input cell — a
+        separately focusable control, which an anchor card may not contain.
+
+        It also keeps the card's `truncate`d title and meta out of a fight with
+        a `shrink-0` action beside them. With the link inside, at 320px the
+        left column fell to ~84px and the card read `state.alloca…` over
+        `from Allocati…`; the position count and the freshness stamp the spec
+        requires never appeared at all.
+      -->
+      <app-entity-card [title]="fieldLabel[input.field]" [meta]="source(input)" />
+
+      <!-- Wraps rather than truncates, so the stamp survives a 320px screen. -->
+      <p [attr.data-detail]="input.field" class="text-xs text-text-secondary">
+        {{ detail(input) }}
+      </p>
+
+      @if (input.staleNote; as note) {
+        <!-- Word plus glyph, from the badge itself — never the colour alone. -->
+        <p data-testid="stale-note"><app-status-badge [label]="note" tone="warn" /></p>
+      }
+
+      @if (input.field === 'allocation') {
+        <p class="text-xs text-text-secondary">{{ consumedNote }}</p>
+      }
+
+      <app-cross-page-link [label]="input.linkLabel" [route]="input.route" />
+    </div>
+  } @empty {
+    <p class="text-sm text-text-secondary">
+      Nothing has been written to the shared state for this portfolio yet.
+    </p>
+  }
+</app-section-card-grid>

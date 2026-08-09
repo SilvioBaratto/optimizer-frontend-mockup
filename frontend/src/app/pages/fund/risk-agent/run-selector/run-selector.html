@@ -1,0 +1,77 @@
+<app-hero-stat-card [title]="heading()" eyebrow="Risk assessment run">
+  <!--
+    Both controls sit in the card body rather than the picker here and the
+    button in `[hero-action]`. That slot renders inside the card header, i.e.
+    *before* this body in the DOM, which would put the button ahead of the
+    picker in the tab sequence — the reverse of the order the spec's
+    accessibility section fixes (EntityPicker, then RunButton).
+  -->
+  <div class="flex flex-col gap-2">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      @if (runOptions().length > 0) {
+        <!--
+          min-w-0 is load-bearing: a flex item's automatic minimum size is its
+          content's intrinsic width, and the longest option ("Latest run —
+          2026-08-01 09:14 UTC") is wider than a 320px viewport. Without it the
+          select's own max-w-full resolves against a box that has already
+          overflowed, and the page scrolls sideways — measured at 5px.
+        -->
+        <div class="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+          <label for="risk-run-picker" class="text-sm text-text-secondary">Run</label>
+          <select
+            #runPicker
+            id="risk-run-picker"
+            appSelect
+            class="min-w-0 max-w-full sm:max-w-80"
+            [attr.aria-describedby]="historicalRunNote() ? noteId : null"
+            (change)="onRun($event)"
+          >
+            @for (option of runOptions(); track option.value) {
+              <option [value]="option.value" [selected]="selectedRunId() === option.value">
+                {{ option.label }}
+              </option>
+            }
+          </select>
+        </div>
+      } @else {
+        <!-- Nothing to pick between: the agent has not run for this portfolio yet. -->
+        <p data-testid="no-run-note" class="text-sm text-text-secondary">
+          No run has been recorded for this portfolio yet
+        </p>
+      }
+
+      <!--
+        `title` as well as `aria-describedby`: the tooltip is a convenience for
+        a mouse, the description and the visible paragraph below are the
+        contract.
+      -->
+      <button
+        #runButton
+        type="button"
+        appButton="primary"
+        size="md"
+        [disabled]="!canRun()"
+        [attr.aria-describedby]="disabledReason() ? reasonId : null"
+        [attr.title]="disabledReason()"
+        (click)="rerun()"
+      >
+        {{ running() ? 'Re-running risk assessment…' : 'Re-run risk assessment' }}
+      </button>
+    </div>
+
+    @if (historicalRunNote(); as note) {
+      <!--
+        A verdict written against an allocation that may since have been
+        replaced. `aria-describedby` from the picker, so the warning arrives
+        with the control that caused it rather than as loose text after it.
+      -->
+      <p [id]="noteId" data-testid="historical-run-note" class="text-xs text-warning">{{ note }}</p>
+    }
+
+    @if (disabledReason(); as reason) {
+      <p [id]="reasonId" class="text-xs text-text-secondary">{{ reason }}</p>
+    }
+
+    <p class="sr-only" aria-live="polite" data-testid="run-announcement">{{ announcement() }}</p>
+  </div>
+</app-hero-stat-card>

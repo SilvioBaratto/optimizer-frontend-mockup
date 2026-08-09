@@ -1,0 +1,53 @@
+<div class="flex flex-col gap-3">
+  <app-section-card-grid
+    [label]="measuresLabel()"
+    [columns]="3"
+    [attr.aria-busy]="running() ? 'true' : null"
+  >
+    @for (view of views(); track view.id) {
+      <app-info-card>
+        <h3 appCardTitle [id]="view.headingId">{{ view.label }}</h3>
+
+        @if (running()) {
+          <!-- Same card, same rows, same heights — the numbers land without a jump. -->
+          <div class="flex flex-col gap-2">
+            <app-skeleton-block height="h-8" width="w-24" />
+            <app-skeleton-block height="h-3" width="w-20" />
+            <app-skeleton-block height="h-3" [lines]="3" />
+          </div>
+        } @else {
+          <div
+            role="group"
+            class="flex flex-col gap-2"
+            [attr.aria-labelledby]="view.headingId"
+            [attr.aria-describedby]="view.describedBy"
+          >
+            <p class="text-2xl font-semibold tabular-nums text-text" [attr.data-measure]="view.id">
+              {{ view.value }}
+            </p>
+            @if (view.horizon) {
+              <p class="text-xs text-text-secondary">{{ view.horizon }}</p>
+            }
+            @if (view.annotation) {
+              <p class="text-xs text-text-secondary" [attr.id]="view.annotationId">
+                {{ view.annotation }}
+              </p>
+            }
+            <!--
+              `text-text-secondary`, not `text-text-tertiary`: the tertiary
+              token is 3.86:1 on a white card, which clears WCAG 1.4.11 for a
+              control edge but not 1.4.3 for 12px prose. This is prose.
+            -->
+            <p class="text-xs text-text-secondary">
+              <span aria-hidden="true">ⓘ</span> {{ view.definition }}
+            </p>
+          </div>
+        }
+      </app-info-card>
+    }
+  </app-section-card-grid>
+
+  @if (methodNote(); as note) {
+    <p data-testid="method-note" class="text-sm text-text-secondary">{{ note }}</p>
+  }
+</div>

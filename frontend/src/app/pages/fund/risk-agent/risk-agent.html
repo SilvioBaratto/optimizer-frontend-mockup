@@ -1,1 +1,73 @@
-<p>risk-agent works!</p>
+<!--
+  Regions follow `docs/14 Risk Agent.md` in order. The shell renders the <h1>
+  and the breadcrumb from the route, so headings here start at <h2>.
+-->
+
+<!-- 1 · Breadcrumb — what is read, what is written, and the state of the run. -->
+<app-page-context-bar heading="Risk agent status" compact>
+  <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+    <p class="text-text-secondary">{{ readsNote }}</p>
+    <p class="text-text-secondary">{{ writesNote }}</p>
+    <!-- The badge is glyph *and* word; a second glyph beside it renders twice. -->
+    <app-status-badge [label]="statusLabel()" [tone]="statusTone()" />
+    <p data-testid="context-run" class="tabular-nums text-text">{{ runNumber() }}</p>
+    <p data-testid="context-stamp" class="tabular-nums text-text-secondary">{{ runStamp() }}</p>
+  </div>
+</app-page-context-bar>
+
+<!--
+  An action the user just took, so it is announced assertively. The message
+  names which half failed: no numbers at all is a different situation from
+  numbers with no verdict, and the recovery is the same button either way.
+-->
+@if (error(); as failure) {
+  <app-error-state
+    [message]="failure.message"
+    [detail]="failure.detail"
+    cause="action"
+    (retry)="retry()"
+  />
+}
+
+<!-- 2 · HeroStatCard — run picker and the page's one action. -->
+<app-run-selector />
+
+@if (state() === 'empty') {
+  <app-empty-state title="No risk assessment to show" [detail]="emptyDetail()">
+    <app-cross-page-link label="Open in Allocation Agent" route="/fund/allocation-agent" />
+  </app-empty-state>
+} @else {
+  <!-- 3 · SectionLabel + SectionCardGrid — the two inputs read from FundState. -->
+  <app-upstream-inputs />
+
+  <!-- 4 · InfoCard — the deterministic calculation, invoked by the orchestrator. -->
+  <app-calculation-trace />
+
+  <!-- 5 · FilterChipBar — display filters over an already computed result. -->
+  <app-measure-filters />
+
+  <!-- 6 · SectionLabel + SectionCardGrid — the five measures. -->
+  <app-risk-measures />
+
+  <!-- 7 · InfoCard — the verdict the model wrote into state.risk_verdict. -->
+  <app-verdict-panel />
+
+  <!-- 8 · InfoCard — the audit log, collapsed. -->
+  <app-tool-call-log />
+}
+
+<!-- 9 · InfoCard — the trust boundary. -->
+<app-info-card title="Trust boundary">
+  <ul class="flex list-disc flex-col gap-1 pl-5 text-sm text-text-secondary">
+    @for (note of trustBoundaryNotes; track note) {
+      <li>{{ note }}</li>
+    }
+  </ul>
+</app-info-card>
+
+<!-- 10 · ActionButtonRow — the two exits, both to a human-gated page. -->
+<app-action-button-row>
+  @for (exit of exits; track exit.route) {
+    <app-cross-page-link [label]="exit.label" [route]="exit.route" [emphasis]="exit.emphasis" />
+  }
+</app-action-button-row>

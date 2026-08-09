@@ -1,0 +1,23 @@
+<app-info-card title="Deterministic risk calculation">
+  <div class="flex flex-col gap-2" [attr.aria-busy]="running() ? 'true' : null">
+    <p class="text-sm text-text-secondary">{{ note }}</p>
+
+    @if (running()) {
+      <p data-testid="calculation-running" class="flex items-center gap-2 text-sm text-text">
+        <span aria-hidden="true" class="h-2 w-24 animate-pulse rounded-full bg-primary"></span>
+        {{ runningLabel }}
+      </p>
+    } @else if (calculation(); as call) {
+      <p data-testid="calculation-stamp" class="text-sm tabular-nums text-text">
+        {{ atLabel() }} · duration {{ duration(call) }}
+      </p>
+      <p class="text-xs text-text-secondary">
+        Tool <span class="font-medium text-text">{{ call.tool }}</span> · {{ call.kind }}
+      </p>
+    } @else {
+      <p class="text-sm text-text-secondary">
+        No calculation has been recorded for this run.
+      </p>
+    }
+  </div>
+</app-info-card>
