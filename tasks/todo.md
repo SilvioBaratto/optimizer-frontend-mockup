@@ -8,16 +8,16 @@ Per-task definition of done: model → service → sub-components → page templ
 
 ## Phase 0 — clear the deck
 
-- [ ] Land or stash the uncommitted working-tree diff (89 files, +1061/−671: mobile bleed, viewport lock, tab alignment). Do not build on top of it.
+- [x] Land or stash the uncommitted working-tree diff (89 files, +1061/−671: mobile bleed, viewport lock, tab alignment). Do not build on top of it.
 
 ## Phase 1 — shared kit
 
-- [ ] **T1.1** `shared/key-metrics-row` — 2–4 labelled figures in one bordered row; stacks at 320px *(used by 18, 19, 25)*
-- [ ] **T1.2** `shared/segmented-control` — `role="radiogroup"`, roving tabindex, ←/→/Home/End, `aria-checked`, disabled-with-reason *(14, 18, 19, 22, 23, 25)*
-- [ ] **T1.3** `shared/filter-chip-bar` — search + projected chips + live count in `aria-live="polite"`; scroll-snap below sm *(14, 15, 16, 17, 21, 23, 24)*
-- [ ] **T1.4** `shared/collection-stat-bar` — `count · category · scope`, `aria-live="polite"` *(16, 21, 24)*
-- [ ] **T1.5** `shared/event-log-panel` — timestamped, collapsible, `(entrySelected)` output *(15, 18)*
-- [ ] **T1.6** Sortable-header idiom: `aria-sort` + inner `<button>`; first use lands in T2.2, record it in plan §2
+- [x] **T1.1** `shared/key-metrics-row` — 2–4 labelled figures in one bordered row; stacks at 320px *(used by 18, 19, 25)*
+- [x] **T1.2** `shared/segmented-control` — `role="radiogroup"`, roving tabindex, ←/→/Home/End, `aria-checked`, disabled-with-reason *(14, 18, 19, 22, 23, 25)*
+- [x] **T1.3** `shared/filter-chip-bar` — search + projected chips + live count in `aria-live="polite"`; scroll-snap below sm *(14, 15, 16, 17, 21, 23, 24)*
+- [x] **T1.4** `shared/collection-stat-bar` — `count · category · scope`, `aria-live="polite"` *(16, 21, 24)*
+- [x] **T1.5** `shared/event-log-panel` — timestamped, collapsible, `(entrySelected)` output *(15, 18)*
+- [x] **T1.6** Sortable-header idiom: `aria-sort` + inner `<button>`; first use lands in T2.2, record it in plan §2
 - [ ] Add all five to the `pages/components/` gallery
 
 > **CHECKPOINT A** — `npm run typecheck && npm run lint && npm run test:ci`. Review the kit before any page imports it.
