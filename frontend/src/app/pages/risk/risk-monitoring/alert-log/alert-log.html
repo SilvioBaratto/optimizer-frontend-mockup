@@ -1,0 +1,36 @@
+<app-event-log-panel
+  [entries]="rows()"
+  label="Alert & breach log"
+  [collapsible]="false"
+  emptyMessage="No threshold has been crossed or returned in the period."
+  (entrySelected)="onSelect($event)"
+>
+  @if (hiddenCount() > 0) {
+    <button type="button" appButton="ghost" (click)="toggleAll()">
+      {{ showAll() ? 'Show recent alerts' : 'View all alerts' }}
+    </button>
+  }
+</app-event-log-panel>
+
+@if (selected(); as entry) {
+  <!--
+    The entry's detail, expanded where activating it can be seen — measure,
+    value, threshold and stamp — followed by where the corresponding point was
+    marked. Announced politely: the reader asked for it.
+  -->
+  <p
+    data-testid="alert-detail"
+    role="status"
+    class="flex flex-col gap-0.5 rounded-md border border-border bg-surface-inset px-4 py-2 text-xs text-text-secondary"
+  >
+    <span class="font-medium text-text">
+      <span class="tabular-nums">{{ entry.at }}</span> · {{ entry.text }}
+    </span>
+    @if (entry.detail) {
+      <span>{{ entry.detail }}</span>
+    }
+    @if (selectedNote()) {
+      <span data-testid="alert-anchor">{{ selectedNote() }}</span>
+    }
+  </p>
+}

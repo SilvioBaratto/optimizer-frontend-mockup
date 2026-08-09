@@ -1,0 +1,23 @@
+<app-key-metrics-row [metrics]="metrics()" />
+
+<!--
+  The informational marker the spec asks for on the CVaR card, as words rather
+  than a hover target: the badge on the card states the ordering and this line
+  says why it holds. The glyph is decorative — the sentence carries it.
+-->
+<p class="flex gap-2 text-xs text-text-secondary">
+  <span aria-hidden="true">ⓘ</span>
+  <span data-testid="order-note" class="min-w-0 flex-1">{{ orderNote }}</span>
+</p>
+
+@if (insufficientHistoryNote(); as note) {
+  <!--
+    A sample too thin for the estimate the toolbar is claiming. Announced
+    politely — the reader asked for this combination and is being told what it
+    costs, not interrupted — and never resolved by quietly changing the method.
+  -->
+  <p data-testid="insufficient-history" role="status" class="flex gap-2 text-xs text-warning">
+    <span aria-hidden="true">!</span>
+    <span class="min-w-0 flex-1">{{ note }}</span>
+  </p>
+}

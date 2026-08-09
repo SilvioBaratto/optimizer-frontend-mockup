@@ -1,1 +1,126 @@
-<p>risk-monitoring works!</p>
+<!--
+  Regions follow `docs/18 Risk Monitoring.md` in order. The shell renders the
+  <h1> and the breadcrumb from the route, so headings here start at <h2>.
+-->
+
+<!-- 1 · Toolbar — which reading of the held weights is on screen. -->
+<app-risk-monitoring-toolbar />
+
+@switch (state()) {
+  <!--
+    No portfolio chosen in the ScopeSwitcher. The toolbar stays: it describes a
+    reading, and there is nothing yet for it to be a reading of.
+  -->
+  @case ('empty') {
+    <app-empty-state title="No portfolio selected" [detail]="emptyMessage">
+      <app-cross-page-link label="Open Dashboard" route="/dashboard" />
+    </app-empty-state>
+  }
+
+  @default {
+    <!--
+      Placeholders at the height of the regions they stand in for, so nothing
+      jumps when the calculation lands. The alert log below is not among them:
+      it is a history, and none of the toolbar's parameters rewrites it.
+    -->
+    @if (state() === 'loading') {
+      <div data-testid="risk-monitoring-loading" aria-busy="true" class="flex flex-col gap-6">
+        <p role="status" class="sr-only">Computing current VaR, CVaR and drawdown measures…</p>
+        <app-skeleton-block height="h-24" />
+        @for (chart of skeletonCharts; track chart) {
+          <app-skeleton-block height="h-80" />
+        }
+        <app-skeleton-block height="h-56" />
+      </div>
+    } @else {
+      <!--
+        A failed calculation does not empty the dashboard. The last figures stay
+        where they were, greyed and labelled as old, because "no risk reading"
+        and "a risk reading from twenty minutes ago" are different situations
+        and only one of them is what happened.
+      -->
+      @if (errorMessage(); as failure) {
+        <app-error-state
+          [message]="failure"
+          [detail]="errorDetail() ?? ''"
+          cause="load"
+          (retry)="retry()"
+        />
+      }
+
+      <!--
+        Stale figures are drained of colour, not of contrast. `opacity` was the
+        obvious way to grey them and it is the wrong one: at 60% the page's
+        `--color-text-secondary` lands at about 2.6:1 on white, well under the
+        4.5:1 this doc's a11y section asks to be verified, and every note, axis
+        label and limit on the dashboard is that colour. `grayscale` desaturates
+        on the luminance axis, so the badges, the warning notes and the chart
+        series all read as inert while every ratio survives.
+      -->
+      <div class="flex flex-col gap-6" [class.grayscale]="stale()">
+        @if (stale()) {
+          <p
+            data-testid="stale-label"
+            class="flex items-center gap-2 rounded-md border border-border bg-surface-inset px-3 py-1.5 text-xs text-text-secondary"
+          >
+            <span aria-hidden="true">!</span>
+            <span
+              >Showing {{ staleNote }} — the last figures computed successfully, not the current
+              ones.</span
+            >
+          </p>
+        }
+
+        <!-- 2 · KeyMetricsRow — VaR, CVaR, current drawdown, time underwater. -->
+        <section class="flex flex-col gap-2" aria-labelledby="rm-readings-heading">
+          <h2 id="rm-readings-heading" class="text-sm font-semibold text-text">
+            Current risk readings
+          </h2>
+          <app-risk-monitoring-readings />
+        </section>
+
+        <!-- 3, 4, 5 · The three figures, in the order the wireframe draws them. -->
+        <section class="flex flex-col gap-6" aria-labelledby="rm-charts-heading">
+          <h2 id="rm-charts-heading" class="text-sm font-semibold text-text">Risk over time</h2>
+
+          <div id="rm-var-cvar-trend">
+            <app-risk-monitoring-var-cvar-trend />
+          </div>
+
+          <div id="rm-underwater">
+            <app-risk-monitoring-underwater-chart [highlight]="underwaterHighlight()" />
+          </div>
+
+          <div id="rm-cdar-curve">
+            <app-risk-monitoring-cdar-curve [highlight]="cdarHighlight()" />
+          </div>
+        </section>
+
+        <!-- 6 · DataTable — the three measures against their configured limits. -->
+        <section class="flex flex-col gap-2" aria-labelledby="rm-thresholds-heading">
+          <h2 id="rm-thresholds-heading" class="text-sm font-semibold text-text">
+            Drawdown threshold status
+          </h2>
+          <app-risk-monitoring-threshold-table
+            [selected]="selectedMeasure()"
+            (measureSelected)="onMeasureSelected($event)"
+          />
+        </section>
+      </div>
+    }
+
+    <!-- 7 · EventLogPanel — the alert & breach log. -->
+    <app-risk-monitoring-alert-log
+      [selected]="selectedAlert()"
+      [selectedNote]="alertAnchorNote()"
+      (entrySelected)="onAlertSelected($event)"
+    />
+  }
+}
+
+<!-- 8 · RelatedPagesList — the sister pages, on the same held portfolio. -->
+<app-action-button-row align="start">
+  @for (page of relatedPages; track page.route) {
+    <app-cross-page-link [label]="page.label" [route]="page.route" />
+  }
+</app-action-button-row>

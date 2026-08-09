@@ -1,0 +1,30 @@
+<app-line-chart
+  title="Underwater / drawdown D(x,t)"
+  subtitle="fall from the running maximum"
+  [ariaLabel]="ariaLabel()"
+  [x]="dates()"
+  [series]="series()"
+  [refLines]="refLines()"
+  [refPoints]="refPoints()"
+  [valueFormatter]="formatter()"
+  [area]="true"
+  [scaleY]="false"
+  xAxisName="Date"
+  yAxisName="Drawdown"
+  [height]="300"
+>
+  <div class="flex flex-col gap-1 border-t border-border px-4 py-2 text-xs text-text-secondary">
+    <p data-testid="underwater-footnote" class="tabular-nums">{{ footnote() }}</p>
+
+    @if (highlight(); as marked) {
+      <!--
+        What another region asked to have called out, said in words as well as
+        drawn: the dot on a canvas is unreachable, and this line is what a
+        screen reader and a phone actually get.
+      -->
+      <p data-testid="underwater-highlight" role="status" class="text-text">
+        Highlighted: {{ marked.label }}
+      </p>
+    }
+  </div>
+</app-line-chart>

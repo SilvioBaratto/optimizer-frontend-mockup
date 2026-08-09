@@ -1,0 +1,108 @@
+<section class="surface-card">
+  <!-- Scrolls inside its own box so the page never scrolls sideways. -->
+  <div class="table-scroll">
+    <table class="w-full min-w-2xl text-sm">
+      <caption class="sr-only">
+        The three current drawdown measures against the limits configured for them: the maximum
+        drawdown, the average drawdown and the conditional drawdown at risk at the α selected on the
+        curve above. Utilisation is the current reading as a share of its limit, and is the same
+        number whichever units are shown. Activating a row marks the matching part of the chart it
+        comes from. No limit can be changed here.
+      </caption>
+
+      <thead>
+        <tr class="table-head-row">
+          <th scope="col" class="px-4 py-2 text-left font-medium">Measure</th>
+          <th scope="col" class="px-2 py-2 text-right font-medium">Current</th>
+          <th scope="col" class="px-2 py-2 text-right font-medium">
+            Limit (<span aria-hidden="true">νC</span
+            ><span class="sr-only">nu times the capital base</span>)
+          </th>
+          <th scope="col" class="px-2 py-2 text-right font-medium">Utilization</th>
+          <th scope="col" class="px-4 py-2 text-left font-medium">Status</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        @for (row of rows(); track row.measure) {
+          <tr
+            class="table-row"
+            [class.bg-surface-inset]="selected() === row.measure"
+            [attr.aria-current]="selected() === row.measure ? 'true' : null"
+          >
+            <!--
+              The row header is the measure and its symbol, and nothing else. A
+              `th[scope="row"]` is re-announced as the header of every cell in
+              its row, so the twenty-word definition that used to live here was
+              read four times per row before the reader reached a number. It is
+              a legend below the table instead — same card, read once.
+            -->
+            <th scope="row" class="px-4 py-1.5 text-left font-normal">
+              <!--
+                The row's control is a real button, so the pointer affordance
+                the spec asks for is reachable from the keyboard too. Its
+                accessible name says what activating it does, since "MaxDD"
+                alone does not.
+              -->
+              <button
+                type="button"
+                [attr.data-measure-row]="row.measure"
+                class="inline-flex min-h-11 flex-wrap items-baseline gap-x-2 rounded-md px-1 text-left"
+                (click)="select(row)"
+              >
+                <span class="font-medium text-text">{{ row.label }}</span>
+                <span class="text-xs text-text-secondary">{{ row.symbol }}</span>
+                <span class="sr-only">— show on the chart it comes from</span>
+              </button>
+            </th>
+
+            <td class="px-2 py-1.5 text-right tabular-nums text-text">{{ current(row) }}</td>
+            <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">
+              {{ limit(row) }}
+            </td>
+            <td class="px-2 py-1.5 text-right tabular-nums text-text">
+              {{ utilisation(row) }}
+              <span class="sr-only">of the limit</span>
+            </td>
+
+            <td class="px-4 py-1.5 text-left">
+              <!-- Word and colour together; the word is what carries the state. -->
+              <app-status-badge [label]="statusLabel[row.status]" [tone]="statusTone[row.status]" />
+              <span class="mt-0.5 block text-xs whitespace-nowrap text-text-secondary">
+                {{ warningBand(row) }}
+              </span>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!--
+    What each measure is, once, out of the row headers. `<dl>` rather than three
+    paragraphs: it is a key to the first column, and the pairing survives into
+    the accessibility tree.
+  -->
+  <dl
+    data-testid="measure-legend"
+    class="flex flex-col gap-1 border-t border-border px-4 py-2 text-xs text-text-secondary"
+  >
+    @for (row of rows(); track row.measure) {
+      <div class="flex min-w-0 flex-wrap gap-x-2">
+        <dt class="font-medium text-text">{{ row.label }}</dt>
+        <dd class="min-w-0 flex-1">{{ definitions[row.measure] }}</dd>
+      </div>
+    }
+  </dl>
+
+  <div
+    class="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2 text-xs text-text-secondary"
+  >
+    <!--
+      The money column is a fraction of one constant, so the constant is stated:
+      "€75.0m" against an unnamed base is a number the reader cannot check.
+    -->
+    <p data-testid="limits-note">{{ limitsNote }} · ν·C against C = {{ capitalBase }}</p>
+    <app-cross-page-link label="Open Guardrail & Kill-Switch" [route]="limitsRoute" />
+  </div>
+</section>

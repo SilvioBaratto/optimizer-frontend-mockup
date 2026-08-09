@@ -1,0 +1,60 @@
+<app-line-chart
+  title="CDaR curve Δ_α(x)"
+  [subtitle]="endpointsNote"
+  [ariaLabel]="ariaLabel()"
+  [x]="alphas()"
+  [series]="series()"
+  [refPoints]="refPoints()"
+  [valueFormatter]="formatter()"
+  [scaleY]="false"
+  xAxisName="α"
+  yAxisName="Drawdown"
+  [height]="300"
+>
+  <div class="flex flex-col gap-2 border-t border-border px-4 py-3">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <label for="rm-cdar-alpha" class="text-sm text-text-secondary">
+        <span aria-hidden="true">α</span>
+        <span class="sr-only">CDaR confidence level alpha</span>
+      </label>
+
+      <!--
+        A real range input, so a pointer can drag it and a phone gets the
+        platform control. aria-valuemin/max/now are stated rather than left
+        implicit, and aria-valuetext is what makes the announcement a reading
+        — "alpha 0.95" alone would not say what Δ is at that level.
+      -->
+      <input
+        id="rm-cdar-alpha"
+        type="range"
+        class="min-h-11 min-w-40 flex-1 accent-primary"
+        [min]="min"
+        [max]="max"
+        [step]="step"
+        [value]="alpha()"
+        [attr.aria-valuemin]="min"
+        [attr.aria-valuemax]="max"
+        [attr.aria-valuenow]="alpha()"
+        [attr.aria-valuetext]="valueText()"
+        (input)="onInput($event)"
+        (keydown)="onKeydown($event)"
+      />
+
+      <p data-testid="cdar-alpha" class="text-sm tabular-nums text-text">{{ alphaText() }}</p>
+      <p data-testid="cdar-readout" class="text-sm font-medium tabular-nums text-text">
+        {{ readout() }}
+      </p>
+    </div>
+
+    <p class="text-xs text-text-secondary">
+      The ends of the family are the two elementary measures: {{ endpointsNote }}. Home and End
+      reach them exactly.
+    </p>
+
+    @if (highlight(); as marked) {
+      <p data-testid="cdar-highlight" role="status" class="text-xs text-text">
+        Highlighted: {{ marked }}
+      </p>
+    }
+  </div>
+</app-line-chart>
