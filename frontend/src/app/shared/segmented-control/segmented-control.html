@@ -1,0 +1,46 @@
+<!--
+  One tab stop, arrow keys inside. `flex-wrap` plus `max-w-full` is what keeps a
+  four-option group from widening the page at 320px — it drops to a second row
+  instead of scrolling sideways.
+-->
+<div
+  role="radiogroup"
+  [attr.aria-label]="label()"
+  class="inline-flex max-w-full flex-wrap gap-1 rounded-md border border-border bg-surface-inset p-1"
+>
+  @for (segment of segments(); track segment.value) {
+    <!--
+      The reference is `optionButton`, not `segment`: a `#segment` here would
+      shadow the `@for` variable of the same name, and which one an expression
+      resolves to is not a thing this component should be relying on.
+    -->
+    <button
+      #optionButton
+      type="button"
+      role="radio"
+      [attr.aria-checked]="segment.checked"
+      [attr.aria-disabled]="segment.disabled ? 'true' : null"
+      [attr.aria-describedby]="segment.reasonId"
+      [attr.tabindex]="segment.tabIndex"
+      [attr.title]="segment.reason"
+      [class]="segment.classes"
+      (click)="onSelect(segment)"
+      (keydown)="onKeydown($event, $index)"
+    >
+      {{ segment.label }}
+    </button>
+  }
+</div>
+
+<!--
+  Reasons live outside the radiogroup on purpose: inside, a screen reader
+  browsing the group would read them as loose text between the radios. Here they
+  are reached only through the `aria-describedby` that names them.
+-->
+@if (reasons().length > 0) {
+  <div class="sr-only">
+    @for (reason of reasons(); track reason.id) {
+      <span [id]="reason.id">{{ reason.text }}</span>
+    }
+  </div>
+}
