@@ -1,0 +1,90 @@
+<section aria-labelledby="execution-run-log-heading" class="flex flex-col gap-2">
+  <h2 id="execution-run-log-heading" class="sr-only">Last agent run</h2>
+
+  @if (stale()) {
+    <!--
+      A failed read does not invalidate the run that produced the list; it
+      invalidates the claim that the list is current. The panel says which.
+    -->
+    <p
+      role="status"
+      data-testid="stale-trace-warning"
+      class="rounded-md border border-border bg-surface-inset px-4 py-2 text-xs text-text"
+    >
+      <span aria-hidden="true" class="text-warning">!</span>
+      This is the last trace available. It describes the run of {{ lastRun() }} and does not
+      reflect the current fund state, which could not be read.
+    </p>
+  }
+
+  @if (loading()) {
+    <div
+      data-testid="run-log-skeleton"
+      aria-busy="true"
+      class="surface-card flex flex-col gap-2 px-4 py-4"
+    >
+      <app-skeleton-block height="h-5" [lines]="4" />
+    </div>
+  } @else {
+    <!--
+      Every entry the shared panel renders is a real <button>, so leaving
+      (entrySelected) unbound would put four focusable controls on the page that
+      do nothing when activated. A tool call has exactly one thing more to show
+      — the full trace of the run it belongs to — so that is what it opens.
+    -->
+    <app-event-log-panel
+      [entries]="entries()"
+      label="Last run — tool calls"
+      emptyMessage="No run recorded — the execution agent has not proposed any orders, so there is no trace to show."
+      (entrySelected)="fullTrace.set(true)"
+    >
+      <!--
+        Projected into the panel's trailing strip. `mr-auto` keeps the reasoning
+        on the reading side and leaves the two actions on the right, which is
+        the order the wireframe draws them in.
+      -->
+      <div
+        id="execution-run-trace"
+        class="mr-auto flex w-full max-w-prose flex-col gap-1 text-left sm:w-auto"
+      >
+        @if (empty()) {
+          <p class="text-xs text-text-secondary">
+            No reasoning to show: the agent has not produced an order list for the current target.
+          </p>
+        } @else {
+          <p class="text-xs font-medium text-text">Reasoning (last run, excerpt)</p>
+          <p class="text-xs text-text-secondary">“{{ reasoning() }}”</p>
+
+          @if (fullTrace()) {
+            <div data-testid="full-trace" class="mt-1 flex flex-col gap-1">
+              <p class="text-xs text-text">
+                Full trace of {{ lastRun() }} — every call below either reads state or computes on
+                it. No tool available to the model places an order or moves money; the order list
+                is written to <code>proposed_orders</code> and stops there.
+              </p>
+              <ul role="list" class="flex flex-col gap-0.5">
+                @for (call of toolCalls(); track call.id) {
+                  <li class="text-xs text-text-secondary tabular-nums">
+                    {{ call.at }} · {{ call.tool }} · {{ call.kind === 'read' ? 'read-only' : 'pure compute' }}
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        }
+      </div>
+
+      <button
+        type="button"
+        appButton="ghost"
+        [attr.aria-expanded]="fullTrace()"
+        aria-controls="execution-run-trace"
+        (click)="toggleTrace()"
+      >
+        View full trace <span aria-hidden="true">→</span>
+      </button>
+
+      <button type="button" appButton="secondary" (click)="retry()">Retry</button>
+    </app-event-log-panel>
+  }
+</section>

@@ -1,0 +1,31 @@
+<!--
+  Always present, never dismissible: the sentence below is the reason the page
+  has no send control, so hiding it would leave the reader without the
+  explanation for the thing they most expect to find.
+-->
+<div
+  data-testid="broker-banner"
+  [attr.role]="posture() === 'error' ? 'alert' : 'status'"
+  class="flex flex-wrap items-start gap-3 rounded-md border border-border bg-surface-inset px-4 py-3 text-sm"
+>
+  <!-- Decorative: the posture is spelled out in words immediately after it. -->
+  <span
+    aria-hidden="true"
+    class="pt-0.5"
+    [class.text-danger]="posture() === 'error'"
+    [class.text-warning]="posture() === 'not-configured'"
+    [class.text-success]="posture() === 'connected'"
+    >{{ icon() }}</span
+  >
+
+  <p class="min-w-0 flex-1 text-text">
+    <span class="font-medium">{{ label() }}</span>
+    @if (broker().adapter) {
+      <span class="text-text-secondary"> ({{ broker().adapter }})</span>
+    }
+    — {{ message() }}
+    @if (broker().detail) {
+      <span class="block pt-1 text-text-secondary">{{ broker().detail }}</span>
+    }
+  </p>
+</div>
