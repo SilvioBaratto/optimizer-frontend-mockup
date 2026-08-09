@@ -1,0 +1,58 @@
+<div
+  class="surface-card flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
+>
+  <dl [class]="listClass()">
+    @for (metric of metrics(); track $index) {
+      <!--
+        `break-words` is inherited by the term, the figure and the note below,
+        so it is declared once here. At `lg` the row is four columns wide and
+        each one is a `minmax(0, 1fr)` track: a track can end up narrower than
+        the longest unbreakable token in it — "2026-07-30" in doc 25, a
+        "$4,182,300" in doc 19 — and without this the token paints outside its
+        track and widens the document instead of wrapping inside it.
+      -->
+      <div class="flex min-w-0 flex-col gap-0.5 break-words">
+        <dt class="text-sm text-text-secondary">{{ metric.label }}</dt>
+        <dd class="flex min-w-0 flex-col gap-1">
+          <span class="flex flex-wrap items-center gap-2">
+            <span data-testid="metric-value" class="text-lg font-semibold tabular-nums text-text">{{
+              metric.value
+            }}</span>
+            @if (metric.badge; as badge) {
+              <app-status-badge [label]="badge.label" [tone]="badge.tone" />
+            }
+          </span>
+          @if (metric.note) {
+            <!--
+              `tabular-nums` for the same reason the figure has it: notes are
+              "24 assets · AR window 500d", "47 days", "+9pp over 12m" — they
+              carry numbers that change under the toolbar, and proportional
+              digits make the line twitch as they do.
+            -->
+            <span data-testid="metric-note" class="text-xs tabular-nums text-text-secondary">{{
+              metric.note
+            }}</span>
+          }
+        </dd>
+      </div>
+    }
+  </dl>
+  <!--
+    `justify-end` unprefixed, not `sm:justify-end`. From `sm` the parent is a
+    row and this slot is `shrink-0`, so it is already exactly as wide as its
+    content and a justification there aligns nothing. Below `sm` the parent is
+    a column and this slot stretches the full card width — that is the one
+    width at which the alignment bites, and it is the one doc 25 draws with the
+    refresh control against the right edge.
+
+    `empty:hidden` because Angular offers no way to ask whether anything was
+    projected without making every caller mark its content with a directive.
+    The wrapper is unconditional and `:empty` removes it — and the parent's
+    `gap-3` with it — when nobody projects anything. Comments do not count
+    towards `:empty`, so a caller wrapping its content in `@if` still collapses
+    the slot when the condition is false.
+  -->
+  <div class="flex shrink-0 items-center justify-end gap-2 empty:hidden">
+    <ng-content />
+  </div>
+</div>
