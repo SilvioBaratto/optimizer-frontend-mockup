@@ -1,0 +1,76 @@
+<!-- Named, so the panel is a region a screen reader can jump to and tell apart
+     from a second log on the same page — with or without a toggle to read. -->
+<section class="surface-card" [attr.aria-label]="label()">
+  @if (collapsible()) {
+    <!-- Disclosure header. The glyph is decorative; aria-expanded carries the
+         state. The rule under it only exists when there is a body to divide it
+         from — collapsed, the trailing strip's own rule would double it. -->
+    <div class="border-border px-2 py-1" [class.border-b]="showBody()">
+      <button
+        type="button"
+        class="flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+        [attr.aria-expanded]="expanded()"
+        [attr.aria-controls]="regionId"
+        (click)="toggle()"
+      >
+        <span aria-hidden="true" class="text-text-secondary">{{ expanded() ? '&#9662;' : '&#9656;' }}</span>
+        <span>{{ label() }}</span>
+        <span class="font-normal text-text-secondary tabular-nums">
+          &middot; {{ count() }} {{ count() === 1 ? 'entry' : 'entries' }}
+        </span>
+      </button>
+    </div>
+  }
+
+  <div [id]="regionId">
+    @if (showBody()) {
+      @if (count()) {
+        <!-- role="list" is not redundant: Safari drops list semantics from a
+             list whose markers are removed, and these rows have none. -->
+        <ul role="list">
+          @for (entry of entries(); track entry.id) {
+            <li class="border-b border-border-muted last:border-b-0">
+              <!-- The row is full-bleed to the card edge, and below `sm` the
+                   card itself is full-bleed to the viewport. The global focus
+                   outline sits 2px outside its box, which would put the left
+                   and right sides of the ring off-screen; drawing it inside
+                   keeps the whole ring visible without suppressing it. -->
+              <button
+                type="button"
+                class="flex min-h-11 w-full flex-col justify-center gap-0.5 px-4 py-2 text-left transition-colors hover:bg-surface-inset focus-visible:-outline-offset-2 sm:flex-row sm:items-baseline sm:gap-3"
+                (click)="entrySelected.emit(entry)"
+              >
+                <span
+                  class="shrink-0 text-xs whitespace-nowrap text-text-secondary tabular-nums sm:min-w-32"
+                  >{{ entry.at }}</span
+                >
+                <span class="min-w-0 flex-1">
+                  <span class="block text-sm break-words text-text">{{ entry.text }}</span>
+                  @if (entry.detail) {
+                    <span class="mt-0.5 block text-xs break-words text-text-secondary">{{
+                      entry.detail
+                    }}</span>
+                  }
+                </span>
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p role="status" class="px-4 py-3 text-sm text-text-secondary">{{ emptyMessage() }}</p>
+      }
+    }
+  </div>
+
+  <!-- Trailing actions — "View full trace →", "Retry", "View all alerts".
+       `empty:hidden` keeps the strip out of the layout when nothing is
+       projected, matching `app-key-metrics-row`'s slot. It reads the DOM, not
+       the binding, so a caller who wants the strip gone must leave the slot
+       empty rather than project an `@if` that happens to be false — the block's
+       anchor comment is a child node and `:empty` would stop matching. -->
+  <div
+    class="flex flex-wrap items-center justify-end gap-2 border-t border-border px-4 py-2 empty:hidden"
+  >
+    <ng-content />
+  </div>
+</section>
