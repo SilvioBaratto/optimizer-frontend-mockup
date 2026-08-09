@@ -1,0 +1,83 @@
+<div class="flex flex-wrap items-end gap-3">
+  @if (searchLabel()) {
+    <div class="flex w-full flex-col gap-1 sm:w-56">
+      <label [for]="searchId" class="text-xs text-text-secondary">{{ searchLabel() }}</label>
+      <input
+        [id]="searchId"
+        type="search"
+        [attr.placeholder]="searchPlaceholder() || null"
+        [value]="searchValue()"
+        (input)="onSearch($event)"
+        class="min-h-11 w-full rounded-md border border-border-control bg-surface-raised px-3 text-sm text-text"
+      />
+    </div>
+  }
+
+  <!--
+    The caller's selects, chips and buttons.
+
+    Below `sm` this is a snap scroller rather than a wrap: a Stage select next
+    to a Side select next to a Refresh button wraps into three near-empty rows
+    on a 320px screen, and shrinking them to fit truncates their labels. So the
+    children keep their width (`shrink-0`) and the row scrolls inside itself —
+    the page never scrolls sideways.
+
+    `min-w-0` with NO `flex-1`. `flex-1` sets `flex-basis: 0`, which makes this
+    row's contribution to line-breaking zero: the count beside it then claims
+    its full max-content width first and this row is handed whatever is left.
+    Measured at 320px with doc 15's bar ("14 orders" plus the "3 pending
+    approval · 1 blocked" summary) that remainder was about 26px — two selects
+    inside a 26px scroll port. Sized from content instead, the row asks for what
+    it needs and the count wraps to its own line when there is no room.
+
+    `overflow-x-auto` at every width, not only below `sm`. With
+    `sm:overflow-x-visible` the same starvation at 768px — where the sidebar
+    reappears and takes 260px — pushed doc 17's six controls straight out of the
+    page and gave the whole document a horizontal scrollbar, the one thing every
+    page spec forbids at 320/768/1024/1440. `sm:flex-wrap` still lets a roomy
+    desktop row wrap instead of scrolling; the scroller is the floor under it,
+    so an over-wide row scrolls inside its own box rather than moving the page.
+    The cost, recorded so the next caller is not surprised: a scroll container
+    clips, so a projected control with a CSS-rendered popover (not a native
+    `<select>`, whose dropdown the browser paints outside the DOM) would be cut
+    off. None of the seven consumers projects one today.
+
+    `-m-1.5 p-1.5` is not spacing: an `overflow-x` scroller clips on the y axis
+    too, and at scrollLeft 0 it clips on the left as well, so without the inner
+    room a focused control's 2px ring at 2px offset is cut off on three sides.
+    The padding gives the ring somewhere to paint and the equal negative margin
+    hands the space back, leaving the margin box — which is what flex gap and
+    alignment measure — exactly where it was.
+  -->
+  <div
+    data-testid="filter-chip-bar-controls"
+    class="-m-1.5 flex min-w-0 snap-x snap-mandatory items-end gap-3 overflow-x-auto p-1.5 scrollbar-hidden [&>*]:shrink-0 [&>*]:snap-start sm:flex-wrap"
+  >
+    <ng-content />
+  </div>
+
+  <!--
+    Mounted from the first render, empty or not: a live region that appears at
+    the same time as its text is not announced.
+
+    `w-full sm:w-auto` — below `sm` the count takes its own line so the control
+    row above keeps the full width of the screen. `break-words` is the 320px
+    insurance: `summary` is free text and a caller will eventually put an
+    unbroken trade id in it.
+  -->
+  <div
+    aria-live="polite"
+    class="flex w-full min-w-0 flex-col gap-0.5 break-words sm:ml-auto sm:w-auto sm:items-end sm:text-right"
+  >
+    @if (countText()) {
+      <p data-testid="filter-chip-bar-count" class="text-sm font-medium text-text tabular-nums">
+        {{ countText() }}
+      </p>
+    }
+    @if (summary()) {
+      <p data-testid="filter-chip-bar-summary" class="text-xs text-text-secondary tabular-nums">
+        {{ summary() }}
+      </p>
+    }
+  </div>
+</div>
