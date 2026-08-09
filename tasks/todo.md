@@ -24,21 +24,21 @@ Per-task definition of done: model → service → sub-components → page templ
 
 ## Phase 2 — Fund agents
 
-- [ ] **T2.1 · doc 14 · Risk Agent** — `models/risk-verdict.model.ts`, `services/risk-agent.service.ts`, `pages/fund/risk-agent/`
-  - [ ] RiskMetrics ⟹ TCE mirrors ES/CVaR with the coincidence note + `aria-describedby`; Historical ⟹ note gone, values may differ
-  - [ ] WCE renders `—` ("requires the full probability space")
-  - [ ] Confidence/Method chips filter only — no loading state on change
-  - [ ] Re-run disabled without `state.allocation`, reason exposed; progress via `aria-live`
-  - [ ] Freshness `[!]` when macro input is older than the allocation input
-  - [ ] Empty / loading / error-naming-the-failed-phase
-- [ ] **T2.2 · doc 15 · Execution & Orders Agent** — `models/order.model.ts`, `services/execution.service.ts`, `pages/fund/execution-agent/`
-  - [ ] **Owns `proposed_orders` + broker posture** — Phases 4 and 7 read these signals
-  - [ ] Incomplete scheduling ⟹ `—` in both estimate columns, cannot leave pre-trade
-  - [ ] Blocked order shows the reason as text beside `✕`
-  - [ ] Stale-target warning when the latest fund state differs
-  - [ ] Sortable headers with `aria-sort` (delivers T1.6)
-  - [ ] Slide-over with 4 tabs; roving tablist; inactive panel out of the a11y tree; focus to heading on open
-  - [ ] No approve/reject/send control on this page
+- [x] **T2.1 · doc 14 · Risk Agent** — `models/risk-verdict.model.ts`, `services/risk-agent.service.ts`, `pages/fund/risk-agent/`
+  - [x] RiskMetrics ⟹ TCE mirrors ES/CVaR with the coincidence note + `aria-describedby`; Historical ⟹ note gone, values may differ
+  - [x] WCE renders `—` ("requires the full probability space")
+  - [x] Confidence/Method chips filter only — no loading state on change
+  - [x] Re-run disabled without `state.allocation`, reason exposed; progress via `aria-live`
+  - [x] Freshness `[!]` when macro input is older than the allocation input
+  - [x] Empty / loading / error-naming-the-failed-phase
+- [x] **T2.2 · doc 15 · Execution & Orders Agent** — `models/order.model.ts`, `services/execution.service.ts`, `pages/fund/execution-agent/`
+  - [x] **Owns `proposed_orders` + broker posture** — Phases 4 and 7 read these signals
+  - [x] Incomplete scheduling ⟹ `—` in both estimate columns, cannot leave pre-trade
+  - [x] Blocked order shows the reason as text beside `✕`
+  - [x] Stale-target warning when the latest fund state differs
+  - [x] Sortable headers with `aria-sort` (delivers T1.6)
+  - [x] Slide-over with 4 tabs; roving tablist; inactive panel out of the a11y tree; focus to heading on open
+  - [x] No approve/reject/send control on this page
 
 > **CHECKPOINT B** — walk `/fund/deliberation → macro → allocation → risk → execution`: one run id, consistent timestamps, each agent naming its state field.
 
