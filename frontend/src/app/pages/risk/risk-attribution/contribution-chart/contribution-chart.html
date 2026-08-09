@@ -1,0 +1,113 @@
+<figure class="surface-card" aria-labelledby="attribution-chart-heading">
+  <figcaption class="flex flex-col gap-0.5 border-b border-border px-4 py-3">
+    <h2 id="attribution-chart-heading" class="text-sm font-medium text-text">
+      Euler risk contribution by {{ componentNoun() }}
+    </h2>
+    <p class="text-xs text-text-secondary">
+      Descending by Euler contribution, whichever method the table is showing. Each bar carries its
+      own figure — the length is a second reading of a number that is already written down.
+    </p>
+  </figcaption>
+
+  @if (loading()) {
+    <div data-testid="chart-skeleton" aria-busy="true" class="flex flex-col gap-2 px-4 py-4">
+      <app-skeleton-block height="h-6" [lines]="8" />
+    </div>
+  } @else {
+    <!--
+      A list of buttons rather than a canvas: the spec wants a click on a bar to
+      open the detail panel, the selection shared with the table, and Escape to
+      hand focus back to the bar that opened it. None of the three is possible
+      on a drawing.
+    -->
+    <ul data-testid="contribution-bars" class="flex flex-col">
+      @for (row of bars(); track row.id) {
+        <li class="border-b border-border-muted last:border-b-0">
+          <!--
+            `flex-wrap` is the 320px insurance: the four fixed columns come to
+            more than a full-bleed card is wide there, so the hedge marker drops
+            onto a second line instead of widening the page. It is rendered only
+            for a hedge, so an ordinary row never grows a second line.
+          -->
+          <!--
+            Pointer and focus both write the shared highlight, so hovering a
+            table row lights the matching bar and the other way round — the
+            spec's "hover/click sincronizzati". Only `aria-pressed` carries the
+            real selection; the tint is a pointing device's echo of it.
+          -->
+          <button
+            type="button"
+            [attr.data-bar]="row.id"
+            [attr.data-highlighted]="highlightedComponentId() === row.id ? 'true' : null"
+            class="flex min-h-11 w-full flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-1.5 text-left sm:flex-nowrap"
+            [class.bg-surface-inset]="
+              selectedComponentId() === row.id || highlightedComponentId() === row.id
+            "
+            [attr.aria-pressed]="selectedComponentId() === row.id"
+            aria-controls="risk-attribution-detail"
+            (mouseenter)="highlight(row.id)"
+            (mouseleave)="highlight(null)"
+            (focus)="highlight(row.id)"
+            (blur)="highlight(null)"
+            (click)="toggleBar(row)"
+          >
+            <span class="w-20 shrink-0 truncate text-sm font-medium text-text">{{ row.name }}</span>
+
+            <!--
+              Decoration. Every number it encodes is printed to its right, so a
+              reader who cannot see the track loses nothing at all.
+            -->
+            <span
+              aria-hidden="true"
+              class="relative hidden h-3 min-w-0 flex-1 rounded-xs bg-surface-inset sm:block"
+            >
+              <span
+                class="absolute top-0 h-3 rounded-xs"
+                [class.bg-primary]="!isHedge(row)"
+                [class.bg-danger]="isHedge(row)"
+                [style.left.%]="barLeft(row)"
+                [style.width.%]="barWidth(row)"
+              ></span>
+            </span>
+
+            <span
+              class="w-16 shrink-0 text-right text-sm tabular-nums"
+              [class.text-danger]="isHedge(row)"
+              [class.text-text]="!isHedge(row)"
+              >{{ shareOf(row.eulerShare) }}</span
+            >
+            <span class="w-24 shrink-0 text-right text-sm tabular-nums text-text-secondary">{{
+              amount(row.euler)
+            }}</span>
+
+            @if (isHedge(row)) {
+              <!-- Glyph and word, never the red bar alone. -->
+              <span class="shrink-0 text-xs whitespace-nowrap text-danger">
+                <span aria-hidden="true">{{ hedgeIcon }}</span> {{ hedgeLabel }}
+              </span>
+            }
+          </button>
+        </li>
+      }
+    </ul>
+
+    <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-2">
+      <!--
+        Both figures come from the TOTAL row's object, never from re-summing the
+        bars on screen — the whole point of the region note in the spec.
+      -->
+      <p data-testid="chart-reference" class="text-xs text-text-secondary tabular-nums">
+        Sum of stand-alone risk <span class="text-text">{{ sumStandAlone() }}</span> ·
+        diversification benefit <span class="text-text">{{ diversificationBenefit() }}</span>
+      </p>
+
+      @if (hiddenCount() > 0 || expanded()) {
+        <button type="button" appButton="ghost" (click)="expanded.set(!expanded())">
+          {{ expanded() ? 'Show top 12' : 'Show all ' + rankedRows().length + ' bars' }}
+        </button>
+      }
+    </div>
+
+    <p class="sr-only">{{ summary() }}</p>
+  }
+</figure>

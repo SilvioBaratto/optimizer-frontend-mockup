@@ -1,0 +1,181 @@
+<!--
+  Wraps rather than scrolls: below 768px the controls drop onto further rows,
+  which is what the spec asks for, and the page itself never scrolls sideways.
+-->
+<!--
+  Each of the six recomputing controls carries its own busy marker beside its
+  label — the spec's "spinner inline su quel controllo" — so a sighted reader
+  can see *which* control is being applied without reading the status line
+  below. The marker is aria-hidden: the live region at the foot of the toolbar
+  says the same thing once, in words, rather than six times.
+-->
+<div class="flex flex-wrap items-end gap-x-4 gap-y-3">
+  <div class="flex flex-col gap-1" [attr.aria-busy]="isPending('measure') ? 'true' : null">
+    <span class="flex items-center gap-1 text-xs text-text-secondary">
+      Risk measure
+      @if (isPending('measure')) {
+        <span data-testid="pending-measure" aria-hidden="true" class="text-primary">⟳</span>
+      }
+    </span>
+    <app-segmented-control
+      label="Risk measure"
+      [options]="measureOptions()"
+      [value]="measure()"
+      (valueChange)="onMeasure($event)"
+    />
+  </div>
+
+  <!--
+    Stays in place when the measure has no quantile. Hiding it would move every
+    control to its right and make the toolbar jump under the reader's hands;
+    the reason travels on each option through aria-describedby instead.
+  -->
+  <div class="flex flex-col gap-1" [attr.aria-busy]="isPending('confidence') ? 'true' : null">
+    <span class="flex items-center gap-1 text-xs text-text-secondary">
+      Confidence
+      @if (isPending('confidence')) {
+        <span data-testid="pending-confidence" aria-hidden="true" class="text-primary">⟳</span>
+      }
+    </span>
+    <app-segmented-control
+      label="Confidence"
+      [options]="confidenceOptions()"
+      [value]="confidenceValue()"
+      (valueChange)="onConfidence($event)"
+    />
+  </div>
+
+  <div class="flex flex-col gap-1" [attr.aria-busy]="isPending('method') ? 'true' : null">
+    <span class="flex items-center gap-1 text-xs text-text-secondary">
+      Method
+      @if (isPending('method')) {
+        <span data-testid="pending-method" aria-hidden="true" class="text-primary">⟳</span>
+      }
+    </span>
+    <app-segmented-control
+      label="Method"
+      [options]="methodOptions()"
+      [value]="method()"
+      (valueChange)="onMethod($event)"
+    />
+  </div>
+
+  <div class="flex flex-col gap-1" [attr.aria-busy]="isPending('approach') ? 'true' : null">
+    <span class="flex items-center gap-1 text-xs text-text-secondary">
+      Est. approach
+      @if (isPending('approach')) {
+        <span data-testid="pending-approach" aria-hidden="true" class="text-primary">⟳</span>
+      }
+    </span>
+    <app-segmented-control
+      label="Estimation approach"
+      [options]="approachOptions()"
+      [value]="approach()"
+      (valueChange)="onApproach($event)"
+    />
+  </div>
+
+  <!--
+    `aria-disabled`, not `disabled`. Disabling the very `<select>` the reader
+    just operated takes it out of the tab order and drops focus to `<body>`;
+    the handler refuses the change instead and puts the visible value back.
+  -->
+  <div class="flex flex-col gap-1">
+    <label for="attribution-grouping" class="flex items-center gap-1 text-xs text-text-secondary">
+      Group by
+      @if (isPending('grouping')) {
+        <span data-testid="pending-grouping" aria-hidden="true" class="text-primary">⟳</span>
+      }
+    </label>
+    <select
+      id="attribution-grouping"
+      appSelect
+      class="max-w-48"
+      [attr.aria-disabled]="isPending('grouping') ? 'true' : null"
+      [attr.aria-busy]="isPending('grouping') ? 'true' : null"
+      (change)="onGrouping($event)"
+    >
+      @for (option of groupings; track option) {
+        <option [value]="option" [selected]="grouping() === option">
+          {{ groupingLabel[option] }}
+        </option>
+      }
+    </select>
+  </div>
+
+  <div class="flex flex-col gap-1">
+    <label for="attribution-snapshot" class="flex items-center gap-1 text-xs text-text-secondary">
+      As of
+      @if (isPending('snapshot')) {
+        <span data-testid="pending-snapshot" aria-hidden="true" class="text-primary">⟳</span>
+      }
+    </label>
+    <select
+      id="attribution-snapshot"
+      appSelect
+      class="max-w-56"
+      [attr.aria-disabled]="isPending('snapshot') ? 'true' : null"
+      [attr.aria-busy]="isPending('snapshot') ? 'true' : null"
+      (change)="onSnapshot($event)"
+    >
+      @for (option of snapshots; track option.id) {
+        <option [value]="option.id" [selected]="snapshotId() === option.id">
+          {{ option.label }}
+        </option>
+      }
+    </select>
+  </div>
+</div>
+
+<div class="flex flex-wrap items-end gap-x-4 gap-y-3">
+  <div class="flex w-full flex-col gap-1 sm:w-64">
+    <label for="attribution-search" class="text-xs text-text-secondary">Search components</label>
+    <!--
+      Filters the table only. The chart, the factor panel and the TOTAL row stay
+      whole-book: a decomposition of the rows that happen to match a search term
+      would not sum to anything.
+    -->
+    <input
+      id="attribution-search"
+      type="search"
+      placeholder="Search components…"
+      class="min-h-11 w-full rounded-md border border-border-control bg-surface-raised px-3 text-sm text-text"
+      [value]="search()"
+      (input)="onSearch($event)"
+    />
+  </div>
+
+  <div class="flex flex-col gap-1">
+    <span class="text-xs text-text-secondary">Show</span>
+    <app-segmented-control
+      label="Show risk figures in"
+      [options]="displayUnitOptions"
+      [value]="displayUnit()"
+      (valueChange)="onDisplayUnit($event)"
+    />
+  </div>
+
+  <button type="button" appButton="secondary" class="ml-auto" (click)="exportTable()">
+    Export
+  </button>
+</div>
+
+<!--
+  One live region for the whole toolbar. The inline `⟳` above sits on the
+  control itself so a sighted reader can see which one is busy; this says the
+  same thing once, politely, instead of six competing announcements.
+-->
+<p
+  role="status"
+  data-testid="toolbar-status"
+  class="min-h-4 text-xs text-text-secondary tabular-nums"
+>
+  @if (pendingLabel()) {
+    <span data-testid="toolbar-pending">
+      <span aria-hidden="true">⟳</span> Recomputing the decomposition for the new
+      {{ pendingLabel() }}…
+    </span>
+  } @else if (exportNotice()) {
+    <span data-testid="export-notice">{{ exportNotice() }}</span>
+  }
+</p>
