@@ -134,15 +134,15 @@ Per-task definition of done: model → service → sub-components → page templ
 
 ## Phase 7 — Report
 
-- [ ] **T7.1 · doc 24 · Report & Audit trail** — `models/report-audit.model.ts`, `services/report-audit.service.ts`, `pages/report/`
-  - [ ] Rows name run ids and agents that exist upstream, so Related links resolve
-  - [ ] Prompt hash `—` with `aria-label="not logged"` — expected data, not an error
-  - [ ] Orders & Idempotency and the Positions sync block empty **by posture**, reading `execution.service`
-  - [ ] Filters apply immediately; search waits for Enter/Search; CollectionStatBar announces
-  - [ ] Two distinct empty states (filtered vs never-logged)
-  - [ ] Tab change preserves Agent + Date range
-  - [ ] Slide-over `role="dialog" aria-modal="true"`, focus trap, Copy, focus returns to the row
-  - [ ] Loading blanks the whole view — no partial content
+- [x] **T7.1 · doc 24 · Report & Audit trail** — `models/report-audit.model.ts`, `services/report-audit.service.ts`, `pages/report/`
+  - [x] Rows name run ids and agents that exist upstream, so Related links resolve
+  - [x] Prompt hash `—` with `aria-label="not logged"` — expected data, not an error
+  - [x] Orders & Idempotency and the Positions sync block empty **by posture**, reading `execution.service`
+  - [x] Filters apply immediately; search waits for Enter/Search; CollectionStatBar announces
+  - [x] Two distinct empty states (filtered vs never-logged)
+  - [x] Tab change preserves Agent + Date range
+  - [x] Slide-over `role="dialog" aria-modal="true"`, focus trap, Copy, focus returns to the row
+  - [x] Loading blanks the whole view — no partial content
 
 > **CHECKPOINT G** — `npm run typecheck && npm run lint && npm run test:ci && npm run build`.
 
