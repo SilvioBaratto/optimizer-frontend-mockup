@@ -1,0 +1,69 @@
+<!--
+  The skip link's landing point: `tabindex="-1"` makes the region itself
+  focusable so the reader hears "Approval queue filters" before being dropped
+  into a select.
+-->
+<section
+  id="approval-filters"
+  tabindex="-1"
+  aria-label="Approval queue filters"
+  class="flex flex-col gap-1"
+>
+  <!--
+    No `[count]`/`[total]`: the chip bar would print "3 of 14 trades" into its
+    own `aria-live="polite"` region, twenty pixels above the CollectionStatBar
+    saying "3 of 14 trades in queue · step Human Gate · …" into another. The
+    Regioni table gives the count to that bar and gives this one the four
+    controls, so the number is announced once. The summary stays — how many
+    trades are waiting on a *person* is a different fact, and one the chips
+    cannot change.
+  -->
+  <app-filter-chip-bar [summary]="summary()">
+    <div class="flex flex-col gap-1">
+      <label for="approval-step-filter" class="text-xs text-text-secondary">Step</label>
+      <select id="approval-step-filter" appSelect class="max-w-44" (change)="onStep($event)">
+        @for (step of steps; track step) {
+          <option [value]="step" [selected]="stepFilter() === step">{{ stepLabel[step] }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <label for="approval-status-filter" class="text-xs text-text-secondary">Status</label>
+      <select id="approval-status-filter" appSelect class="max-w-36" (change)="onStatus($event)">
+        @for (status of statuses; track status) {
+          <option [value]="status" [selected]="statusFilter() === status">
+            {{ statusLabel[status] }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div class="flex w-56 flex-col gap-1">
+      <label for="approval-trade-search" class="text-xs text-text-secondary">
+        Trade id or symbol
+      </label>
+      <input
+        id="approval-trade-search"
+        type="search"
+        placeholder="Trade id or symbol…"
+        class="min-h-11 w-full rounded-md border border-border-control bg-surface-raised px-3 text-sm text-text"
+        [value]="search()"
+        (input)="onSearch($event)"
+      />
+    </div>
+
+    @if (filtersActive()) {
+      <button type="button" appButton="ghost" class="self-end" (click)="clearFilters()">
+        Clear filters
+      </button>
+    }
+
+    <app-refresh-control class="self-end" [busy]="loading()" (refresh)="refresh()" />
+  </app-filter-chip-bar>
+
+  <p class="text-xs text-text-secondary">
+    The filters narrow the queue only — they decide nothing. Refresh re-reads the snapshot and keeps
+    both the filters and the selected trade.
+  </p>
+</section>

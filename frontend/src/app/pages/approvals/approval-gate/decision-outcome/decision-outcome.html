@@ -1,0 +1,31 @@
+@if (decision(); as decision) {
+  <app-info-card title="Recorded outcome">
+    <p data-testid="outcome-status" class="text-sm text-text">
+      <!-- Glyph beside the word, never instead of it: a rejection and a
+           blocked trade must be tellable apart in greyscale. -->
+      <span aria-hidden="true" class="text-text-secondary">
+        {{ outcomeIcon[decision.outcome] }}
+      </span>
+      Status <span class="font-medium">{{ outcomeLabel[decision.outcome] }}</span>
+      @if (decision.effect) {
+        <span data-testid="outcome-effect"> — {{ effectLabel[decision.effect] }}</span>
+      }
+    </p>
+
+    <!-- The distinction the page exists to make, spelled out rather than left
+         to be inferred from the badge above it. -->
+    <p data-testid="outcome-meaning" class="mt-1 text-sm text-text-secondary">{{ meaning() }}</p>
+
+    <p class="mt-2 text-sm text-text-secondary">
+      Decided <span class="text-text tabular-nums">{{ decision.decidedAt }}</span> by
+      <span class="text-text">{{ decision.decidedBy }}</span> · posture at the decision:
+      <span class="text-text">{{ postureLabel[decision.posture] }}</span>
+    </p>
+
+    @if (decision.note) {
+      <p class="mt-2 text-sm break-words text-text-secondary">
+        Note: <span class="text-text">{{ decision.note }}</span>
+      </p>
+    }
+  </app-info-card>
+}

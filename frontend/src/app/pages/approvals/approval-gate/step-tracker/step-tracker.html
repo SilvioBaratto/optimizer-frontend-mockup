@@ -1,0 +1,31 @@
+<app-info-card title="Mandatory four-step path">
+  <!--
+    An ordered list because the sequence is the point: the four steps are walked
+    in this order and no other, and the arrows between them are decoration on
+    top of the list semantics rather than a substitute for them.
+  -->
+  <ol data-testid="step-tracker" class="flex flex-wrap items-center gap-y-2 text-sm">
+    @for (step of steps(); track step.stage) {
+      <li
+        class="flex items-center gap-1.5"
+        [attr.data-step-state]="step.state"
+        [attr.aria-current]="step.current ? 'step' : null"
+      >
+        <span aria-hidden="true" class="text-text-secondary">{{ icon[step.state] }}</span>
+        <span [class]="labelClass(step.state)">{{ step.label }}</span>
+        @if (step.current) {
+          <!-- The position in words, so it survives greyscale and a printout. -->
+          <span data-testid="current-step-suffix" class="font-medium text-primary">
+            {{ currentSuffix }}
+          </span>
+        }
+        <!-- What "passed", "not yet reached" or "not reached" mean, for a reader
+             who cannot see the glyph carrying it. -->
+        <span class="sr-only">— {{ stateLabel[step.state] }}</span>
+        @if (!$last) {
+          <span aria-hidden="true" class="px-2 text-text-secondary">&rarr;</span>
+        }
+      </li>
+    }
+  </ol>
+</app-info-card>

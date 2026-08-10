@@ -1,1 +1,54 @@
-<p>approval-gate works!</p>
+<!--
+  Regions follow `docs/16 Human Approval Gate.md` in wireframe order:
+  StatusBanner → FilterChipBar → CollectionStatBar → SectionCardGrid →
+  DetailPanel (StepTracker → automated checks → decision or recorded outcome →
+  audit trail).
+
+  The shell renders the <h1> and the breadcrumb, so headings here start at <h2>.
+-->
+
+<!-- Past the shell, straight onto the filters, as the doc's a11y section asks. -->
+<a href="#approval-filters" class="skip-link">Skip to the approval filters</a>
+
+<!-- 1 · StatusBanner — the broker posture. Always visible, never dismissible. -->
+<app-approval-posture-banner />
+
+<!-- 2 · FilterChipBar — step, status, search, refresh. -->
+<app-approval-queue-filters />
+
+<!-- 3 · CollectionStatBar — what is shown, of what, in what order. -->
+<app-collection-stat-bar [parts]="statParts()" />
+
+<!-- 4 · SectionCardGrid — the queue itself, and its three failing states. -->
+@switch (state()) {
+  @case ('loading') {
+    <!-- Placeholders at the height of the cards they stand in for, as many as
+         the queue last held. The posture banner above keeps its last known
+         value rather than becoming a placeholder: it is not being re-read. -->
+    <div data-testid="queue-loading" aria-busy="true" class="flex flex-col gap-3">
+      <p role="status" class="sr-only">Re-reading the approval queue…</p>
+      @for (row of skeletonRows(); track row) {
+        <app-skeleton-block height="h-16" />
+      }
+    </div>
+  }
+
+  @case ('error') {
+    <!-- The filters above stay interactive: the way out of this is another
+         attempt, and the reader may want a different one. -->
+    <app-error-state
+      data-testid="queue-error"
+      [message]="errorMessage() ?? ''"
+      detail="The queue could not be read. Nothing has been decided and no trade has moved."
+      cause="load"
+      (retry)="retry()"
+    />
+  }
+
+  @default {
+    <app-approval-queue />
+  }
+}
+
+<!-- 5-10 · DetailPanel — the selected trade, and everything about it. -->
+<app-approval-trade-detail />

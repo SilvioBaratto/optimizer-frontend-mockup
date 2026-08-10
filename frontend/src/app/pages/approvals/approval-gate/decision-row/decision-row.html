@@ -1,0 +1,96 @@
+@if (trade(); as trade) {
+  <app-info-card title="Decision">
+    @if (canDecide()) {
+      <!--
+        The decision row proper. Present only at the human gate: the other three
+        steps have nothing to note and nothing to authorise.
+
+        The sentence is the service's, and is the same string the posture banner
+        prints at the top of the page.
+      -->
+      <p data-testid="decision-sentence" class="text-sm text-text">{{ sentence() }}</p>
+
+      <div class="mt-3 flex flex-col gap-1">
+        <label for="approval-decision-note" class="text-xs text-text-secondary">
+          Decision note (optional)
+        </label>
+        <textarea
+          id="approval-decision-note"
+          rows="2"
+          placeholder="Why this trade is approved or rejected…"
+          class="w-full rounded-md border border-border-control bg-surface-raised px-3 py-2 text-sm text-text"
+          [value]="note()"
+          (input)="onNote($event)"
+        ></textarea>
+      </div>
+    } @else {
+      <!--
+        Not the decision row — the reason there isn't one. It is also the target
+        of the two buttons' `aria-describedby`, so the explanation is announced
+        with the control rather than only sitting near it.
+      -->
+      <p [id]="reasonId" data-testid="decision-blocked-reason" class="text-sm text-text-secondary">
+        {{ reason() }}
+      </p>
+    }
+
+    @if (decisionError(); as failure) {
+      <!-- A write the user asked for that did not land: assertive, and it says
+           what did *not* happen as well as what did. -->
+      <p
+        role="alert"
+        data-testid="decision-error"
+        class="mt-3 rounded-md border border-border bg-surface-inset px-3 py-2 text-sm text-danger"
+      >
+        {{ failure }}
+      </p>
+    }
+
+    <div class="mt-3">
+      <app-action-button-row>
+        <!--
+          Present and announced at every step, disabled only where the trade is.
+          Native <button>s, never a div with a click handler.
+        -->
+        <button
+          type="button"
+          appButton="danger-outline"
+          data-testid="reject-button"
+          [attr.aria-disabled]="canDecide() ? null : 'true'"
+          [attr.aria-describedby]="canDecide() ? null : reasonId"
+          [attr.aria-busy]="deciding() || null"
+          (click)="ask('reject', $event)"
+        >
+          <span aria-hidden="true">&#10005;</span> Reject
+        </button>
+
+        <button
+          type="button"
+          appButton="primary"
+          data-testid="approve-button"
+          [attr.aria-disabled]="canDecide() ? null : 'true'"
+          [attr.aria-describedby]="canDecide() ? null : reasonId"
+          [attr.aria-busy]="deciding() || null"
+          (click)="ask('approve', $event)"
+        >
+          <span aria-hidden="true">&#10003;</span> Approve
+        </button>
+      </app-action-button-row>
+    </div>
+
+    <!--
+      The irreversible step, behind its own explicit confirmation. The message
+      restates the expected outcome in the posture's terms — routed to the
+      broker, or authorised for a placement you make yourself.
+    -->
+    <app-confirm-dialog
+      [open]="pending() !== null"
+      [title]="dialogTitle()"
+      [message]="dialogMessage()"
+      [confirmLabel]="confirmLabel()"
+      [destructive]="pending() === 'reject'"
+      (confirmed)="confirm()"
+      (cancelled)="cancel()"
+    />
+  </app-info-card>
+}
