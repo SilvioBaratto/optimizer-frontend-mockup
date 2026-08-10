@@ -12,7 +12,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import type { ProposedOrder } from '../../../../models/order.model';
-import { ExecutionService } from '../../../../services/execution.service';
+import { ExecutionService, formatWaiting } from '../../../../services/execution.service';
 import { CostVarianceChart } from './cost-variance-chart';
 import { OrderDetailPanel } from './order-detail-panel';
 import { TrajectoryChart } from './trajectory-chart';
@@ -270,6 +270,25 @@ describe('OrderDetailPanel', () => {
     expect(host.querySelector('[data-pipeline-step="human-gate"]')?.textContent).toContain(
       'Not reached',
     );
+  });
+
+  it('when the Pipeline tab is shown, the wait printed is the one the execution service derives', async () => {
+    await open();
+    tabs()[2].click();
+    fixture.detectChanges();
+
+    const order = service.order(SCHEDULED)!;
+    const panel = host.querySelector('[role="tabpanel"]')!;
+    expect(panel.textContent).toContain(
+      `Waiting since it was queued ${formatWaiting(service.waitingSecondsFor(order))}`,
+    );
+    // 09:12:03 into the 09:53:15 snapshot — the panel prints the gap, and no
+    // duration is stored anywhere that could disagree with those two stamps.
+    expect(panel.textContent).toContain('Waiting since it was queued 00:41:12');
+    // And it names the span it actually measures: this trade is standing at
+    // the human gate, two steps past the pre-trade check it was queued at, so
+    // "at the current step" would have been a different and smaller number.
+    expect(order.stage).not.toBe('pre-trade');
   });
 
   it('when no broker is configured, the fourth step says the order stops at the gate', async () => {

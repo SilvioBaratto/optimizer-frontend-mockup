@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { vi } from 'vitest';
 
 import {
   ALREADY_DECIDED,
@@ -43,6 +44,23 @@ function order(execution: ExecutionService, id: string): ProposedOrder {
   const found = execution.order(id);
   if (!found) throw new Error(`no order ${id} in the seed data`);
   return found;
+}
+
+/**
+ * Runs `act` with the UTC wall clock held at `instant`.
+ *
+ * The snapshot stamp behind the queue is written from `new Date()`, so a test
+ * about the snapshot moving forward has to say where it moves to. Only `Date`
+ * is faked, leaving the services' own latency on real timers.
+ */
+async function atUtc(instant: string, act: () => Promise<void>): Promise<void> {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(instant));
+  try {
+    await act();
+  } finally {
+    vi.useRealTimers();
+  }
 }
 
 function ruleResults(gate: ApprovalGateService, tradeId: string): readonly CheckResult[] {
@@ -92,16 +110,38 @@ describe('ApprovalGateService — the queue projects proposed_orders', () => {
     expect(projected.stage).toBe(source.stage);
     expect(projected.status).toBe(source.status);
     expect(projected.queuedAt).toBe(source.queuedAt);
-    expect(projected.waitingSeconds).toBe(source.waitingSeconds);
+    // The wait is asked of the execution service, not restated here: it is the
+    // gap between the trade's stamps and a snapshot only that service holds.
+    expect(projected.waitingSeconds).toBe(execution.waitingSecondsFor(source));
     expect(projected.waiting).toBe('00:41:12');
   });
 
   it('when the queue is read, it is sorted by waiting time, longest first', () => {
-    const { gate } = setup();
+    const { gate, execution } = setup();
 
     const waits = gate.queue().map((r) => r.waitingSeconds);
 
     expect(waits).toEqual([...waits].sort((a, b) => b - a));
+    expect(waits).toEqual(
+      gate.queue().map((r) => execution.waitingSecondsFor(order(execution, r.tradeId))),
+    );
+    expect(gate.queue()[0].tradeId).toBe(LONGEST_WAIT);
+  });
+
+  it('when a refresh moves the snapshot, the queue is re-ranked on the new waits', async () => {
+    const { gate, execution } = setup();
+    const before = gate.queue().map((r) => r.waitingSeconds);
+
+    // An hour later, so every undecided trade has waited an hour longer and
+    // the decided ones have not moved at all.
+    await atUtc('2026-08-01T10:53:15Z', () => gate.refresh());
+
+    const after = gate.queue().map((r) => r.waitingSeconds);
+    expect(after).not.toEqual(before);
+    expect(after).toEqual([...after].sort((a, b) => b - a));
+    expect(after).toEqual(
+      gate.queue().map((r) => execution.waitingSecondsFor(order(execution, r.tradeId))),
+    );
     expect(gate.queue()[0].tradeId).toBe(LONGEST_WAIT);
   });
 
@@ -719,28 +759,26 @@ describe('ApprovalGateService — step tracker and audit trail', () => {
     expect(trail[trail.length - 1].detail).toContain('manual placement');
   });
 
-  it('when a decision is signed earlier in the day than the queue, it is still the last checkpoint', async () => {
+  it('when a decision is signed, the audit trail orders by pipeline step rather than by clock', async () => {
+    // This ordering is deliberate and stays defensive. It was written when a
+    // decision carried the wall clock while the seeded checkpoints carried the
+    // run's own 09:xx stamps, so before 09:12 UTC a signature had the *smaller*
+    // stamp and a clock-ordered trail hoisted it above the moment the trade was
+    // queued — an audit trail claiming a person approved a trade before it
+    // entered the pipeline. ExecutionService no longer reads the wall clock, so
+    // that particular route is closed, but the rule is what guarantees the
+    // trail reads in pipeline order whatever the stamps say.
     const { gate } = setup();
-    // The seeded checkpoints are stamped against the snapshot's own run —
-    // 09:xx — while a decision taken now is stamped from the wall clock. Before
-    // 09:12 UTC the signature therefore carries the *smaller* stamp, and an
-    // ordering that trusted the clock hoisted it above the moment the trade was
-    // queued: an audit trail claiming a person approved a trade before it
-    // entered the pipeline. Only `Date` is faked, so the service's own
-    // `setTimeout` round trip still resolves.
-    vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-08-01T02:31:07Z'));
-    try {
-      await gate.decide(AT_GATE, true);
-    } finally {
-      vi.useRealTimers();
-    }
+
+    await gate.decide(AT_GATE, true);
 
     const trail = gate.checkpointsFor(AT_GATE);
     expect(trail[0].stage).toBe('pre-trade');
     expect(trail[0].at).toBe('09:12:03');
     expect(trail[trail.length - 1].stage).toBe('human-gate');
-    expect(trail[trail.length - 1].at).toBe('02:31:07');
+
+    const stages = trail.map((c) => c.stage);
+    expect(stages).toEqual([...ORDER_STAGES].filter((s) => stages.includes(s)));
   });
 
   it('when a trade has no checkpoint of its own, its trail is empty rather than another trade’s', () => {

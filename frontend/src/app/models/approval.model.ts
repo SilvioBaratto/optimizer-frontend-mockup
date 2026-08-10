@@ -40,11 +40,11 @@ export const PROPOSING_AGENT = 'Execution & Orders Agent';
 /**
  * One trade in the approval queue.
  *
- * A read-model over `ProposedOrder`: every field is that order's, restated in
- * the words this page prints. `quantity` is the absolute share count because
- * the side is already carried beside it, and `waiting` is the formatted twin of
- * `waitingSeconds` so the grid can print a duration without four components
- * each writing a formatter.
+ * A read-model over `ProposedOrder`: every field is that order's or derived
+ * from it, restated in the words this page prints. `quantity` is the absolute
+ * share count because the side is already carried beside it, and `waiting` is
+ * the formatted twin of `waitingSeconds` so the grid can print a duration
+ * without four components each writing a formatter.
  */
 export interface ApprovalQueueRow {
   /** `TRD-2031` — the same id doc 15 and doc 24 deep-link against. */
@@ -65,7 +65,20 @@ export interface ApprovalQueueRow {
    * sentence it refused with, not a red badge.
    */
   readonly statusReason: string | null;
-  /** Seconds waited at that step — the sort key, so ordering is a sort not a parse. */
+  /**
+   * Seconds waited since `queuedAt` — the sort key, so ordering is a sort not
+   * a parse.
+   *
+   * The span is the whole time in the pipeline, not the time at the step the
+   * trade is standing at now: a trade that has moved on from the step it was
+   * queued at keeps accruing against its entry stamp, which is what makes
+   * "longest waiting first" rank by how long a person has been unanswered.
+   *
+   * Not a field of the trade: `ExecutionService.waitingSecondsFor` works it out
+   * from the trade's stamps and the snapshot the queue is showing, and the row
+   * is rebuilt whenever either moves. Nothing stores it, so nothing can go
+   * stale against the snapshot printed above the queue.
+   */
   readonly waitingSeconds: number;
   /** `02:15:33` — `waitingSeconds` as the card prints it. */
   readonly waiting: string;

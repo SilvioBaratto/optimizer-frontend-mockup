@@ -85,7 +85,6 @@ export class OrderDetailPanel {
   protected readonly signedQuantity = formatSignedQuantity;
   protected readonly quantity = groupDigits;
   protected readonly impactValue = formatImpact;
-  protected readonly waiting = formatWaiting;
 
   protected readonly order = this.service.selectedOrder;
   protected readonly open = computed(() => this.order() !== null);
@@ -132,6 +131,20 @@ export class OrderDetailPanel {
    * nothing about which one opened.
    */
   protected readonly dialogLabel = computed(() => `Proposed order detail — ${this.headingText()}`);
+
+  /**
+   * How long the open order has been waiting, formatted.
+   *
+   * Asked of the service rather than read off the order: the wait is the gap
+   * between the order's own stamps and the snapshot behind the page, and only
+   * the service holds that snapshot. Reading it through a `computed` is also
+   * what makes the line follow a refresh instead of printing the wait as of
+   * whenever the panel was opened.
+   */
+  protected readonly waiting = computed(() => {
+    const order = this.order();
+    return order === null ? '' : formatWaiting(this.service.waitingSecondsFor(order));
+  });
 
   protected readonly unpriced = computed(() => {
     const order = this.order();

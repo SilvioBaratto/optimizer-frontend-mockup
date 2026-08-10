@@ -138,7 +138,14 @@
             </ol>
 
             <p class="mt-3 text-xs text-text-secondary tabular-nums">
-              Waiting at the current step {{ waiting(detail.waitingSeconds) }}
+              <!--
+                Since the trade entered the pipeline, not since it reached the
+                step above it: `waitingSecondsFor` measures from `queuedAt`, and
+                ten of the fourteen orders are standing past the step they were
+                queued at. Naming the wrong span would have the line disagree
+                with the arithmetic printing it.
+              -->
+              Waiting since it was queued {{ waiting() }}
               @if (detail.decidedAt) {
                 · decided {{ detail.decidedAt }} by {{ detail.decidedBy }}
               }

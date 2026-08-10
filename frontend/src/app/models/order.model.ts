@@ -190,12 +190,16 @@ export interface ProposedOrder {
    */
   readonly queuedAt: string;
   /**
-   * Seconds spent waiting at the current stage. Frozen at the decision for an
-   * order already approved, rejected or blocked. A number, not a string, so
-   * "sorted by waiting time, longest first" is a sort and not a parse.
+   * Set only once a person has signed at the human gate.
+   *
+   * With `queuedAt` this is also the whole of the trade's waiting time: an
+   * order nobody has answered has been waiting since `queuedAt` up to the
+   * snapshot on screen, and a decided one stopped waiting here. There is
+   * deliberately no `waitingSeconds` beside these two — the snapshot moves, and
+   * a duration stored on a data shape that cannot see it would be stale the
+   * moment it did. `ExecutionService.waitingSecondsFor` owns the arithmetic
+   * because it is the only thing that holds the snapshot.
    */
-  readonly waitingSeconds: number;
-  /** Set only once a person has signed at the human gate. */
   readonly decidedAt: string | null;
   readonly decidedBy: string | null;
   readonly impact: ImpactParameters;

@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { vi } from 'vitest';
 
 import { ORDER_STAGES, type ProposedOrder } from '../models/order.model';
 import { ExecutionService, formatWaiting } from './execution.service';
@@ -17,6 +18,38 @@ function find(service: ExecutionService, id: string): ProposedOrder {
   const order = service.orders().find((o) => o.id === id);
   if (!order) throw new Error(`no order ${id} in the seed data`);
   return order;
+}
+
+/**
+ * `HH:MM:SS` as seconds since midnight — this file's own reading of a stamp, so
+ * a wait can be checked against the two stamps it is supposed to span.
+ */
+function clockSeconds(stamp: string): number {
+  const [hours, minutes, seconds] = stamp.split(':').map(Number);
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+/** The time of day the snapshot stamp is carrying right now. */
+function snapshotClock(service: ExecutionService): number {
+  return clockSeconds(service.snapshotAt().slice(11, 19));
+}
+
+/**
+ * Runs `act` with the UTC wall clock held at `instant`.
+ *
+ * The snapshot stamp is written from `new Date()`, so a test about the snapshot
+ * moving forward has to say where it moves to. Only `Date` is faked — the
+ * service's own `setTimeout` latency stays real, so `refresh()` still resolves
+ * on its own.
+ */
+async function atUtc(instant: string, act: () => Promise<void>): Promise<void> {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(instant));
+  try {
+    await act();
+  } finally {
+    vi.useRealTimers();
+  }
 }
 
 /** The one order the seed data leaves without a completed schedule. */
@@ -361,14 +394,31 @@ describe('ExecutionService — refresh', () => {
     expect(service.staleTarget()).toBe(true);
   });
 
-  it('when the snapshot stamp is written, its clock is the UTC one it is labelled with', async () => {
+  it('when the snapshot stamp is written, it moves on from the last one rather than reading the wall clock', async () => {
+    // The stamp used to be `new Date()`. Every waiting time is derived from
+    // `snapshotAt − queuedAt`, so against a dataset pinned to 2026-08-01 that
+    // made the figures depend on the machine's clock: running the app before
+    // 09:53:15 UTC moved the snapshot *backwards* on refresh. Measured in the
+    // browser at 09:40 UTC — TRD-2019 fell from 02:15:33 to 02:02:48, and
+    // TRD-2030, queued 09:41:10, clamped to 00:00:00.
     const service = setup();
+    const before = service.snapshotAt();
 
     await service.refresh();
 
     const stamp = service.snapshotAt();
     expect(stamp.endsWith(' UTC')).toBe(true);
-    expect(stamp.slice(11, 13)).toBe(new Date().toISOString().slice(11, 13));
+    expect(stamp).toBe('2026-08-01 10:53:15 UTC');
+    expect(stamp > before).toBe(true);
+  });
+
+  it('when the snapshot is refreshed twice, the clock keeps moving forward', async () => {
+    const service = setup();
+
+    await service.refresh();
+    await service.refresh();
+
+    expect(service.snapshotAt()).toBe('2026-08-01 11:53:15 UTC');
   });
 });
 
@@ -426,5 +476,85 @@ describe('formatWaiting', () => {
 
   it('when the wait crosses an hour, it prints hours', () => {
     expect(formatWaiting(8133)).toBe('02:15:33');
+  });
+});
+
+// ===========================================================================
+// Criterion — the waiting time is derived from the snapshot, never stored
+// ===========================================================================
+
+describe('ExecutionService — waiting time', () => {
+  it('when an order is undecided, its wait is the gap between its queue time and the current snapshot', () => {
+    const service = setup();
+    const order = find(service, 'TRD-2031');
+    expect(order.decidedAt).toBeNull();
+
+    const waited = service.waitingSecondsFor(order);
+
+    expect(waited).toBe(snapshotClock(service) - clockSeconds(order.queuedAt));
+  });
+
+  it('when an order has been decided, its wait stops at the decision rather than at the snapshot', () => {
+    const service = setup();
+    const order = find(service, 'TRD-2028');
+    const decidedAt = order.decidedAt;
+    if (decidedAt === null) throw new Error('TRD-2028 must arrive already decided');
+
+    const waited = service.waitingSecondsFor(order);
+
+    expect(waited).toBe(clockSeconds(decidedAt) - clockSeconds(order.queuedAt));
+    // The snapshot is later than the decision, so measuring to it would have
+    // given a longer wait — which is exactly what a stored field could not
+    // avoid once the snapshot moved past it.
+    expect(waited).toBeLessThan(snapshotClock(service) - clockSeconds(order.queuedAt));
+  });
+
+  it('when a refresh advances the snapshot, undecided orders have waited longer and decided ones have not', async () => {
+    const service = setup();
+    const undecidedBefore = service.waitingSecondsFor(find(service, 'TRD-2031'));
+    const decidedBefore = service.waitingSecondsFor(find(service, 'TRD-2028'));
+
+    // The snapshot stamp is the wall clock, so the wall clock is what has to
+    // move for the read to land an hour later than the seeded 09:53:15.
+    await atUtc('2026-08-01T10:53:15Z', () => service.refresh());
+
+    expect(service.snapshotAt()).toBe('2026-08-01 10:53:15 UTC');
+    expect(service.waitingSecondsFor(find(service, 'TRD-2031'))).toBe(undecidedBefore + 3600);
+    expect(service.waitingSecondsFor(find(service, 'TRD-2028'))).toBe(decidedBefore);
+  });
+
+  it('when the seed is first read, TRD-2019 waits the 02:15:33 doc 16’s wireframe fixes it at', () => {
+    const service = setup();
+
+    expect(formatWaiting(service.waitingSecondsFor(find(service, 'TRD-2019')))).toBe('02:15:33');
+  });
+
+  it('when every order is read, none of them carries a waiting time of its own', () => {
+    const service = setup();
+
+    // The defect this replaces was fourteen literals that had to be re-edited
+    // whenever a stamp moved. A field that is absent cannot disagree with the
+    // stamps beside it.
+    expect(service.orders().every((o) => !('waitingSeconds' in o))).toBe(true);
+  });
+
+  it('when every order is read, each wait is the span between its own two stamps', () => {
+    const service = setup();
+    const orders = service.orders();
+
+    // The whole list, not the three named above: fourteen literals were what
+    // broke, so the replacement is checked against all fourteen of the stamp
+    // pairs it claims to be arithmetic on.
+    const derived = orders.map((o) => [o.id, service.waitingSecondsFor(o)]);
+    const spans = orders.map((o) => [
+      o.id,
+      clockSeconds(o.decidedAt ?? service.snapshotAt().slice(11, 19)) - clockSeconds(o.queuedAt),
+    ]);
+
+    expect(orders.length).toBeGreaterThan(0);
+    expect(derived).toEqual(spans);
+    // Every span is positive on the seed, so the clamp at zero is not quietly
+    // standing in for a stamp pair that runs backwards.
+    expect(derived.every(([, seconds]) => (seconds as number) > 0)).toBe(true);
   });
 });

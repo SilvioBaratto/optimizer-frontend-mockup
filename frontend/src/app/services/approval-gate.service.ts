@@ -169,11 +169,19 @@ export class ApprovalGateService {
    * filtered view against this, and the invariant that no trade sits at the
    * broker adapter under the default posture is a property of the whole
    * collection rather than of whatever the chips happen to show.
+   *
+   * The wait is `ExecutionService`'s, asked for here rather than read off the
+   * order, because it is the gap between the trade's stamps and a snapshot only
+   * that service holds. The ordering follows from it: this computed re-runs
+   * when the snapshot moves, so a refresh that lengthens every undecided wait
+   * re-sorts the queue instead of leaving it ranked on the waits of a snapshot
+   * that has been replaced.
    */
   readonly queue = computed<readonly ApprovalQueueRow[]>(() =>
-    [...this.execution.orders()]
-      .sort((a, b) => b.waitingSeconds - a.waitingSeconds)
-      .map((order) => toRow(order)),
+    this.execution
+      .orders()
+      .map((order) => toRow(order, this.execution.waitingSecondsFor(order)))
+      .sort((a, b) => b.waitingSeconds - a.waitingSeconds),
   );
 
   readonly totalCount = computed(() => this.queue().length);
@@ -738,8 +746,12 @@ export class ApprovalGateService {
  * is the only step at which a person is being asked anything, and only while
  * nobody has answered. Every card, the detail panel and the two buttons read
  * this one flag rather than each re-testing a stage and a status.
+ *
+ * `waitingSeconds` is passed in rather than taken from the order: the order does
+ * not carry one, because a wait is only meaningful against the snapshot it is
+ * measured to. The row is rebuilt whenever that snapshot moves.
  */
-function toRow(order: ProposedOrder): ApprovalQueueRow {
+function toRow(order: ProposedOrder, waitingSeconds: number): ApprovalQueueRow {
   return {
     tradeId: order.id,
     symbol: order.symbol,
@@ -749,8 +761,8 @@ function toRow(order: ProposedOrder): ApprovalQueueRow {
     stage: order.stage,
     status: order.status,
     statusReason: order.statusReason,
-    waitingSeconds: order.waitingSeconds,
-    waiting: formatWaiting(order.waitingSeconds),
+    waitingSeconds,
+    waiting: formatWaiting(waitingSeconds),
     proposedBy: PROPOSING_AGENT,
     queuedAt: order.queuedAt,
     decidable: order.stage === 'human-gate' && order.status === 'pending',

@@ -24,6 +24,18 @@ const APPROVER = 'm.rossi@fund';
 
 const RUN_DATE = '2026-08-01';
 
+/** When the seeded snapshot was read. Doc 16's wireframe waiting times are measured from it. */
+const SEED_SNAPSHOT_CLOCK = '09:53:15';
+
+/**
+ * How far a refresh moves the snapshot on.
+ *
+ * An hour, so the effect on a derived waiting time is unmistakable rather than
+ * a rounding artefact — this is the lever the specs' "the snapshot moved and
+ * the undecided orders have waited longer" state is demonstrated with.
+ */
+const SNAPSHOT_STEP_SECONDS = 3600;
+
 /** The target the shown orders were sized against, and the one in the newest state. */
 const TARGET_AT_RUN: TargetSnapshot = {
   id: 'balanced-growth-v3',
@@ -75,6 +87,11 @@ function schedule(total: number, intervals: number, decay: number): readonly num
  * passing the pre-trade check at 08:41, over half an hour before the run opened
  * at 09:10:41. The field's own meaning is stated where it is declared, on
  * `ProposedOrder.queuedAt` in `models/order.model.ts`.
+ *
+ * No order carries a waiting time. Waiting is `queuedAt` against the decision
+ * or, while there is none, against the snapshot — so it is arithmetic on the
+ * stamps below rather than a fifteenth column that has to be edited whenever
+ * one of them is. `waitingSecondsFor` does it.
  */
 const SEED_ORDERS: readonly ProposedOrder[] = [
   // --- human gate ----------------------------------------------------------
@@ -91,7 +108,6 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
     status: 'pending',
     statusReason: null,
     queuedAt: '09:12:03',
-    waitingSeconds: 2472,
     decidedAt: null,
     decidedBy: null,
     impact: { lambda: 3.1e-7, eta: 2.4e-6, halfLifeMinutes: 12 },
@@ -109,7 +125,6 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
     status: 'pending',
     statusReason: null,
     queuedAt: '09:41:10',
-    waitingSeconds: 725,
     decidedAt: null,
     decidedBy: null,
     impact: { lambda: 2.8e-7, eta: 2.2e-6, halfLifeMinutes: 11 },
@@ -127,11 +142,11 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
     status: 'pending',
     statusReason: null,
     // In the pipeline since before run #1247 opened at 09:10:41, and still
-    // waiting on a person: doc 16 shows it at 02:15:33, the longest wait on the
-    // queue. Run #1247 re-proposed it unchanged, which is why its audit-log
-    // intent is stamped 09:14:13 and its entry here is not.
+    // waiting on a person: 07:37:42 against the 09:53:15 snapshot is the
+    // 02:15:33 doc 16's wireframe shows, and the longest wait on the queue. Run
+    // #1247 re-proposed it unchanged, which is why its audit-log intent is
+    // stamped 09:14:13 and its entry here is not.
     queuedAt: '07:37:42',
-    waitingSeconds: 8133,
     decidedAt: null,
     decidedBy: null,
     impact: { lambda: 1.6e-7, eta: 1.3e-6, halfLifeMinutes: 8 },
@@ -150,7 +165,6 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
     statusReason:
       'Approved for manual placement — with no broker adapter configured the order does not leave the system.',
     queuedAt: '09:13:12',
-    waitingSeconds: 1887,
     decidedAt: '09:44:39',
     decidedBy: APPROVER,
     impact: { lambda: 2.1e-7, eta: 1.7e-6, halfLifeMinutes: 14 },
@@ -169,7 +183,6 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
     statusReason:
       'Approved for manual placement — with no broker adapter configured the order does not leave the system.',
     queuedAt: '09:14:05',
-    waitingSeconds: 1255,
     decidedAt: '09:35:00',
     decidedBy: APPROVER,
     impact: { lambda: 3.6e-7, eta: 2.9e-6, halfLifeMinutes: 18 },
@@ -189,7 +202,6 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
       'Rejected at the gate — the sleeve is being wound down through a separate programme trade this week.',
     // Also in the pipeline before the run, and re-proposed unchanged by it.
     queuedAt: '08:52:31',
-    waitingSeconds: 1649,
     decidedAt: '09:20:00',
     decidedBy: APPROVER,
     impact: { lambda: 9.4e-7, eta: 7.1e-6, halfLifeMinutes: 26 },
@@ -210,7 +222,6 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
     statusReason:
       'Single-name concentration limit — EEM would reach 12.4% NAV against the configured 12.0% cap.',
     queuedAt: '09:15:44',
-    waitingSeconds: 2251,
     decidedAt: null,
     decidedBy: null,
     impact: { lambda: 5.2e-7, eta: 4.3e-6, halfLifeMinutes: 22 },
@@ -228,7 +239,6 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
     status: 'pending',
     statusReason: null,
     queuedAt: '09:26:10',
-    waitingSeconds: 1625,
     decidedAt: null,
     decidedBy: null,
     impact: { lambda: 2.9e-7, eta: 2.3e-6, halfLifeMinutes: 16 },
@@ -246,7 +256,6 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
     status: 'pending',
     statusReason: null,
     queuedAt: '09:49:28',
-    waitingSeconds: 227,
     decidedAt: null,
     decidedBy: null,
     impact: { lambda: 1.1e-7, eta: 0.9e-6, halfLifeMinutes: 6 },
@@ -264,7 +273,6 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
     status: 'pending',
     statusReason: null,
     queuedAt: '09:52:57',
-    waitingSeconds: 18,
     decidedAt: null,
     decidedBy: null,
     impact: { lambda: 2.4e-7, eta: 1.9e-6, halfLifeMinutes: 13 },
@@ -284,7 +292,6 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
     status: 'pending',
     statusReason: null,
     queuedAt: '09:47:55',
-    waitingSeconds: 320,
     decidedAt: null,
     decidedBy: null,
     impact: { lambda: 4.7e-7, eta: 3.8e-6, halfLifeMinutes: 19 },
@@ -302,7 +309,6 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
     status: 'pending',
     statusReason: null,
     queuedAt: '09:50:11',
-    waitingSeconds: 184,
     decidedAt: null,
     decidedBy: null,
     impact: { lambda: 2.2e-7, eta: 1.8e-6, halfLifeMinutes: 12 },
@@ -321,7 +327,6 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
     statusReason:
       'Scheduling incomplete — the intraday volume profile came back short, so no cost or risk estimate is published.',
     queuedAt: '09:51:02',
-    waitingSeconds: 133,
     decidedAt: null,
     decidedBy: null,
     impact: { lambda: 4.4e-7, eta: 3.5e-6, halfLifeMinutes: 21 },
@@ -340,7 +345,6 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
     statusReason:
       'Scheduling incomplete — the intraday volume profile came back short, so no cost or risk estimate is published.',
     queuedAt: '09:52:40',
-    waitingSeconds: 35,
     decidedAt: null,
     decidedBy: null,
     impact: { lambda: 6.1e-7, eta: 4.8e-6, halfLifeMinutes: 24 },
@@ -404,6 +408,17 @@ export function formatWaiting(seconds: number): string {
 }
 
 /**
+ * `HH:MM:SS` read back as seconds since midnight — `formatWaiting` inverted.
+ *
+ * Every stamp this service compares is a time of day on the one run date, so a
+ * difference of two of these is a duration and needs no calendar.
+ */
+function clockSeconds(stamp: string): number {
+  const [hours, minutes, seconds] = stamp.split(':').map(Number);
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+/**
  * The execution agent's output: `proposed_orders`, and nothing that sends them.
  *
  * This service owns the order list for the whole application. Doc 15 renders it
@@ -432,8 +447,17 @@ export class ExecutionService {
   readonly errorMessage = this._errorMessage.asReadonly();
 
   /** When the fund-state snapshot below was read. Refresh moves this. */
-  private readonly _snapshotAt = signal(`${RUN_DATE} 09:53:15 UTC`);
+  private readonly _snapshotAt = signal(`${RUN_DATE} ${SEED_SNAPSHOT_CLOCK} UTC`);
   readonly snapshotAt = this._snapshotAt.asReadonly();
+
+  /**
+   * The snapshot's own clock, `HH:MM:SS`.
+   *
+   * `snapshotAt` is stamped `YYYY-MM-DD HH:MM:SS UTC` against the same run date
+   * every order stamp is quoted against, so the time of day is the whole of the
+   * comparison a waiting time needs.
+   */
+  private readonly snapshotClock = computed(() => this._snapshotAt().slice(11, 19));
 
   // --- the agent's own run --------------------------------------------------
 
@@ -510,6 +534,31 @@ export class ExecutionService {
   /** Lookup for the deep links docs 16 and 24 arrive with. */
   order(id: string): ProposedOrder | null {
     return this.ordersById().get(id) ?? null;
+  }
+
+  /**
+   * How long an order has been waiting, in seconds.
+   *
+   * Derived from the two stamps the order already carries rather than stored
+   * beside them: an order nobody has answered has been waiting since `queuedAt`
+   * up to the snapshot the pages are showing, and a decided one stopped waiting
+   * at `decidedAt`. A stored duration would have to be rewritten every time
+   * `refresh()` moves the snapshot, and the first refresh that forgot would
+   * leave doc 16 sorting its queue on a wait that had quietly stopped counting.
+   *
+   * It lives here and not on `ProposedOrder` because the snapshot does: an order
+   * is a data shape and cannot see the clock it is being measured against.
+   * Reading `snapshotClock()` is also what makes the value reactive — every
+   * `computed` and template that calls this recomputes when the snapshot moves.
+   *
+   * A number, not a string, so "longest waiting first" is a sort and not a
+   * parse — and never negative. A decision recorded from the wall clock while
+   * the snapshot is stamped against the run date can land before the order was
+   * queued, and "minus four hours of waiting" is not worth propagating.
+   */
+  waitingSecondsFor(order: ProposedOrder): number {
+    const until = order.decidedAt ?? this.snapshotClock();
+    return Math.max(0, clockSeconds(until) - clockSeconds(order.queuedAt));
   }
 
   /**
@@ -596,7 +645,11 @@ export class ExecutionService {
     if (current.status !== 'pending') return false;
     if (current.estimatedShortfallBps === null || current.estimatedRiskBps === null) return false;
 
-    const at = clockNow();
+    // A decision lands at the moment the reader is looking at, which is the
+    // snapshot they are looking at — not the wall clock, which for a dataset
+    // pinned to RUN_DATE could stamp a decision before the order was queued and
+    // make its waiting time negative.
+    const at = this.snapshotClock();
 
     if (decision === 'reject') {
       // A rejection always leaves words behind, note or no note.
@@ -627,9 +680,10 @@ export class ExecutionService {
       statusReason: this.brokerConfigured()
         ? `Approved and routed to ${this._broker().adapter ?? 'the configured adapter'}.`
         : 'Approved for manual placement — with no broker adapter configured the order does not leave the system.',
+      // Writing `decidedAt` is what stops the clock: the wait is measured to
+      // the decision from here on, so there is no frozen copy to carry over.
       decidedAt: at,
       decidedBy: APPROVER,
-      waitingSeconds: current.waitingSeconds,
     });
     return true;
   }
@@ -748,6 +802,12 @@ export class ExecutionService {
    * every refresh would silently un-approve every trade a person had signed.
    * The same goes for `latestTarget`: a refresh is a read, not an agent run,
    * so it cannot be what makes the stale-target warning go away.
+   *
+   * Moving the snapshot stamp moves every waiting time measured against it, so
+   * a refresh lengthens the wait on every undecided order and leaves the
+   * decided ones alone. That is the point rather than a side effect: the wait
+   * shown is the wait as of the snapshot shown, and doc 16's queue re-sorts
+   * itself because it sorts on that same derived number.
    */
   async refresh(fail = false): Promise<void> {
     if (this._state() === 'loading') return;
@@ -767,7 +827,7 @@ export class ExecutionService {
     if (!this.snapshotHasOrders()) this._orders.set([]);
     else if (this._orders().length === 0) this._orders.set(SEED_ORDERS);
 
-    this._snapshotAt.set(`${RUN_DATE} ${clockNow()} UTC`);
+    this._snapshotAt.set(`${RUN_DATE} ${advanceClock(this.snapshotClock(), SNAPSHOT_STEP_SECONDS)} UTC`);
     this._state.set(this._orders().length === 0 ? 'empty' : 'ready');
   }
 
@@ -809,11 +869,20 @@ function delay(ms: number): Promise<void> {
 }
 
 /**
- * `HH:MM:SS` **in UTC**, because every stamp this service produces is printed
- * with a ` UTC` suffix beside `queuedAt` and `lastRun`, which are UTC. Local
- * time under a UTC label would put a decision an hour before the order it
- * decided for any reader east of Greenwich.
+ * Moves the mock clock on, deterministically.
+ *
+ * This used to read the wall clock, which is wrong for a service whose whole
+ * dataset is pinned to a fixed `RUN_DATE`. Waiting times are derived from
+ * `snapshotAt − queuedAt`, so stamping a 2026-08-01 snapshot with today's
+ * actual time made every displayed duration depend on the machine's clock: run
+ * the app before 09:53:15 UTC and a refresh moved the snapshot *backwards*,
+ * shrinking every waiting time and clamping any order queued after the current
+ * moment to 00:00:00. Measured in the browser at 09:40 UTC — TRD-2019 fell from
+ * 02:15:33 to 02:02:48 and TRD-2030 from 00:12:05 to zero.
+ *
+ * A fixed step keeps the clock monotonic and the figures reproducible, which is
+ * what every other seeded value in this service already is.
  */
-function clockNow(): string {
-  return new Date().toISOString().slice(11, 19);
+function advanceClock(stamp: string, seconds: number): string {
+  return formatWaiting(clockSeconds(stamp) + seconds);
 }
