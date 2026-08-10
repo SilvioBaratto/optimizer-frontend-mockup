@@ -19,7 +19,6 @@ import {
   NOT_LOGGED_NOTE,
 } from '../../../models/report-audit.model';
 import { ReportAuditService } from '../../../services/report-audit.service';
-import { CrossPageLink } from '../../../shared/cross-page-link/cross-page-link';
 import { SlideOverComponent } from '../../../shared/ui/slide-over/slide-over';
 import { ButtonDirective } from '../../../shared/ui/button/button.directive';
 
@@ -45,7 +44,7 @@ import { ButtonDirective } from '../../../shared/ui/button/button.directive';
  */
 @Component({
   selector: 'app-report-decision-detail',
-  imports: [ButtonDirective, CrossPageLink, RouterLink, SlideOverComponent],
+  imports: [ButtonDirective, RouterLink, SlideOverComponent],
   templateUrl: './decision-detail.html',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,6 +72,19 @@ export class DecisionDetail {
   protected readonly runLabel = computed(() => {
     const decision = this.decision();
     return decision ? this.service.runLabel(decision) : '';
+  });
+
+  /**
+   * Whether the trade this decision drafted is still an order at the gate.
+   *
+   * False for every superseded run: those intents were re-solved the next
+   * morning and never queued, so `ExecutionService` holds nothing under their
+   * ids and the gate's deep link would arrive with nothing to select. The
+   * panel says that instead of offering a link to an empty queue.
+   */
+  protected readonly tradeInSnapshot = computed(() => {
+    const trade = this.decision()?.tradeId;
+    return trade != null && this.service.snapshotTradeIds().has(trade);
   });
 
   /** Result of the copy, announced politely. Cleared when the panel changes. */

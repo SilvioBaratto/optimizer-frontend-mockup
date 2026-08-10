@@ -14,6 +14,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
+import { ExecutionService } from '../../../services/execution.service';
 import { ReportAuditService } from '../../../services/report-audit.service';
 import { DecisionTable } from '../decision-table/decision-table';
 import { DecisionDetail } from './decision-detail';
@@ -197,13 +198,40 @@ describe('DecisionDetail', () => {
     open();
     const decision = service.decisions()[0];
 
-    const link = host.querySelector('app-cross-page-link a');
-    expect(link?.textContent).toContain(`run #${decision.runId}`);
-    expect(link?.getAttribute('href')).toBe('/fund/deliberation');
+    expect(byTestId('detail-run-link')?.textContent).toContain(`run #${decision.runId}`);
+  });
+
+  it('when a decision is opened, its Related link carries the run id of that decision', () => {
+    open();
+    const decision = service.decisions()[0];
+
+    expect(byTestId('detail-run-link')?.getAttribute('href')).toBe(
+      `/fund/deliberation?run=${decision.runId}`,
+    );
+  });
+
+  /*
+    Naming the run is not enough on its own: the destination can only confirm
+    or deny a reference it was actually given, so the id has to survive the
+    hop for *every* row, including the superseded runs whose checkpoints the
+    deliberation page does not hold.
+  */
+  it('when a decision from a superseded run is opened, its Related link carries that run and not the latest', () => {
+    const latest = service.decisions()[0].runId;
+    const superseded = service.decisions().find((d) => d.runId !== latest)!;
+    service.select(superseded.id);
+    fixture.detectChanges();
+
+    expect(byTestId('detail-run-link')?.getAttribute('href')).toBe(
+      `/fund/deliberation?run=${superseded.runId}`,
+    );
   });
 
   it('when the decision drafted a trade, Related reaches that trade at the gate', () => {
-    const drafted = service.decisions().find((d) => d.tradeId !== null)!;
+    const queued = TestBed.inject(ExecutionService).orders();
+    const drafted = service
+      .decisions()
+      .find((d) => d.tradeId !== null && queued.some((o) => o.id === d.tradeId))!;
     service.select(drafted.id);
     fixture.detectChanges();
 
@@ -211,6 +239,28 @@ describe('DecisionDetail', () => {
     expect(link?.getAttribute('href')).toBe(
       `/approvals/approval-gate?trade=${drafted.tradeId}`,
     );
+  });
+
+  /*
+    The execution agent holds one snapshot and the log retains three runs, so a
+    superseded run's trade id resolves nowhere. The gate reads its `trade`
+    parameter once and treats an unknown id as a no-op, which means a link here
+    would land the reader on the queue with nothing selected — an audit
+    reference that looks satisfied and shows them nothing.
+  */
+  it('when the trade a decision drafted is no longer in the snapshot, the gate row says so instead of linking to it', () => {
+    const queued = TestBed.inject(ExecutionService).orders();
+    const superseded = service
+      .decisions()
+      .find((d) => d.tradeId !== null && !queued.some((o) => o.id === d.tradeId))!;
+    service.select(superseded.id);
+    fixture.detectChanges();
+
+    expect(byTestId('detail-gate-link')).toBeNull();
+    const row = byTestId('detail-gate-superseded');
+    expect(row?.textContent).toContain(superseded.tradeId as string);
+    expect(row?.textContent).toContain(`run #${superseded.runId}`);
+    expect(row?.textContent).toContain('no order under that id is queued');
   });
 
   it('when the decision drafted nothing, the gate row says so instead of linking nowhere', () => {

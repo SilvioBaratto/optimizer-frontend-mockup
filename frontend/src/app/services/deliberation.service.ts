@@ -3,8 +3,10 @@ import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import {
   AGENT_IDS,
   AGENT_LABEL,
+  CURRENT_RUN_ID,
   FIELD_WRITER,
   FUND_STATE_FIELDS,
+  RETAINED_RUN_IDS,
   type AgentId,
   type AgentNode,
   type Checkpoint,
@@ -115,10 +117,27 @@ function fieldsAfter(agentCount: number): FundStateFieldRow[] {
  * each other, each writes exactly one field, and every write produces a frozen
  * checkpoint that stays readable afterwards. The checkpoint history is the
  * audit record — the same object that decouples the agents (Fondamenti §4).
+ *
+ * It holds exactly one run, and it says which. Without a run id the audit
+ * log's «Fund Deliberation · run #1247» reached a page that could neither
+ * confirm nor deny the run it was sent to look at; with one, a reader who
+ * arrives asking for a different run gets told so.
  */
 @Injectable({ providedIn: 'root' })
 export class DeliberationService {
   private readonly destroyRef = inject(DestroyRef);
+
+  /**
+   * The run these checkpoints belong to.
+   *
+   * A signal because the page reads it in derived state, and only one run is
+   * ever loaded: the checkpoints below are that run's, and no other run's
+   * frozen state exists here to switch to.
+   */
+  private readonly _runId = signal(CURRENT_RUN_ID);
+
+  /** The runs still retained anywhere in the app, newest first. */
+  private readonly _retainedRunIds = signal(RETAINED_RUN_IDS);
 
   private readonly _status = signal<RunStatus>('idle');
   private readonly _connection = signal<ConnectionState>('closed');
@@ -130,6 +149,8 @@ export class DeliberationService {
   /** Events buffered while disconnected, replayed on reconnect. */
   private readonly _replayedCount = signal(0);
 
+  readonly runId = this._runId.asReadonly();
+  readonly retainedRunIds = this._retainedRunIds.asReadonly();
   readonly status = this._status.asReadonly();
   readonly connection = this._connection.asReadonly();
   readonly events = this._events.asReadonly();
