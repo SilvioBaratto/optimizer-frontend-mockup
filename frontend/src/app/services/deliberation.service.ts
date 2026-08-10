@@ -17,6 +17,8 @@ import {
   type RunStatus,
   type StreamEvent,
 } from '../models/fund-state.model';
+import type { ProposedOrder } from '../models/order.model';
+import { ExecutionService } from './execution.service';
 
 /**
  * Milliseconds between simulated stream events. 118 events at this rate
@@ -25,35 +27,111 @@ import {
  */
 const TICK_MS = 120;
 
-/** The field each agent writes, and what it writes there. */
-const AGENT_WRITES: Record<AgentId, { field: FundStateField; summary: string; detail: string; count: number | null }> = {
+/** What one agent put in its field, in the words the checkpoint keeps. */
+interface AgentWrite {
+  readonly summary: string;
+  readonly detail: string;
+  readonly count: number | null;
+}
+
+/**
+ * The services an agent's write is read out of.
+ *
+ * Passed in rather than reached for, so that the only place a write can be
+ * produced is the one call site that produces it — at checkpoint time.
+ */
+interface WriteSources {
+  readonly execution: ExecutionService;
+}
+
+/** Each agent's write, in run order, once it has happened. */
+type CapturedWrites = Partial<Record<AgentId, AgentWrite>>;
+
+/**
+ * The field each agent writes, and how the write is obtained.
+ *
+ * `write` is a function and not a literal because one of these figures is owned
+ * elsewhere. `proposed_orders` belongs to `ExecutionService` — it holds the
+ * orders, their notional and their trajectories — so restating any of that here
+ * would be a second copy free to drift, which is exactly what it did: this
+ * constant claimed twelve orders and EUR 1.02m about a list that had since
+ * grown longer and an order of magnitude larger, and named one interval count
+ * for trajectories that vary. The current figures are deliberately not written
+ * down here either — not even in this comment, which would go stale on the same
+ * day the constant did. `describeOrders` reads them.
+ *
+ * The other three are not derived, and deliberately so. Their figures describe
+ * run #1247's writes and no live service owns the same quantity for that run:
+ * `MacroRegimeService` re-estimates a four-state model under page-selected
+ * controls and stamps a different run, `AllocationAgentService` exposes no
+ * gross, net or tracking error at all, and `RiskAgentService`'s readings for
+ * this run are only reachable through its page-scoped confidence and method
+ * filters. Deriving from any of those would tie a frozen checkpoint to a
+ * control on somebody else's page.
+ */
+const AGENT_WRITES: Record<AgentId, { field: FundStateField; write: (sources: WriteSources) => AgentWrite }> = {
   macro: {
     field: 'macro_view',
-    summary: 'regime risk-on',
-    detail:
-      'Filtered regime probability 0.71 risk-on, 0.19 slow growth, 0.10 crash. Nowcast within one standard error of trend.',
-    count: null,
+    write: () => ({
+      summary: 'regime risk-on',
+      detail:
+        'Filtered regime probability 0.71 risk-on, 0.19 slow growth, 0.10 crash. Nowcast within one standard error of trend.',
+      count: null,
+    }),
   },
   allocation: {
     field: 'allocation',
-    summary: 'target weights',
-    detail: 'Target weights over 42 assets, long/short, gross 1.41, net 1.00, tracking error 3.2%.',
-    count: null,
+    write: () => ({
+      summary: 'target weights',
+      detail: 'Target weights over 42 assets, long/short, gross 1.41, net 1.00, tracking error 3.2%.',
+      count: null,
+    }),
   },
   risk: {
     field: 'risk_verdict',
-    summary: 'within limits',
-    detail:
-      'VaR 2.8% and CVaR 4.1% of NAV against limits of 3.5% and 5.0%. No single Euler contribution above the 15% budget.',
-    count: null,
+    write: () => ({
+      summary: 'within limits',
+      detail:
+        'VaR 2.8% and CVaR 4.1% of NAV against limits of 3.5% and 5.0%. No single Euler contribution above the 15% budget.',
+      count: null,
+    }),
   },
   execution: {
     field: 'proposed_orders',
-    summary: '12 orders',
-    detail: '12 orders, EUR 1.02m traded, scheduled over 4 intervals with hyperbolic decay.',
-    count: 12,
+    write: ({ execution }) => describeOrders(execution.orders()),
   },
 };
+
+/**
+ * `proposed_orders` in words, read off the orders themselves.
+ *
+ * Nothing here is a number this file knows: the count, the notional, the span
+ * of the trajectories and how many of them were never solved all come out of
+ * the list that was handed in. The intervals are given as a range because the
+ * orders do not agree on one — the schedules run from four slices to six — and
+ * a single figure would have had to be wrong about most of them.
+ */
+function describeOrders(orders: readonly ProposedOrder[]): AgentWrite {
+  const count = orders.length;
+  const noun = count === 1 ? 'order' : 'orders';
+  const notional = orders.reduce((sum, order) => sum + order.notionalValue, 0);
+  const intervals = orders.map((order) => order.trajectory.length).filter((n) => n > 0);
+  const unscheduled = count - intervals.length;
+
+  const parts = [`${count} ${noun}`, `EUR ${(notional / 1_000_000).toFixed(2)}m traded`];
+
+  if (intervals.length > 0) {
+    const low = Math.min(...intervals);
+    const high = Math.max(...intervals);
+    const span = low === high ? `${low}` : `${low} to ${high}`;
+    parts.push(`scheduled over ${span} intervals with front-loaded decay`);
+  }
+  if (unscheduled > 0) {
+    parts.push(`${unscheduled} left unscheduled for want of an intraday volume profile`);
+  }
+
+  return { summary: `${count} ${noun}`, detail: `${parts.join(', ')}.`, count };
+}
 
 /** Timestamps the run reproduces, matching the checkpoints in the spec. */
 const STEP_TIMES = ['09:10:41Z', '09:11:02Z', '09:12:14Z', '09:13:20Z', '09:14:07Z'];
@@ -90,13 +168,21 @@ function emptyField(field: FundStateField): FundStateFieldRow {
   };
 }
 
-/** The five fields as they stand after the first `n` agents have written. */
-function fieldsAfter(agentCount: number): FundStateFieldRow[] {
+/**
+ * The five fields as they stand given the writes captured so far.
+ *
+ * It reads the captured writes and never the services they came from, which is
+ * what lets a checkpoint be rebuilt at any time and still say what it said: a
+ * field nobody has written to yet is empty, and one that has been written to
+ * carries the words recorded at that moment.
+ */
+function fieldsAfter(captured: CapturedWrites): FundStateFieldRow[] {
   return FUND_STATE_FIELDS.map((field) => {
     const index = AGENT_IDS.findIndex((a) => AGENT_WRITES[a].field === field);
     // `approvals` has no agent writer at all: only the human gate fills it.
-    if (index === -1 || index >= agentCount) return emptyField(field);
-    const write = AGENT_WRITES[AGENT_IDS[index]];
+    if (index === -1) return emptyField(field);
+    const write = captured[AGENT_IDS[index]];
+    if (!write) return emptyField(field);
     return {
       field,
       writtenBy: FIELD_WRITER[field],
@@ -126,6 +212,26 @@ function fieldsAfter(agentCount: number): FundStateFieldRow[] {
 @Injectable({ providedIn: 'root' })
 export class DeliberationService {
   private readonly destroyRef = inject(DestroyRef);
+
+  /**
+   * The services an agent's figures are read out of when it writes.
+   *
+   * Held, not read: nothing in this class touches `execution` outside
+   * `completeAgent`, so a checkpoint can never re-read it after the fact.
+   */
+  private readonly sources: WriteSources = { execution: inject(ExecutionService) };
+
+  /**
+   * What each agent wrote, as of the moment it wrote it.
+   *
+   * This is the freeze. `AGENT_WRITES.execution` reads `ExecutionService`, and
+   * if that read happened while a checkpoint was being *rendered*, inspecting
+   * step 2 after the orders had changed would show today's order count under
+   * yesterday's timestamp — history rewritten. Capturing at the write instead
+   * means a checkpoint reports the count it was cut with for as long as it
+   * exists, however far the live orders move afterwards.
+   */
+  private captured: CapturedWrites = {};
 
   /**
    * The run these checkpoints belong to.
@@ -280,10 +386,11 @@ export class DeliberationService {
     this.selectedStep.set(null);
     this.comparisonSteps.set([]);
     this.cursor = 0;
+    this.captured = {};
 
     // Step 1 — the initial state, before any agent has written to it.
     this._checkpoints.set([
-      { step: 1, fieldWritten: null, agent: null, at: STEP_TIMES[0], fields: fieldsAfter(0) },
+      { step: 1, fieldWritten: null, agent: null, at: STEP_TIMES[0], fields: fieldsAfter({}) },
     ]);
     this.push('stream.notice', null, 'run started · streaming per-node events');
 
@@ -324,20 +431,26 @@ export class DeliberationService {
     }
 
     // The first event a node emits announces it; the rest are progress.
-    const write = AGENT_WRITES[agent];
+    const { field } = AGENT_WRITES[agent];
     const starting = this._events().every((e) => e.node !== agent);
     this.push(
       starting ? 'node.start' : 'node.progress',
       agent,
-      starting ? `reading state · will write ${write.field}` : `${write.field} · working`,
+      starting ? `reading state · will write ${field}` : `${field} · working`,
     );
   }
 
   private completeAgent(agent: AgentId): void {
     const index = AGENT_IDS.indexOf(agent);
-    const write = AGENT_WRITES[agent];
+    const { field, write } = AGENT_WRITES[agent];
 
-    this.push('node.complete', agent, `${write.field} → ${write.summary}`);
+    // Read once, here, at the instant the agent writes. Everything downstream —
+    // the event line, this checkpoint and every checkpoint rebuilt after it —
+    // uses this captured value and never goes back to the source.
+    const captured = write(this.sources);
+    this.captured = { ...this.captured, [agent]: captured };
+
+    this.push('node.complete', agent, `${field} → ${captured.summary}`);
 
     // Every write produces a new frozen checkpoint: the audit record and the
     // decoupling are the same object.
@@ -345,10 +458,10 @@ export class DeliberationService {
       ...all,
       {
         step: index + 2,
-        fieldWritten: write.field,
+        fieldWritten: field,
         agent,
         at: STEP_TIMES[index + 1],
-        fields: fieldsAfter(index + 1),
+        fields: fieldsAfter(this.captured),
       },
     ]);
 
