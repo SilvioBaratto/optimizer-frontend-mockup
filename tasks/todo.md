@@ -146,6 +146,12 @@ Per-task definition of done: model → service → sub-components → page templ
 
 > **CHECKPOINT G** — `npm run typecheck && npm run lint && npm run test:ci && npm run build`.
 
+## Deferred to the final sweep
+
+- [ ] `app-entity-card`'s projected action slot is `flex shrink-0`, so it is sized at max-content and a `flex-wrap` child handed to it can never wrap. Doc 17 hit this as 163px of horizontal scroll at 320px and worked around it by moving actions into an `ActionButtonRow` beneath the card. Fix the shared component so later pages cannot hit it, then check the workaround is still wanted.
+- [ ] `SectionCardGrid`'s label uses `.eyebrow`, which uppercases, so doc 14 renders `RISKMETRICS` where its wireframe writes `RiskMetrics`. Decide whether the label should preserve case.
+- [ ] Add the five Phase 1 shared components to the `pages/components/` gallery.
+
 ## Final sweep (once, over all 25 pages)
 
 - [ ] Build, lint and tests clean; no new warnings
