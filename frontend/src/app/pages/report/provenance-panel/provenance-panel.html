@@ -1,0 +1,97 @@
+<section class="surface-card">
+  <!--
+    Two independent blocks: the positions, which are always the domain's, and
+    the broker synchronisation, which is empty by posture. The sync block sits
+    outside the positions branch on purpose — its emptiness is a fact about the
+    broker, not about whether the positions have arrived.
+  -->
+  @if (state() === 'loading' || positionsPending()) {
+    <div data-testid="provenance-skeleton" aria-busy="true" class="flex flex-col gap-2 px-4 py-4">
+      @for (row of skeletonRows; track row) {
+        <app-skeleton-block height="h-8" />
+      }
+    </div>
+  } @else {
+    @if (positions().length === 0) {
+      <!--
+        No active portfolio, so there are no positions to say anything about.
+        Stated rather than shown as an empty table, which would read as "the
+        fund holds nothing" instead of "no portfolio is selected".
+      -->
+      <app-empty-state
+        data-testid="provenance-empty"
+        title="No portfolio selected"
+        detail="Positions are owned by the domain and belong to a portfolio. Choose one from the switcher at the top of the window and this tab will show where each of its positions was recorded from."
+      />
+    } @else {
+      <div class="table-scroll">
+        <table class="w-full min-w-3xl text-sm">
+          <caption class="sr-only">
+            Every position {{ portfolioName() }} holds and where it came from: the instrument, its
+            weight, the source it was recorded from — manual entry or CSV import — the file or note
+            behind it, and who recorded it when. No position on this list was read from a broker.
+          </caption>
+          <thead>
+            <tr class="table-head-row">
+              <th scope="col" class="px-4 py-2 text-left font-medium">Instrument</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">Weight</th>
+              <th scope="col" class="px-2 py-2 text-left font-medium">Source</th>
+              <th scope="col" class="px-2 py-2 text-left font-medium">Reference</th>
+              <th scope="col" class="px-4 py-2 text-left font-medium">Recorded</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (position of positions(); track position.id) {
+              <tr class="table-row">
+                <th scope="row" class="px-4 py-1.5 text-left font-normal text-text">
+                  {{ position.instrument }}
+                </th>
+                <td class="px-2 py-1.5 text-right tabular-nums text-text">
+                  {{ position.weight }}%
+                </td>
+                <td class="px-2 py-1.5 text-left text-text">
+                  <!-- Glyph plus word: the source is never carried by the mark alone. -->
+                  <span class="flex items-center gap-1.5 whitespace-nowrap">
+                    <span aria-hidden="true" class="text-text-secondary">{{
+                      sourceGlyph[position.source]
+                    }}</span>
+                    {{ sourceLabel[position.source] }}
+                  </span>
+                </td>
+                <td class="px-2 py-1.5 text-left text-text-secondary">{{ position.reference }}</td>
+                <td class="px-4 py-1.5 text-left text-text-secondary">
+                  {{ position.recordedAt }}
+                  <span class="block text-xs">{{ position.recordedBy }}</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    <!--
+      The sync block. Empty by posture, stated as the consequence it is rather
+      than left as a blank the reader has to interpret.
+    -->
+    <div class="border-t border-border px-4 py-3">
+      <h3 class="text-sm font-medium text-text">Broker synchronisation</h3>
+      @if (syncRows().length === 0) {
+        <p data-testid="sync-empty" class="mt-1 text-sm text-text-secondary">
+          {{ syncEmptyReason() }}
+        </p>
+      } @else {
+        <ul data-testid="sync-rows" class="mt-2 flex flex-col gap-1 text-sm">
+          @for (row of syncRows(); track row.id) {
+            <li class="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
+              <span class="w-full min-w-0 text-text sm:w-44 sm:shrink-0">{{ row.instrument }}</span>
+              <span class="min-w-0 flex-1 text-text-secondary">
+                {{ row.at }} — {{ row.result }}
+              </span>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+</section>

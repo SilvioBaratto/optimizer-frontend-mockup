@@ -1,0 +1,84 @@
+<app-action-button-row align="end">
+  <!--
+    `relative` on the wrapper and `absolute` on the list: the menu overlays the
+    content below instead of pushing the filter bar down when it opens.
+    min-w-0 so the wrapper can shrink inside the wrapping row at 320px.
+  -->
+  <div class="relative min-w-0">
+    <!--
+      `aria-disabled` rather than `disabled` while the log is being re-read.
+      Same reasoning as `app-refresh-control`: a disabled element cannot hold
+      focus, so the browser drops it to <body> and the next Tab restarts at the
+      top of the document. The refusal lives in `toggle()`, which an
+      aria-disabled button still needs because it stays clickable.
+
+      Refused at all, rather than allowed, because the scope line and the
+      receipt both name a row count: exporting mid-read would hand the reader
+      a file described by the count of the *previous* read.
+    -->
+    <button
+      #exportTrigger
+      type="button"
+      appButton="secondary"
+      data-testid="export-trigger"
+      class="aria-disabled:pointer-events-none aria-disabled:opacity-50"
+      aria-haspopup="menu"
+      [attr.aria-expanded]="open()"
+      [attr.aria-controls]="menuId"
+      [attr.aria-disabled]="loading() || null"
+      [attr.aria-busy]="loading() || null"
+      (click)="toggle()"
+    >
+      Export
+      <span aria-hidden="true" class="ml-1">▾</span>
+    </button>
+
+    @if (open()) {
+      <div
+        class="absolute right-0 z-20 mt-1 flex min-w-56 flex-col rounded-md border border-border bg-surface-raised p-1 shadow-xl"
+      >
+        <!--
+          Outside the `role="menu"` element, not inside it.
+
+          A `role="menu"` may only own menuitem/menuitemradio/menuitemcheckbox/
+          group/separator children; a bare paragraph in there is dropped from
+          the accessibility tree, and this line — "29 decisions · Decision Log"
+          — is the only place the page states what Export actually covers. It
+          is attached with `aria-describedby` instead, so it is announced with
+          the menu rather than lost inside it.
+        -->
+        <p [id]="scopeId" class="px-3 py-2 text-xs text-text-secondary">{{ scope() }}</p>
+
+        <div
+          [id]="menuId"
+          role="menu"
+          aria-label="Export format"
+          [attr.aria-describedby]="scopeId"
+          class="flex flex-col"
+        >
+          @for (format of formats; track format) {
+            <button
+              type="button"
+              role="menuitem"
+              [attr.data-export-format]="format"
+              class="min-h-11 rounded-md px-3 text-left text-sm text-text transition-colors hover:bg-surface-inset"
+              (click)="choose(format)"
+            >
+              {{ formatLabel[format] }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</app-action-button-row>
+
+<!--
+  The outcome of the export, announced politely rather than shown as a banner:
+  nothing changed, so there is nothing to undo and nothing to interrupt for.
+  The service withdraws it as soon as the query or the tab moves — see
+  `ReportAuditService.clearExportNotice`.
+-->
+<p role="status" data-testid="export-notice" class="mt-1 min-h-4 text-right text-xs text-text-secondary">
+  {{ notice() }}
+</p>

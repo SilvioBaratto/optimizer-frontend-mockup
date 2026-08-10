@@ -1,0 +1,144 @@
+<!--
+  `app-slide-over` stays mounted and is driven by `[open]`. Wrapping the element
+  itself in an `@if` would destroy the component on close, and it un-inerts the
+  rest of the document from an `afterEveryRender` a destroyed component never
+  runs again — every close would leave the page inert for good. The guard goes
+  on the projected content, which the slide-over only instantiates while open.
+-->
+<app-slide-over [open]="open()" [label]="headingText()" (closed)="close()">
+  @if (decision(); as detail) {
+    <!-- Named by the row button's aria-controls. -->
+    <div id="report-decision-detail" class="flex h-full min-h-0 flex-col">
+      <header class="flex items-start justify-between gap-2 border-b border-border px-4 py-3">
+        <div class="min-w-0">
+          <!-- tabindex="-1" so focus can land here without adding a heading to the tab order. -->
+          <h2
+            #panelHeading
+            tabindex="-1"
+            data-testid="detail-heading"
+            class="text-base font-medium break-words text-text"
+          >
+            {{ headingText() }}
+          </h2>
+          <p class="text-xs text-text-secondary">{{ typeLabel[detail.type] }}</p>
+        </div>
+
+        <button
+          type="button"
+          data-testid="detail-close"
+          class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-inset hover:text-text"
+          (click)="close()"
+        >
+          <span aria-hidden="true">✕</span>
+          <span class="sr-only">Close decision detail</span>
+        </button>
+      </header>
+
+      <div class="min-h-0 flex-1 overflow-y-auto">
+        <!-- What produced the output: id, model, params, prompt hash. -->
+        <dl class="flex flex-col gap-2 border-b border-border px-4 py-3 text-sm">
+          <div class="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
+            <dt class="w-full min-w-0 text-text-secondary sm:w-28 sm:shrink-0">Decision ID</dt>
+            <dd class="min-w-0 flex-1 font-mono text-xs break-words text-text">{{ detail.id }}</dd>
+          </div>
+
+          <div class="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
+            <dt class="w-full min-w-0 text-text-secondary sm:w-28 sm:shrink-0">Model</dt>
+            <dd class="min-w-0 flex-1 font-mono text-xs break-words text-text">
+              {{ detail.model }}
+            </dd>
+          </div>
+
+          <div class="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
+            <dt class="w-full min-w-0 text-text-secondary sm:w-28 sm:shrink-0">Params</dt>
+            <dd
+              data-testid="detail-params"
+              class="min-w-0 flex-1 font-mono text-xs break-words text-text"
+            >
+              {{ paramLine() }}
+            </dd>
+          </div>
+
+          <div class="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
+            <dt class="w-full min-w-0 text-text-secondary sm:w-28 sm:shrink-0">Prompt hash</dt>
+            <!--
+              Data either way. A logged hash names the prompt and says what it
+              still does not promise; an unlogged one prints the em dash with
+              "not logged" as its accessible name and the reason beside it, in
+              body type — the state a model without a reproducibility guarantee
+              is expected to leave behind.
+            -->
+            <dd data-testid="detail-hash" class="min-w-0 flex-1 text-text">
+              @if (detail.promptHash) {
+                <span class="font-mono text-xs">{{ detail.promptHash }}</span>
+                <span class="block text-xs text-text-secondary">{{ hashLoggedNote }}</span>
+              } @else {
+                <span aria-hidden="true" class="font-mono text-xs">{{ notLoggedGlyph }}</span>
+                <span class="sr-only">{{ notLoggedLabel }}</span>
+                <span class="block text-xs text-text-secondary">{{ notLoggedNote }}</span>
+              }
+            </dd>
+          </div>
+        </dl>
+
+        <!-- The full output. Scrollable, never truncated. -->
+        <section class="px-4 py-3">
+          <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-sm font-medium text-text">Full output</h3>
+            <button
+              type="button"
+              appButton="secondary"
+              size="xs"
+              data-testid="detail-copy"
+              (click)="copyOutput()"
+            >
+              Copy
+            </button>
+          </div>
+
+          <div
+            data-testid="detail-output"
+            tabindex="0"
+            role="group"
+            [attr.aria-label]="'Full output of ' + detail.id"
+            class="max-h-72 overflow-y-auto rounded-md border border-border bg-surface-inset px-3 py-2"
+          >
+            @for (paragraph of detail.output; track $index) {
+              <p class="mb-2 text-sm break-words text-text last:mb-0">{{ paragraph }}</p>
+            }
+          </div>
+
+          <p role="status" class="mt-1 min-h-4 text-xs text-text-secondary">{{ copyNotice() }}</p>
+        </section>
+
+        <!-- Related — where this decision came from, and where it went. -->
+        <section class="border-t border-border px-4 py-3">
+          <h3 class="mb-2 text-sm font-medium text-text">Related</h3>
+          <div class="flex flex-col items-start gap-1">
+            <app-cross-page-link [label]="runLabel()" route="/fund/deliberation" />
+
+            @if (detail.tradeId; as trade) {
+              <a
+                [routerLink]="['/approvals/approval-gate']"
+                [queryParams]="{ trade }"
+                data-testid="detail-gate-link"
+                class="inline-flex min-h-11 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+              >
+                Human Approval Gate · {{ trade }}
+                <span aria-hidden="true">→</span>
+              </a>
+            } @else {
+              <!-- No trade was drafted here, so there is no gate entry to reach. -->
+              <p class="px-2 text-sm text-text-secondary">
+                Human Approval Gate
+                <span aria-hidden="true">{{ notLoggedGlyph }}</span>
+                <span class="sr-only">not applicable</span>
+                — this decision drafted no order, so nothing from it reached the gate.
+              </p>
+            }
+          </div>
+        </section>
+      </div>
+    </div>
+  }
+</app-slide-over>

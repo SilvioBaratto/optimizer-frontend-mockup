@@ -1,0 +1,233 @@
+<section class="surface-card">
+  @switch (state()) {
+    <!--
+      Skeleton rows at the height of the real ones. Nothing partial is shown:
+      a half-populated audit log invites a conclusion drawn from an incomplete
+      record, which is the one thing this page must not do.
+    -->
+    @case ('loading') {
+      <div data-testid="decisions-skeleton" aria-busy="true" class="flex flex-col gap-2 px-4 py-4">
+        <p role="status" class="sr-only">Reading the audit log…</p>
+        @for (row of skeletonRows; track row) {
+          <app-skeleton-block height="h-8" />
+        }
+      </div>
+    }
+
+    @default {
+      @if (emptyReason() === 'no-log') {
+        <!--
+          Nothing has ever been logged. No reset offered, deliberately: there
+          are no filters to clear, and a button that clears nothing is worse
+          than no button.
+        -->
+        <app-empty-state
+          data-testid="empty-no-log"
+          title="No decisions logged yet"
+          detail="No agent has run against this fund state, so nothing has been written to the decision log. Every agent decision is recorded here with its model, its parameters and its full output as soon as one does."
+        />
+      } @else if (emptyReason() === 'no-match') {
+        <!-- Filters excluded everything. Here a reset is a real way out. -->
+        <app-empty-state
+          data-testid="empty-no-match"
+          title="No decisions match these filters"
+          detail="The log holds {{ totalCount() }} decisions; none of them satisfies the current agent, decision type, date range and search together."
+        >
+          <button type="button" appButton="secondary" data-testid="reset-filters" (click)="clearFilters()">
+            Reset filters
+          </button>
+        </app-empty-state>
+      } @else {
+        <!-- Scrolls inside its own box so the page never scrolls sideways. -->
+        <div class="table-scroll">
+          <table class="w-full min-w-4xl text-sm">
+            <caption class="sr-only">
+              Agent decisions in the current query: the time each was made, the agent that made it,
+              the kind of decision, the model and sampling parameters that produced it, the prompt
+              hash where one was logged, and a control that opens the full output. Column headers
+              sort the table. A prompt hash of “not logged” is the expected state for a model
+              without a reproducibility guarantee.
+            </caption>
+
+            <thead>
+              <tr class="table-head-row">
+                <th
+                  scope="col"
+                  class="px-4 py-2 text-left font-medium"
+                  [attr.aria-sort]="ariaSort('time')"
+                >
+                  <button
+                    type="button"
+                    class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 text-left hover:text-text"
+                    (click)="toggleSort('time')"
+                  >
+                    Time <span aria-hidden="true">{{ sortGlyph('time') }}</span>
+                  </button>
+                </th>
+
+                <th
+                  scope="col"
+                  class="px-2 py-2 text-left font-medium"
+                  [attr.aria-sort]="ariaSort('agent')"
+                >
+                  <button
+                    type="button"
+                    class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 text-left hover:text-text"
+                    (click)="toggleSort('agent')"
+                  >
+                    Agent <span aria-hidden="true">{{ sortGlyph('agent') }}</span>
+                  </button>
+                </th>
+
+                <th
+                  scope="col"
+                  class="px-2 py-2 text-left font-medium"
+                  [attr.aria-sort]="ariaSort('decision')"
+                >
+                  <button
+                    type="button"
+                    class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 text-left hover:text-text"
+                    (click)="toggleSort('decision')"
+                  >
+                    Decision <span aria-hidden="true">{{ sortGlyph('decision') }}</span>
+                  </button>
+                </th>
+
+                <th
+                  scope="col"
+                  class="px-2 py-2 text-left font-medium"
+                  [attr.aria-sort]="ariaSort('model')"
+                >
+                  <button
+                    type="button"
+                    class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 text-left hover:text-text"
+                    (click)="toggleSort('model')"
+                  >
+                    Model <span aria-hidden="true">{{ sortGlyph('model') }}</span>
+                  </button>
+                </th>
+
+                <!--
+                  Not sortable: ordering by hash would sort the logged rows
+                  against each other and leave the eighteen rows without one in
+                  an order that means nothing.
+                -->
+                <th scope="col" class="px-2 py-2 text-left font-medium">Hash</th>
+                <th scope="col" class="px-4 py-2 text-left font-medium">Output</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (decision of rows(); track decision.id) {
+                <tr class="table-row" [class.bg-surface-inset]="selectedId() === decision.id">
+                  <th scope="row" class="px-4 py-1.5 align-top text-left font-normal">
+                    <!--
+                      The row is a real button, so it opens with Enter and with
+                      Space and sits in the tab order — the doc asks for the row
+                      to be openable from the keyboard, not only from a click.
+                    -->
+                    <button
+                      type="button"
+                      [attr.data-decision-row]="decision.id"
+                      class="inline-flex min-h-11 items-center gap-2 rounded-md text-left tabular-nums text-text"
+                      [attr.aria-expanded]="selectedId() === decision.id"
+                      aria-controls="report-decision-detail"
+                      (click)="open(decision)"
+                    >
+                      <span aria-hidden="true">{{ decision.time }}</span>
+                      <span class="sr-only">{{ rowLabel(decision) }}</span>
+                    </button>
+                    <span class="block text-xs text-text-secondary" aria-hidden="true">
+                      {{ decision.date }}
+                    </span>
+                  </th>
+
+                  <td class="px-2 py-1.5 align-top text-left text-text">
+                    {{ agentLabel[decision.agent] }}
+                  </td>
+
+                  <td class="px-2 py-1.5 align-top text-left text-text">
+                    {{ typeLabel[decision.type] }}
+                  </td>
+
+                  <!--
+                    Model *and* parameters, which the Regioni row lists as two
+                    of the eight things a decision row carries. The parameters
+                    are half of what makes the record inspectable: "Verdict:
+                    within limits" produced at temperature 0.7 and the same
+                    sentence produced at temperature 0 with a fixed seed are
+                    not the same claim, and the reader should not have to open
+                    the panel to learn which one they are looking at.
+                  -->
+                  <td class="px-2 py-1.5 text-left align-top font-mono text-xs text-text-secondary">
+                    {{ decision.model }}
+                    <span class="mt-0.5 block max-w-56 break-words">{{ paramLine(decision) }}</span>
+                  </td>
+
+                  <!--
+                    Ordinary data, styled like every other cell. A decision
+                    logged without a prompt hash is what this deployment
+                    normally produces — the em dash is the value, and its
+                    accessible name says so instead of leaving a screen reader
+                    to announce an empty cell.
+                  -->
+                  <td class="px-2 py-1.5 align-top text-left font-mono text-xs text-text-secondary">
+                    @if (decision.promptHash) {
+                      <span [attr.data-hash]="decision.id">{{ decision.promptHash }}</span>
+                    } @else {
+                      <span aria-hidden="true" [attr.data-hash]="decision.id">{{
+                        notLoggedGlyph
+                      }}</span>
+                      <span class="sr-only">{{ notLoggedLabel }}</span>
+                    }
+                  </td>
+
+                  <!--
+                    The Regioni row asks for a preview of the full output, and
+                    a column headed Output that holds only a button holds no
+                    output at all.
+
+                    One line, clipped, and `aria-hidden`: clipped text is
+                    complete in the DOM, so a screen reader would hear the
+                    whole first paragraph and have no way to tell it was the
+                    first of five. The route to the record stays the labelled
+                    View button — the same split the Time column already makes
+                    between the visible date and the row button's own name.
+                  -->
+                  <td class="px-4 py-1.5 align-top text-left">
+                    <span
+                      aria-hidden="true"
+                      [attr.data-decision-preview]="decision.id"
+                      class="mb-1 block max-w-64 truncate text-xs text-text-secondary"
+                    >
+                      {{ decision.output[0] }}
+                    </span>
+                    <button
+                      type="button"
+                      appButton="ghost"
+                      size="xs"
+                      [attr.data-decision-view]="decision.id"
+                      [attr.aria-label]="'View full output of ' + decision.id"
+                      aria-controls="report-decision-detail"
+                      (click)="open(decision)"
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- The legend the wireframe prints under the table, in words. -->
+        <p class="border-t border-border px-4 py-2 text-xs text-text-secondary">
+          Hash <span aria-hidden="true">{{ notLoggedGlyph }}</span> means
+          <span class="font-medium">{{ notLoggedLabel }}</span> — the expected state for a model
+          without a reproducibility guarantee, not a missing value. Where a hash is present, that
+          step was pinned to a fixed seed; bit-exact replay still depends on the model.
+        </p>
+      }
+    }
+  }
+</section>
