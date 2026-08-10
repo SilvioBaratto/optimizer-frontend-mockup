@@ -43,6 +43,16 @@
     <app-data-display-section />
   </section>
 
+  <!-- Page regions -->
+  <section data-section="Page Regions">
+    <h2 class="mb-6 text-lg font-semibold text-text border-b border-border pb-2">Page Regions</h2>
+    <p class="mb-4 text-xs text-text-secondary">
+      Named regions from the page specs rather than UI primitives, shared across docs 14-25.
+      Each implements one row of a spec's <code>Regioni</code> table.
+    </p>
+    <app-region-section />
+  </section>
+
   <!-- Overlays rendered once at page root: fixed-position panels escape their
        visual container, so a single instance per overlay avoids duplicate
        panels stacking. At most one open at a time. -->

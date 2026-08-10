@@ -1,1 +1,130 @@
-<p>alternative-data-sentiment works!</p>
+<!--
+  Regions follow `docs/21 Alternative Data & Sentiment.md` in order:
+  ScopeSwitcher + InfoCard (coverage & freshness) → InfoCard (diagnostic
+  criterion) → TabBar → { FilterChipBar → SectionCardGrid/EntityCard →
+  StatusBadge legend → HeroStatCard → ActionButtonRow } | { ParameterPanel →
+  ChartPanel } | { ParameterPanel → DataTable → ChartPanel } → CollectionStatBar
+  + PrimaryCTAButton.
+
+  The shell renders the <h1> and the breadcrumb from the route, so headings here
+  start at <h2>.
+-->
+
+<!--
+  Past the scope controls to the signals themselves. It targets the tab panel
+  rather than the grid directly: the grid only exists in the first of the three
+  modes, and a skip link pointing at an id that is not in the document is worse
+  than none.
+-->
+<a href="#ads-content" class="skip-link">Skip to the signals</a>
+
+<!-- 1 & 2 · ScopeSwitcher and the coverage/freshness card, sticky together. -->
+<app-alt-data-scope-bar />
+
+<!-- 3 · InfoCard — the criterion every badge below is the outcome of. -->
+<app-alt-data-diagnostic-legend />
+
+<!-- 4 · TabBar — three analyses of one scope. -->
+<nav class="border-b border-border">
+  <ul role="tablist" aria-label="Analysis mode" class="flex flex-wrap gap-1">
+    @for (item of tabs; track item.id; let i = $index) {
+      <li role="presentation">
+        <button
+          #tabButton
+          type="button"
+          role="tab"
+          [id]="'ads-tab-' + item.id"
+          [attr.data-tab]="item.id"
+          [attr.aria-selected]="tab() === item.id"
+          aria-controls="ads-content"
+          [attr.tabindex]="tab() === item.id ? 0 : -1"
+          class="min-h-11 border-b-2 px-3 text-sm transition-colors"
+          [class.border-primary]="tab() === item.id"
+          [class.font-medium]="tab() === item.id"
+          [class.text-text]="tab() === item.id"
+          [class.border-transparent]="tab() !== item.id"
+          [class.text-text-secondary]="tab() !== item.id"
+          (click)="selectTab(item.id)"
+          (keydown)="onTabKeydown($event, i)"
+        >
+          {{ item.label }}
+        </button>
+      </li>
+    }
+  </ul>
+</nav>
+
+<p data-testid="ads-tab-definition" class="text-xs text-text-secondary">
+  {{ activeTabDefinition() }}
+</p>
+
+<!--
+  One panel, named by the tab that selects it. `tabindex="-1"` rather than 0:
+  the panel is full of focusable controls and must not also be a tab stop of its
+  own, but it stays a programmatic focus target.
+-->
+<div
+  id="ads-content"
+  role="tabpanel"
+  tabindex="-1"
+  [attr.data-tab]="tab()"
+  [attr.aria-labelledby]="'ads-tab-' + tab()"
+  class="flex flex-col gap-6"
+>
+  <h2 class="sr-only">{{ activeTabTitle() }}</h2>
+
+  @if (busy()) {
+    <!--
+      Placeholders at the height of what they stand in for, so nothing jumps
+      when the read lands. The scope bar and the footer stay in place: they
+      describe the read rather than being part of it.
+    -->
+    <div data-testid="ads-loading" aria-busy="true" class="flex flex-col gap-6">
+      <p role="status" class="sr-only">Reading coverage and freshness for this scope…</p>
+      @for (panel of skeletonPanels; track panel.id) {
+        <app-skeleton-block [height]="panel.height" />
+      }
+    </div>
+  } @else if (errorMessage(); as failure) {
+    <!--
+      A failed read replaces the grid rather than the page: the universe and the
+      window are still what the reader chose, and the recovery is to run the
+      same read again.
+    -->
+    <app-error-state
+      data-testid="ads-load-error"
+      [message]="failure"
+      [detail]="loadFailureDetail"
+      cause="load"
+      (retry)="retry()"
+    />
+  } @else {
+    @switch (tab()) {
+      @case ('signal-library') {
+        <!-- 5 to 8 · FilterChipBar, badge legend and the grid of signals. -->
+        <app-alt-data-signal-library (activated)="onSignalActivated()" />
+
+        <!-- 7, 9 & 10 · The expanded card, its evidence and the two actions. -->
+        <app-alt-data-signal-detail (crossSectionalRequested)="openCrossSectional()" />
+      }
+      @case ('cross-sectional') {
+        <!-- 11 & 13 · ParameterPanel and the conditional cross-section. -->
+        <app-alt-data-cross-sectional-panel />
+      }
+      @default {
+        <!-- 11, 12 & 13 · ParameterPanel, candidate models and the comparison. -->
+        <app-alt-data-ml-aggregation-panel />
+      }
+    }
+  }
+</div>
+
+<!-- 14 · CollectionStatBar and the primary action, outside the tab panel. -->
+<app-alt-data-selection-footer />
+
+<!-- The entries the spec names, offered back as exits. -->
+<app-action-button-row align="start">
+  @for (page of relatedPages; track page.route) {
+    <app-cross-page-link [label]="page.label" [route]="page.route" />
+  }
+</app-action-button-row>

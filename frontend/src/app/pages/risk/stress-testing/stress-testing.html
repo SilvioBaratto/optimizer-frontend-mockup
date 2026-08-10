@@ -1,1 +1,116 @@
-<p>stress-testing works!</p>
+<!--
+  Regions follow `docs/20 Stress Testing & Scenarios.md` in order:
+  Toolbar → TabBar → DataTable → SectionCardGrid → ChartPanel (severity) →
+  ChartPanel (key risk factors) → ScenarioLibrary, with ReverseStressPanel
+  replacing the middle four in the reverse mode. The shell renders the <h1> and
+  the breadcrumb from the route, so headings here start at <h2>.
+-->
+
+<!-- Past five toolbar controls to the exercise itself. -->
+<a href="#stress-testing-content" class="skip-link">Skip to the stress test</a>
+
+<!-- 1 · Toolbar — the coordinates every figure below is stated in. -->
+<app-stress-toolbar />
+
+<!--
+  2 · TabBar — two exercises over one set of parameters.
+
+  There is one panel element, named once, and both tabs point `aria-controls`
+  at it: an id that resolves to nothing is worse than no `aria-controls` at all.
+-->
+
+<nav class="border-b border-border">
+  <ul role="tablist" aria-label="Stress test mode" class="flex flex-wrap gap-1">
+    @for (tab of modes; track tab; let i = $index) {
+      <li role="presentation">
+        <button
+          #tabButton
+          type="button"
+          role="tab"
+          [id]="'st-tab-' + tab"
+          [attr.data-tab]="tab"
+          [attr.aria-selected]="mode() === tab"
+          aria-controls="stress-testing-content"
+          [attr.tabindex]="mode() === tab ? 0 : -1"
+          class="min-h-11 border-b-2 px-3 text-sm transition-colors"
+          [class.border-primary]="mode() === tab"
+          [class.font-medium]="mode() === tab"
+          [class.text-text]="mode() === tab"
+          [class.border-transparent]="mode() !== tab"
+          [class.text-text-secondary]="mode() !== tab"
+          (click)="selectMode(tab)"
+          (keydown)="onTabKeydown($event, i)"
+        >
+          {{ modeLabel[tab] }}
+        </button>
+      </li>
+    }
+  </ul>
+</nav>
+
+<p data-testid="mode-definition" class="text-xs text-text-secondary">
+  {{ modeDefinition[mode()] }}
+</p>
+
+<!--
+  One panel, named by the tab that selects it. `tabindex="-1"` rather than 0:
+  the panel is full of focusable controls, so it must not also be a tab stop of
+  its own — but it stays a programmatic focus target for the retry path.
+-->
+<div
+  #panel
+  id="stress-testing-content"
+  role="tabpanel"
+  tabindex="-1"
+  [attr.data-mode]="mode()"
+  [attr.aria-labelledby]="'st-tab-' + mode()"
+  class="flex flex-col gap-6"
+>
+  @if (mode() === 'forward') {
+    <!-- 3 · DataTable — the systematic factors and the partial scenario. -->
+    <app-stress-factor-table />
+
+    <!--
+      Inline, above the sections whose cards and figures it concerns. An
+      infeasible admissible set is an outcome of the exercise rather than a
+      fault, so the last result is left standing beneath it and the recovery is
+      to loosen the constraints or widen the radius — which is what the detail
+      says.
+    -->
+    @if (forwardError(); as failure) {
+      <app-error-state
+        [message]="failure.message"
+        [detail]="failure.detail"
+        cause="action"
+        (retry)="retry()"
+      />
+    }
+
+    <!-- 4 · SectionCardGrid — expected, hand-picked and systematic, side by side. -->
+    <app-stress-scenario-summary />
+
+    <section aria-labelledby="st-figures-heading" class="flex flex-col gap-6">
+      <h2 id="st-figures-heading" class="text-base font-medium text-text">
+        Severity and key risk factors
+      </h2>
+
+      <!-- 5 · ChartPanel — the three scenarios' CEP at one and the same k. -->
+      <app-stress-severity-chart />
+
+      <!-- 6 · ChartPanel — MLC per factor, and the sign of the interaction. -->
+      <app-stress-loss-contributions />
+    </section>
+  } @else {
+    <!-- 8 · ReverseStressPanel — replaces regions 3 to 6 wholesale. -->
+    <app-stress-reverse-panel />
+  }
+</div>
+
+<!-- 7 · ScenarioLibrary — outside the panel, because both modes save into it. -->
+<app-stress-scenario-library />
+
+<!-- Entries the spec names, offered back as exits. Nothing here is forced. -->
+<app-action-button-row align="start">
+  <app-cross-page-link label="Open Risk Monitoring" route="/risk/risk-monitoring" />
+  <app-cross-page-link label="Open Risk Attribution" route="/risk/risk-attribution" />
+</app-action-button-row>

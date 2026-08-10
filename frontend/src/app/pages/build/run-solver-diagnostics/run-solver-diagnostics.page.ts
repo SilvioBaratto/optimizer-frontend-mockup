@@ -10,12 +10,14 @@ import {
 } from '@angular/core';
 
 import { ActionButtonRow } from '../../../shared/action-button-row/action-button-row';
+import { LineChartComponent } from '../../../shared/charts';
 import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { CrossPageLink } from '../../../shared/cross-page-link/cross-page-link';
 import { EmptyState } from '../../../shared/empty-state/empty-state';
 import { InfoCard } from '../../../shared/info-card/info-card';
+import { MathVar } from '../../../shared/math/math-var';
+import { PageContextBar } from '../../../shared/page-context-bar/page-context-bar';
 import { StatusBadge, type StatusTone } from '../../../shared/status-badge/status-badge';
-import { LineChartComponent } from '../../../shared/charts';
 import type { CategorySeries, RefLine } from '../../../shared/charts';
 import {
   CONVEX_CHAIN,
@@ -26,6 +28,8 @@ import {
 } from '../../../models/optimization-run.model';
 import { StreamService } from '../../../services/stream.service';
 import { StepTracker } from '../step-tracker/step-tracker';
+import { ButtonDirective } from '../../../shared/ui/button/button.directive';
+import { SelectDirective } from '../../../shared/ui/select/select.directive';
 
 /**
  * Each outcome gets its own treatment. `stopped` is neutral — a user decision,
@@ -105,8 +109,12 @@ const VISIBLE_LOG_ROWS = 5;
     EmptyState,
     InfoCard,
     LineChartComponent,
+    MathVar,
+    PageContextBar,
     StatusBadge,
     StepTracker,
+    ButtonDirective,
+    SelectDirective,
   ],
   templateUrl: './run-solver-diagnostics.page.html',
   styleUrl: './run-solver-diagnostics.page.css',

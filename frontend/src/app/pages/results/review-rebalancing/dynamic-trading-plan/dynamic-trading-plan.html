@@ -1,4 +1,4 @@
-<section class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+<section class="surface-card">
   <h2 class="sr-only">Dynamic trading plan</h2>
   <button
     type="button"
@@ -13,7 +13,7 @@
     </span>
     <span class="flex flex-wrap items-center gap-x-4 text-sm text-text-secondary">
       <span>
-        trade rate a/λ
+        trade rate <math><mfrac><mi>a</mi><mi>λ</mi></mfrac></math>
         <span class="tabular-nums text-text">{{ tradeRate().toFixed(2) }}</span> toward aim
       </span>
       <span class="tabular-nums text-text">
@@ -33,19 +33,19 @@
 
       <dl class="flex flex-wrap gap-x-8 gap-y-2 rounded-md border border-border bg-surface-inset px-4 py-3">
         <div class="flex items-baseline gap-2">
-          <dt class="text-xs text-text-secondary">Risk aversion γ</dt>
+          <dt class="text-xs text-text-secondary">Risk aversion <app-math-var expr="γ" /></dt>
           <dd class="tabular-nums text-sm text-text">{{ riskAversion.toFixed(4) }}</dd>
         </div>
         <div class="flex items-baseline gap-2">
-          <dt class="text-xs text-text-secondary">Cost parameter λ</dt>
+          <dt class="text-xs text-text-secondary">Cost parameter <app-math-var expr="λ" /></dt>
           <dd class="tabular-nums text-sm text-text">{{ costParameter.toFixed(2) }}</dd>
         </div>
         <div class="flex items-baseline gap-2">
-          <dt class="text-xs text-text-secondary">Discount ρ</dt>
+          <dt class="text-xs text-text-secondary">Discount <app-math-var expr="ρ" /></dt>
           <dd class="tabular-nums text-sm text-text">{{ discount.toFixed(2) }}</dd>
         </div>
         <div class="flex items-baseline gap-2">
-          <dt class="text-xs text-text-secondary">Weight on today's Markowitz z</dt>
+          <dt class="text-xs text-text-secondary">Weight on today's Markowitz <app-math-var expr="z" /></dt>
           <dd class="tabular-nums text-sm text-text">{{ aimWeight().toFixed(2) }}</dd>
         </div>
         <!-- Configured elsewhere; read-only here, with a way to go and change them. -->
@@ -99,7 +99,7 @@
       <p class="text-sm text-text-secondary">
         Markowitz wins gross and loses badly net — it trades constantly. The dynamic policy wins
         net because it gives less weight to the fastest-decaying signal and follows the persistent
-        ones instead. No choice of γ and λ recovers this for the static policy once there is more
+        ones instead. No choice of <app-math-var expr="γ" /> and <app-math-var expr="λ" /> recovers this for the static policy once there is more
         than one predictor, because the static aim treats every factor alike.
       </p>
     </div>

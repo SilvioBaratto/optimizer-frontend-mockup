@@ -3,13 +3,20 @@
   <h1>, so headings here start at <h2>.
 -->
 
-<!-- Toolbar — sticky, so the run's state stays visible while reading the logs. -->
-<div
-  class="sticky top-0 z-20 -mx-4 flex flex-col gap-3 border-b border-border bg-surface px-4 py-3 md:-mx-8 md:px-8"
->
+<!-- Sticky, so the run's state stays visible while reading the logs. -->
+<app-page-context-bar>
   <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
     <p class="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
-      Run status
+      <!--
+        The run id first, because every link that reaches this page names one.
+        A page that shows checkpoints without saying whose they are cannot
+        confirm the reference that sent the reader here.
+      -->
+      <span>
+        Showing run
+        <span data-testid="run-id" class="font-mono tabular-nums text-text">#{{ runId() }}</span>
+      </span>
+      <span>· status</span>
       <app-status-badge [label]="runStatusLabel[status()]" [tone]="runTone()" />
       @if (latestCheckpoint(); as latest) {
         <span>
@@ -38,7 +45,7 @@
     <div class="ml-auto flex flex-wrap items-center gap-3">
       <button
         type="button"
-        class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+        appButton="primary" size="md"
         [disabled]="isRunning()"
         (click)="start()"
       >
@@ -49,7 +56,7 @@
         <label for="checkpoint" class="text-sm text-text-secondary">Checkpoint</label>
         <select
           id="checkpoint"
-          class="min-h-11 min-w-0 max-w-48 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text disabled:opacity-50"
+          appSelect class="min-w-0 max-w-48 disabled:opacity-50"
           [disabled]="!hasRun()"
           (change)="onCheckpoint($event)"
         >
@@ -66,7 +73,7 @@
         <label for="node-filter" class="text-sm text-text-secondary">Node</label>
         <select
           id="node-filter"
-          class="min-h-11 min-w-0 max-w-40 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+          appSelect class="min-w-0 max-w-40"
           (change)="onNodeFilter($event)"
         >
           <option value="all" [selected]="nodeFilter() === 'all'">All</option>
@@ -77,7 +84,50 @@
       </div>
     </div>
   </div>
-</div>
+</app-page-context-bar>
+
+<!--
+  The reader followed a link that named a run this page does not hold.
+
+  role="status" and not role="alert": nothing has failed and nothing needs
+  doing, so it is announced after whatever the reader is already hearing and it
+  never takes focus. Both branches say which run was asked for and which one is
+  on screen, because the reader arrived believing those were the same.
+-->
+@if (runMismatch(); as mismatch) {
+  <div
+    role="status"
+    data-testid="run-mismatch"
+    class="flex flex-col gap-2 rounded-md border border-border bg-surface-inset px-4 py-3"
+  >
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <app-status-badge label="different run requested" tone="warn" />
+      <p class="text-sm text-text-secondary">
+        @if (mismatch.retained) {
+          You followed a link to run
+          <span class="font-mono tabular-nums text-text">#{{ mismatch.requested }}</span>. That run
+          is still retained in the audit log, but its checkpoints are not loaded here — this view
+          holds run <span class="font-mono tabular-nums text-text">#{{ runId() }}</span>, the live
+          one, and no other.
+        } @else {
+          You followed a link to run
+          <span class="font-mono tabular-nums text-text">#{{ mismatch.requested }}</span>, which no
+          longer exists anywhere in this app, so nothing here can confirm it. This view holds run
+          <span class="font-mono tabular-nums text-text">#{{ runId() }}</span>.
+        }
+      </p>
+    </div>
+
+    <a
+      routerLink="/report"
+      data-testid="run-mismatch-audit-link"
+      class="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-md px-2 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+    >
+      Back to the audit log
+      <span aria-hidden="true">&rarr;</span>
+    </a>
+  </div>
+}
 
 <!--
   assertive: a dropped stream is the one thing on this page worth interrupting
@@ -131,14 +181,14 @@
   <app-action-button-row align="start">
     @if (canSendToGate()) {
       <app-cross-page-link
-        label="Send to Human Approval Gate →"
+        label="Send to Human Approval Gate"
         route="/approvals/approval-gate"
         emphasis="filled"
       />
     } @else {
       <button
         type="button"
-        class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary opacity-50"
+        appButton="primary" size="md" class="opacity-50"
         disabled
       >
         Send to Human Approval Gate →

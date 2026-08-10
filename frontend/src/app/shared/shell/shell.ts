@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { Title } from '@angular/platform-browser';
@@ -70,7 +78,11 @@ export class Shell {
     this.measure();
     this.watchResize();
     this.focusMainOnNavigate();
-    this.destroyRef.onDestroy(() => this.resizeObserver?.disconnect());
+    this.lockScrollBehindDrawer();
+    this.destroyRef.onDestroy(() => {
+      this.resizeObserver?.disconnect();
+      this.setScrollLock(false);
+    });
   }
 
   protected toggleSidebar(): void {
@@ -98,6 +110,21 @@ export class Shell {
       }
     });
     this.resizeObserver.observe(document.body);
+  }
+
+  /**
+   * The drawer floats over the page, so without this the page keeps scrolling
+   * under it and the reader loses their place while the menu is open.
+   */
+  private lockScrollBehindDrawer(): void {
+    effect(() => this.setScrollLock(this.isMobile() && this.sidebarOpen()));
+  }
+
+  private setScrollLock(locked: boolean): void {
+    if (typeof document === 'undefined') return;
+    // iOS Safari only honours the lock on the root element, not on `body`.
+    document.documentElement.style.overflow = locked ? 'hidden' : '';
+    document.body.style.overflow = locked ? 'hidden' : '';
   }
 
   private focusMainOnNavigate(): void {

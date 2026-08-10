@@ -12,7 +12,7 @@
   }
 
   <!-- Scrolls inside its own box so the page never scrolls sideways. -->
-  <div class="relative overflow-x-auto">
+  <div class="table-scroll">
     <table class="w-full min-w-xl text-sm">
       <caption class="sr-only">
         Proposed allocation: weight in capital and total risk contribution per asset, with any
@@ -20,7 +20,7 @@
         risk.
       </caption>
       <thead>
-        <tr class="border-b border-border text-xs text-text-secondary">
+        <tr class="table-head-row">
           <th scope="col" class="px-4 py-2 text-left font-medium">Asset</th>
           <th scope="col" class="px-2 py-2 text-right font-medium">Weight</th>
           <th scope="col" class="px-2 py-2 text-right font-medium">Risk contr.</th>
@@ -80,25 +80,48 @@
                   <dt class="text-text-secondary">Asset class</dt>
                   <dd class="text-text">{{ row.assetClass }}</dd>
 
-                  <dt class="text-text-secondary">Weight x<sub>i</sub></dt>
+                  <dt class="text-text-secondary">Weight <app-math-var expr="x_i" /></dt>
                   <dd class="tabular-nums text-text">{{ row.weight!.toFixed(2) }}%</dd>
 
-                  <dt class="text-text-secondary">SD(R<sub>i</sub>)</dt>
+                  <dt class="text-text-secondary"><app-math-var expr="SD(R_i)" /></dt>
                   <dd class="tabular-nums text-text">{{ row.volatility!.toFixed(1) }}%</dd>
 
-                  <dt class="text-text-secondary">Corr(R<sub>i</sub>, R<sub>P</sub>)</dt>
+                  <dt class="text-text-secondary">
+                    <app-math-var expr="Corr(R_i, R_P)" />
+                  </dt>
                   <dd class="tabular-nums text-text">{{ row.correlation!.toFixed(2) }}</dd>
 
-                  <dt class="text-text-secondary">∂σ/∂x<sub>i</sub></dt>
+                  <dt class="text-text-secondary">
+                    <math>
+                      <mfrac>
+                        <mrow><mo>&#x2202;</mo><mi>σ</mi></mrow>
+                        <mrow><mo>&#x2202;</mo><msub><mi>x</mi><mi>i</mi></msub></mrow>
+                      </mfrac>
+                    </math>
+                  </dt>
                   <dd class="tabular-nums text-text">{{ row.marginalRisk!.toFixed(2) }}</dd>
 
-                  <dt class="text-text-secondary">σ<sub>i</sub>(x) share</dt>
+                  <dt class="text-text-secondary">
+                    <math>
+                      <msub><mi>σ</mi><mi>i</mi></msub>
+                      <mo>(</mo><mi>x</mi><mo>)</mo>
+                    </math> share
+                  </dt>
                   <dd class="tabular-nums text-text">{{ row.riskContribution!.toFixed(2) }}%</dd>
                 </dl>
                 <p class="mt-2 max-w-prose text-xs text-text-secondary">
                   The marginal contribution is the increase in portfolio risk from a small increase
-                  in this asset; the total contribution σ<sub>i</sub>(x) = x<sub>i</sub> ·
-                  ∂σ/∂x<sub>i</sub> is the share of portfolio risk it carries. An asset can hold a
+                  in this asset; the total contribution <math>
+                    <msub><mi>σ</mi><mi>i</mi></msub>
+                    <mo>(</mo><mi>x</mi><mo>)</mo>
+                    <mo>=</mo>
+                    <msub><mi>x</mi><mi>i</mi></msub>
+                    <mo>&#x22C5;</mo>
+                    <mfrac>
+                      <mrow><mo>&#x2202;</mo><mi>σ</mi></mrow>
+                      <mrow><mo>&#x2202;</mo><msub><mi>x</mi><mi>i</mi></msub></mrow>
+                    </mfrac>
+                  </math> is the share of portfolio risk it carries. An asset can hold a
                   large share of capital and a small share of risk, and that gap is what risk
                   budgeting acts on.
                 </p>
@@ -123,7 +146,7 @@
   @if (hiddenCount() > 0 || expanded()) {
     <button
       type="button"
-      class="min-h-11 self-start rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+      appButton="secondary" class="self-start"
       (click)="expanded.set(!expanded())"
     >
       @if (expanded()) {
@@ -142,20 +165,23 @@
   <div class="flex flex-col gap-2 rounded-md bg-surface-inset px-4 py-3 text-sm">
     <dl class="flex flex-wrap items-baseline gap-x-6 gap-y-2">
       <div class="flex items-baseline gap-2">
-        <dt class="text-text-secondary">E[R<sub>P</sub>]</dt>
+        <dt class="text-text-secondary"><app-math-var expr="E[R_P]" /></dt>
         <dd class="tabular-nums text-text">{{ summary().expectedReturn.toFixed(1) }}%</dd>
       </div>
       <div class="flex items-baseline gap-2">
-        <dt class="text-text-secondary">σ<sub>P</sub></dt>
+        <dt class="text-text-secondary"><app-math-var expr="σ_P" /></dt>
         <dd class="tabular-nums text-text">{{ summary().volatility.toFixed(1) }}%</dd>
       </div>
       <div class="flex items-baseline gap-2">
-        <dt class="text-text-secondary">r<sub>f</sub></dt>
+        <dt class="text-text-secondary">
+          <app-math-var expr="r_f" label="r sub f, the risk-free rate" />
+        </dt>
         <dd class="tabular-nums text-text">{{ summary().riskFreeRate.toFixed(1) }}%</dd>
       </div>
       <div class="flex items-baseline gap-2">
         <dt class="text-text-secondary" id="sharpe-label">
-          Sharpe ratio, derived from E[R<sub>P</sub>], r<sub>f</sub> and σ<sub>P</sub>
+          Sharpe ratio, derived from <app-math-var expr="E[R_P]" />,
+          <app-math-var expr="r_f" /> and <app-math-var expr="σ_P" />
         </dt>
         <dd class="tabular-nums text-text" aria-readonly="true" aria-labelledby="sharpe-label">
           {{ summary().sharpe.toFixed(2) }}
@@ -163,7 +189,18 @@
       </div>
     </dl>
     <p class="text-xs text-text-secondary">
-      Sharpe = (E[R<sub>P</sub>] − r<sub>f</sub>) / σ<sub>P</sub> — the slope of the capital
+      <math>
+        <mtext>Sharpe</mtext>
+        <mo>=</mo>
+        <mfrac>
+          <mrow>
+            <mi>E</mi><mo>[</mo><msub><mi>R</mi><mi>P</mi></msub><mo>]</mo>
+            <mo>&#x2212;</mo>
+            <msub><mi>r</mi><mi>f</mi></msub>
+          </mrow>
+          <msub><mi>σ</mi><mi>P</mi></msub>
+        </mfrac>
+      </math> — the slope of the capital
       allocation line through this portfolio. Read-only: it is never set independently of the three
       values above.
     </p>

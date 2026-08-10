@@ -4,6 +4,7 @@ import { SkeletonBlock } from '../../../../shared/skeleton-block/skeleton-block'
 import { BarChartComponent, LineChartComponent, percent } from '../../../../shared/charts';
 import type { CategorySeries } from '../../../../shared/charts';
 import { MacroRegimeService } from '../../../../services/macro-regime.service';
+import { MathVar } from '../../../../shared/math/math-var';
 
 /**
  * Filtered probability per state, with how long each state tends to last.
@@ -17,7 +18,9 @@ import { MacroRegimeService } from '../../../../services/macro-regime.service';
  */
 @Component({
   selector: 'app-regime-probabilities',
-  imports: [BarChartComponent, LineChartComponent, SkeletonBlock],
+  imports: [BarChartComponent, LineChartComponent, SkeletonBlock,
+    MathVar,
+  ],
   templateUrl: './regime-probabilities.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

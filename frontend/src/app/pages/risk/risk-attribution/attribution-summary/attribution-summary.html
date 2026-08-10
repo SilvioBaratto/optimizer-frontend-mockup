@@ -1,0 +1,43 @@
+<section aria-labelledby="attribution-summary-heading" class="flex flex-col gap-2">
+  <h2 id="attribution-summary-heading" class="sr-only">Attribution summary</h2>
+
+  @if (loading()) {
+    <!-- Same height as the finished row, so nothing moves when it lands. -->
+    <div data-testid="summary-skeleton" aria-busy="true" class="surface-card px-4 py-3">
+      <app-skeleton-block height="h-12" [lines]="2" />
+    </div>
+  } @else {
+    <app-key-metrics-row [metrics]="metrics()">
+      <!--
+        The two conditional badges the spec asks for by name. Both are icon and
+        word — the tone only repeats what the label already says.
+      -->
+      @if (snapshotStale()) {
+        <app-status-badge label="Snapshot not current" tone="warn" />
+      }
+      @if (estimateUncertain()) {
+        <app-status-badge label="High estimation uncertainty" tone="warn" />
+      }
+    </app-key-metrics-row>
+
+    <!--
+      The sentences behind the figures. The allocation note is the one the spec
+      is most insistent about: under Marginal it has to say out loud that the
+      contributions do not add up to EC and are not being rescaled to pretend
+      they do.
+    -->
+    <ul class="flex flex-col gap-1">
+      @for (note of notes(); track note.id) {
+        <li
+          [attr.data-summary-note]="note.id"
+          class="flex flex-wrap gap-x-2 text-xs text-text-secondary"
+        >
+          <span class="font-medium text-text">
+            <span aria-hidden="true">{{ note.icon }}</span> {{ note.term }}
+          </span>
+          <span class="min-w-0 flex-1">{{ note.text }}</span>
+        </li>
+      }
+    </ul>
+  }
+</section>

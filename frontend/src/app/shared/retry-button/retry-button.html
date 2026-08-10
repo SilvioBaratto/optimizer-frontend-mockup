@@ -1,7 +1,8 @@
-<button
-  type="button"
-  class="inline-flex min-h-11 items-center rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
-  (click)="retry.emit()"
->
+<!--
+  Ghost for the same reason as the refresh control: retry appears inline inside
+  an error message or a failed table row, where an outlined box competes with
+  the row it sits in.
+-->
+<button type="button" appButton="ghost" (click)="retry.emit()">
   {{ label() }}
 </button>

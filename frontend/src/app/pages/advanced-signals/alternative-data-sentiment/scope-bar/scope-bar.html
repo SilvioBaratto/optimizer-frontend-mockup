@@ -1,0 +1,142 @@
+<!--
+  Regions 1 and 2 — the scope switcher and the coverage/freshness card, stuck
+  to the top together because every figure below is stated for this universe
+  over this window.
+-->
+<app-page-context-bar heading="Universe and coverage window" compact>
+  <div class="grid min-w-0 gap-3 md:grid-cols-2">
+    <!-- 1 · ScopeSwitcher — a combobox, not a menu. -->
+    <div class="flex min-w-0 flex-col gap-1">
+      <span id="ads-universe-label" class="eyebrow">Universe</span>
+
+      <div class="relative min-w-0">
+        <button
+          #trigger
+          type="button"
+          role="combobox"
+          data-testid="ads-universe-trigger"
+          aria-haspopup="listbox"
+          aria-controls="ads-universe-listbox"
+          aria-labelledby="ads-universe-label ads-universe-trigger-value"
+          [attr.aria-expanded]="open()"
+          class="inline-flex min-h-11 w-full items-center justify-between gap-2 rounded-md border border-border-control bg-surface-raised px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          (click)="toggle()"
+        >
+          <span id="ads-universe-trigger-value" class="truncate">{{ universe().name }}</span>
+          <span aria-hidden="true" class="shrink-0 text-text-secondary">&#9662;</span>
+        </button>
+
+        @if (open()) {
+          <div
+            class="absolute left-0 z-30 mt-1 w-72 max-w-full rounded-md border border-border bg-surface-raised shadow-lg"
+          >
+            <div class="border-b border-border p-2">
+              <label for="ads-universe-search" class="sr-only">Search universes</label>
+              <input
+                id="ads-universe-search"
+                type="search"
+                placeholder="Search universes…"
+                class="min-h-11 w-full rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+                [value]="query()"
+                (input)="onQuery($event)"
+              />
+            </div>
+
+            <ul
+              id="ads-universe-listbox"
+              role="listbox"
+              aria-labelledby="ads-universe-label"
+              class="max-h-64 overflow-y-auto p-1"
+            >
+              @for (option of matches(); track option.id) {
+                <li role="option" [attr.aria-selected]="option.id === universe().id">
+                  <button
+                    type="button"
+                    [attr.data-universe]="option.id"
+                    class="flex min-h-11 w-full flex-col items-start gap-0.5 rounded-md px-2 py-2 text-left text-sm text-text transition-colors hover:bg-surface-inset"
+                    (click)="select(option.id)"
+                  >
+                    <span class="flex w-full items-center justify-between gap-2">
+                      <span class="truncate font-medium">{{ option.name }}</span>
+                      @if (option.id === universe().id) {
+                        <span class="shrink-0 text-xs font-medium text-primary">Active</span>
+                      }
+                    </span>
+                    <span class="text-xs text-text-secondary">{{ option.detail }}</span>
+                  </button>
+                </li>
+              } @empty {
+                <li class="px-2 py-3 text-sm text-text-secondary">No universe matches your search</li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+
+      <p data-testid="ads-universe-detail" class="text-xs text-text-secondary">
+        {{ universe().detail }}
+      </p>
+    </div>
+
+    <!-- 2 · InfoCard — the window the coverage is measured over, and how fresh it is. -->
+    <app-info-card title="Coverage &amp; freshness">
+      <div class="flex flex-col gap-3">
+        <div class="flex flex-wrap items-end gap-3">
+          <div class="flex flex-col gap-1">
+            <label for="ads-coverage-start" class="text-xs text-text-secondary">From</label>
+            <input
+              id="ads-coverage-start"
+              type="date"
+              data-testid="ads-coverage-start"
+              class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+              [value]="coverageStart()"
+              [attr.min]="minDate"
+              [attr.max]="maxDate"
+              [attr.aria-invalid]="coverageError() !== null"
+              aria-describedby="ads-coverage-error"
+              (change)="onStart($event)"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="ads-coverage-end" class="text-xs text-text-secondary">To</label>
+            <input
+              id="ads-coverage-end"
+              type="date"
+              data-testid="ads-coverage-end"
+              class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+              [value]="coverageEnd()"
+              [attr.min]="minDate"
+              [attr.max]="maxDate"
+              [attr.aria-invalid]="coverageError() !== null"
+              aria-describedby="ads-coverage-error"
+              (change)="onEnd($event)"
+            />
+          </div>
+        </div>
+
+        <!--
+          Mounted whether or not there is a message: a live region inserted at
+          the same moment as its text is the classic reason nothing is read out.
+        -->
+        <p id="ads-coverage-error" role="alert" class="text-xs text-danger">
+          @if (coverageError(); as message) {
+            <span data-testid="ads-coverage-error"><span aria-hidden="true">!</span> {{ message }}</span>
+          }
+        </p>
+
+        <p class="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
+          <app-status-badge [label]="feedBadgeLabel()" [tone]="feedTone()" />
+          <span data-testid="ads-feeds-updated">updated {{ feedsUpdatedAt() }}</span>
+        </p>
+
+        <p data-testid="ads-feed-summary" class="text-xs text-text-secondary">
+          {{ feedSummary() }}
+          @if (partialFeeds() > 0) {
+            <span> · {{ partialFeeds() }} with {{ partialBadge }}</span>
+          }
+        </p>
+      </div>
+    </app-info-card>
+  </div>
+</app-page-context-bar>

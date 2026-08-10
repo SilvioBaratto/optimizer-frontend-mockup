@@ -13,6 +13,7 @@ import { ActionButtonRow } from '../../../shared/action-button-row/action-button
 import { CrossPageLink } from '../../../shared/cross-page-link/cross-page-link';
 import { EmptyState } from '../../../shared/empty-state/empty-state';
 import { HeroStatCard } from '../../../shared/hero-stat-card/hero-stat-card';
+import { MathVar } from '../../../shared/math/math-var';
 import { RetryButton } from '../../../shared/retry-button/retry-button';
 import { SkeletonBlock } from '../../../shared/skeleton-block/skeleton-block';
 import { StatusBadge, type StatusTone } from '../../../shared/status-badge/status-badge';
@@ -25,6 +26,8 @@ import {
   type SectionId,
 } from '../../../models/backtest-validation.model';
 import { BacktestValidationService } from '../../../services/backtest-validation.service';
+import { ButtonDirective } from '../../../shared/ui/button/button.directive';
+import { SelectDirective } from '../../../shared/ui/select/select.directive';
 import { EconomicRationale } from './economic-rationale/economic-rationale';
 import { TrialLog } from './trial-log/trial-log';
 import { ValidationSection } from './validation-section/validation-section';
@@ -74,11 +77,14 @@ type PageAction = 'export' | 'report' | 'send';
     EmptyState,
     HeroStatCard,
     LineChartComponent,
+    MathVar,
     RetryButton,
     SkeletonBlock,
     StatusBadge,
     TrialLog,
     ValidationSection,
+    ButtonDirective,
+    SelectDirective,
   ],
   templateUrl: './backtest-validation.html',
   styleUrl: './backtest-validation.css',

@@ -1,7 +1,7 @@
 <div class="flex flex-col gap-4">
   <div class="flex flex-col gap-2">
     <label for="maha-radius" class="text-xs text-text-secondary">
-      Mahalanobis radius k — the elliptical domain of admissibility
+      Mahalanobis radius <app-math-var expr="k" /> — the elliptical domain of admissibility
     </label>
     <div class="flex flex-wrap items-center gap-3">
       <input
@@ -10,7 +10,7 @@
         min="0.5"
         max="5"
         step="0.1"
-        class="h-11 w-48 accent-[var(--color-primary)]"
+        class="h-11 w-48"
         [value]="radius()"
         [attr.aria-valuetext]="
           'k equals ' + radius().toFixed(1) + ', maximum loss ' + stress().maximumLoss.toFixed(1) + ' percent'
@@ -33,9 +33,9 @@
       />
     </div>
     <p class="text-xs text-text-secondary">
-      k does for the stress test what a confidence level does for VaR. Plausibility is measured by
-      radius rather than by probability mass, so the worst case does not shift merely because the
-      model has more factors in it.
+      <app-math-var expr="k" /> does for the stress test what a confidence level does for VaR.
+      Plausibility is measured by radius rather than by probability mass, so the worst case does
+      not shift merely because the model has more factors in it.
     </p>
   </div>
 
@@ -101,7 +101,7 @@
           <label for="fix-factor" class="text-xs text-text-secondary">Factor</label>
           <select
             id="fix-factor"
-            class="min-h-11 min-w-0 max-w-56 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+            appSelect class="min-w-0 max-w-56"
             (change)="onPendingFactor($event)"
           >
             @for (factor of factors; track factor) {
@@ -122,7 +122,7 @@
         </div>
         <button
           type="button"
-          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+          appButton="secondary"
           [disabled]="pendingValue().trim() === ''"
           (click)="addFixedFactor()"
         >
@@ -136,7 +136,7 @@
       <label class="flex min-h-11 items-center gap-2 text-sm text-text">
         <input
           type="checkbox"
-          class="h-4 w-4 accent-[var(--color-primary)]"
+          class="h-4 w-4"
           [checked]="reverseMode()"
           (change)="reverseMode.set($any($event.target).checked)"
         />
@@ -180,7 +180,10 @@
     />
 
     <p class="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
-      Σ MLC <span class="tabular-nums text-text">{{ stress().contributionSum.toFixed(1) }}%</span>
+      <math aria-label="sum of the Maximum Loss Contributions">
+        <mo>&#x2211;</mo><mtext>MLC</mtext>
+      </math>
+      <span class="tabular-nums text-text">{{ stress().contributionSum.toFixed(1) }}%</span>
       @if (interacts()) {
         <!-- Stated in words: the shortfall is the finding, not a rounding error. -->
         <app-status-badge label="negative interaction" tone="warn" />

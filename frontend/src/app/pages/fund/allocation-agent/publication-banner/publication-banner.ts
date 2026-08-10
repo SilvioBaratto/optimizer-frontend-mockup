@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 
 import { ConfirmDialog } from '../../../../shared/confirm-dialog/confirm-dialog';
 import { AllocationAgentService } from '../../../../services/allocation-agent.service';
+import { ButtonDirective } from '../../../../shared/ui/button/button.directive';
 
 /**
  * Publication of the proposal to the shared fund state.
@@ -20,7 +21,9 @@ import { AllocationAgentService } from '../../../../services/allocation-agent.se
  */
 @Component({
   selector: 'app-publication-banner',
-  imports: [ConfirmDialog],
+  imports: [ConfirmDialog,
+    ButtonDirective,
+  ],
   templateUrl: './publication-banner.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

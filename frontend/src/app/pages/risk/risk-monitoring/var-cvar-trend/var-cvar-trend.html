@@ -1,0 +1,28 @@
+<app-line-chart
+  title="VaR & CVaR trend"
+  [subtitle]="subtitle()"
+  [ariaLabel]="ariaLabel()"
+  [x]="dates()"
+  [series]="series()"
+  [refPoints]="refPoints()"
+  [valueFormatter]="percent"
+  xAxisName="Date"
+  yAxisName="Loss % of NAV"
+  [height]="300"
+>
+  <div class="flex flex-col gap-1 border-t border-border px-4 py-2 text-xs text-text-secondary">
+    <p>VaR solid · CVaR dashed — CVaR is at or above VaR at every point of the window.</p>
+
+    @if (coincidenceNote(); as note) {
+      <!--
+        The one edge case this chart annotates. Nothing is redefined and no
+        number changes: a small gap is a reading about the tail, not a fault,
+        so it is said in words beside the figure it describes.
+      -->
+      <p data-testid="tail-coincidence" role="status" class="flex gap-2 text-warning">
+        <span aria-hidden="true">!</span>
+        <span class="min-w-0 flex-1">{{ note }}</span>
+      </p>
+    }
+  </div>
+</app-line-chart>

@@ -1,0 +1,63 @@
+<!--
+  Regions 2 + 3 — SectionLabel 'APPROVAL PIPELINE · TODAY' over the four
+  mandatory steps, in the order every proposed trade must pass them.
+-->
+<app-section-card-grid label="APPROVAL PIPELINE · TODAY" [columns]="2">
+  @if (loading()) {
+    @for (stage of skeletons(); track stage) {
+      <app-skeleton-block height="h-16" />
+    }
+  } @else {
+    @for (step of steps(); track step.stage) {
+      <!--
+        The card is a plain surface, not a link: step [3] carries a
+        CrossPageLink of its own, and a link inside a link is the one thing the
+        EntityCard contract forbids.
+
+        Only the counter goes inside the card. `app-entity-card` projects into
+        a `shrink-0` flex item, which is sized at max-content and cannot give
+        way — the exit link plus the counter measured 340px there and pushed
+        the whole document sideways at 320 and 768px. The link and the posture
+        badge sit under the card instead, where they wrap.
+      -->
+      <div [attr.data-step]="step.stage" class="flex flex-col gap-2">
+        <app-entity-card
+          class="block"
+          [title]="'[' + step.step + '] ' + step.label"
+          [meta]="meta(step)"
+        >
+          <span
+            [attr.data-summary]="step.stage"
+            class="text-xs tabular-nums text-text-secondary"
+          >
+            {{ step.summary }}
+          </span>
+        </app-entity-card>
+
+        @if (step.stage === 'human-gate' || step.stage === 'broker-adapter') {
+          <div class="flex flex-wrap items-center justify-end gap-2">
+            @if (step.stage === 'human-gate') {
+              <app-cross-page-link
+                [label]="humanApprovalExit.label"
+                [route]="humanApprovalExit.route"
+              />
+            }
+
+            <!--
+              'No broker configured' is the default posture, so the badge is
+              neutral. Nothing here is broken; the human gate is simply the
+              last step, and the counter above it says so in words.
+            -->
+            @if (step.stage === 'broker-adapter' && step.subtitle) {
+              <app-status-badge
+                data-testid="broker-posture"
+                [label]="step.subtitle"
+                [tone]="step.reachable ? 'active' : 'neutral'"
+              />
+            }
+          </div>
+        }
+      </div>
+    }
+  }
+</app-section-card-grid>

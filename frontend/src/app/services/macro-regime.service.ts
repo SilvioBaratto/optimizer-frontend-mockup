@@ -118,7 +118,7 @@ const SIGNALS: readonly PredictiveSignal[] = [
   {
     id: 'pc-all',
     name: 'Combined macro + technical index',
-    reading: 'R²_OS +1.79% out of sample (PC-ALL)',
+    reading: 'R² +1.79% out of sample (PC-ALL)',
     status: 'validated',
     reason: null,
     outOfSampleR2: 1.79,
@@ -129,7 +129,7 @@ const SIGNALS: readonly PredictiveSignal[] = [
     name: 'Momentum market state',
     reading: 'UP · 36-month lookback, active',
     status: 'excluded',
-    reason: 'R²_OS below zero in the validation window — the historical mean did better',
+    reason: 'Out-of-sample R² below zero in the validation window — the historical mean did better',
     outOfSampleR2: -0.6,
     route: '/advanced-signals/factor-timing-rotation',
   },

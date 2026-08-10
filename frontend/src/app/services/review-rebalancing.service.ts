@@ -271,7 +271,7 @@ export class ReviewRebalancingService {
   // --- frontier -------------------------------------------------------------
 
   readonly currentPoint: FrontierPoint = {
-    label: 'z*_t',
+    label: 'z*ₜ',
     variance: CURRENT_VARIANCE,
     expectedReturn: CURRENT_RETURN,
     description: 'the current holding, now below the updated frontier',

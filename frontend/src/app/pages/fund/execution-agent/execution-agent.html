@@ -1,1 +1,178 @@
-<p>execution-agent works!</p>
+<!--
+  Regions follow `docs/15 Execution & Orders Agent.md` in order:
+  Toolbar → StatusBanner → FilterChipBar → DataTable → EventLogPanel → DetailPanel.
+  The shell renders the <h1>, so headings here start at <h2>.
+-->
+
+<!-- Straight past the toolbar and the banner to the thing the page is about. -->
+<a href="#proposed-orders" class="skip-link">Skip to the proposed orders</a>
+
+<!-- 1 · Toolbar -->
+<app-page-context-bar heading="Execution agent status" compact>
+  <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+    <!--
+      role="status": the agent's state changes on its own, and a reader who is
+      not looking at this line still needs to hear that it did.
+
+      aria-busy while the snapshot stamp is a skeleton, so the live region holds
+      its announcement until the line is whole rather than reading out a
+      half-replaced sentence on every refresh.
+    -->
+    <!-- A div, not a p: the skeleton that stands in for the stamp renders a
+         block element, which a <p> may not contain. -->
+    <div
+      role="status"
+      data-testid="agent-status"
+      [attr.aria-busy]="loading() || null"
+      class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm"
+    >
+      <span class="flex items-baseline gap-1.5">
+        <!-- Decorative; the word beside it carries the state. -->
+        <span aria-hidden="true" class="text-text-secondary">{{ runIcon() }}</span>
+        <span class="font-medium text-text">{{ runLabel() }}</span>
+      </span>
+      <span class="text-text-secondary">
+        · last run <span class="tabular-nums text-text">{{ lastRun() }}</span>
+      </span>
+      @if (loading()) {
+        <app-skeleton-block height="h-4" width="w-48" />
+      } @else {
+        <span class="text-text-secondary">
+          · fund state read <span class="tabular-nums text-text">{{ snapshotAt() }}</span>
+        </span>
+      }
+    </div>
+
+    <div class="ml-auto flex flex-wrap items-center gap-2">
+      <app-refresh-control [busy]="loading()" (refresh)="refresh()" />
+      <button
+        type="button"
+        appButton="ghost"
+        [attr.aria-expanded]="fullTrace()"
+        aria-controls="execution-run-trace"
+        (click)="toggleFullTrace()"
+      >
+        View full trace <span aria-hidden="true">→</span>
+      </button>
+    </div>
+  </div>
+
+  <p class="text-xs text-text-secondary">
+    Writes <code class="text-text">proposed_orders</code> · reads market data, risk metrics and
+    optimizer output. All tools are read-only or pure-compute: the agent proposes orders and never
+    sends them.
+  </p>
+</app-page-context-bar>
+
+<!-- 2 · StatusBanner — broker adapter. Always present, never dismissible. -->
+<app-execution-broker-banner />
+
+<!-- 3 · FilterChipBar -->
+<section aria-label="Order filters" class="flex flex-col gap-1">
+  <app-filter-chip-bar
+    [count]="visibleCount()"
+    [total]="filteredTotal()"
+    countNoun="orders"
+    [summary]="summary()"
+  >
+    <!--
+      The search field is projected rather than taken from the chip bar's own
+      `searchLabel` slot for one reason: the spec requires every filter control
+      to be disabled until the snapshot has arrived, and the shared component
+      exposes no disabled state for the field it renders itself.
+    -->
+    <div class="flex w-56 flex-col gap-1">
+      <label for="execution-symbol-search" class="text-xs text-text-secondary">Symbol</label>
+      <input
+        id="execution-symbol-search"
+        type="search"
+        placeholder="Search symbol…"
+        class="min-h-11 w-full rounded-md border border-border-control bg-surface-raised px-3 text-sm text-text disabled:opacity-60"
+        [value]="symbolQuery()"
+        [disabled]="loading()"
+        (input)="onSymbolQuery($event)"
+      />
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <label for="execution-stage-filter" class="text-xs text-text-secondary">Stage</label>
+      <select
+        id="execution-stage-filter"
+        appSelect
+        class="max-w-48"
+        [disabled]="loading()"
+        (change)="onStage($event)"
+      >
+        <option value="all" [selected]="stageFilter() === 'all'">All</option>
+        @for (stage of stages; track stage) {
+          <option [value]="stage" [selected]="stageFilter() === stage">
+            {{ stageLabel[stage] }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <label for="execution-side-filter" class="text-xs text-text-secondary">Side</label>
+      <select
+        id="execution-side-filter"
+        appSelect
+        class="max-w-32"
+        [disabled]="loading()"
+        (change)="onSide($event)"
+      >
+        <option value="all" [selected]="sideFilter() === 'all'">All</option>
+        @for (side of sides; track side) {
+          <option [value]="side" [selected]="sideFilter() === side">{{ sideLabel[side] }}</option>
+        }
+      </select>
+    </div>
+
+    @if (filtersActive()) {
+      <button type="button" appButton="ghost" class="self-end" (click)="clearFilters()">
+        Clear filters
+      </button>
+    }
+  </app-filter-chip-bar>
+
+  <p class="text-xs text-text-secondary">
+    Filters act on the table only — they never re-run the agent.
+  </p>
+</section>
+
+<!-- 4 · DataTable — proposed orders -->
+<section
+  id="proposed-orders"
+  tabindex="-1"
+  aria-labelledby="proposed-orders-heading"
+  class="flex flex-col gap-3"
+>
+  <h2 id="proposed-orders-heading" class="text-base font-medium text-text">Proposed orders</h2>
+
+  @if (staleTarget()) {
+    <!--
+      The list was sized against a target the fund state has since replaced.
+      Derived from the two snapshots, so it cannot claim "current" about a list
+      generated from something else.
+    -->
+    <p
+      role="status"
+      data-testid="stale-target-warning"
+      class="rounded-md border border-border bg-surface-inset px-4 py-3 text-sm text-text"
+    >
+      <span aria-hidden="true" class="text-warning">!</span>
+      These orders were sized against <strong>{{ generatedFromTarget().label }}</strong> (published
+      {{ generatedFromTarget().publishedAt }}), but the newest fund state carries
+      <strong>{{ latestTarget().label }}</strong> ({{ latestTarget().publishedAt }}). The list may
+      no longer match the published target — re-run the execution agent before acting on it.
+    </p>
+  }
+
+  <app-execution-orders-table />
+</section>
+
+<!-- 5 · EventLogPanel — last run, read-only tool calls -->
+<app-execution-run-log [(fullTrace)]="fullTrace" />
+
+<!-- 6 · DetailPanel — opened from a row, four tabs, no action inside it -->
+<app-execution-order-detail />

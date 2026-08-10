@@ -38,7 +38,16 @@
   /* Border — decorative card edge; `border-control` identifies a control (3.9:1) */
   --color-border: #e2dad0;
   --color-border-muted: #f0eae2;
-  --color-border-control: #8a8078;
+  /*
+    Identifies a control, so it is bound by WCAG 1.4.11 rather than taste:
+    3.34:1 on a white card and 3.13:1 on the page background, both above the
+    3:1 floor. It was #8a8078 (3.86:1) and read heavier than it needed to.
+    #9c938b would be lighter still but drops to 2.82:1 against the page, and
+    controls sit on both surfaces — this is the lightest value that holds
+    everywhere. Do not soften it further without giving controls another
+    identifying cue that itself clears 3:1.
+  */
+  --color-border-control: #948b83;
 
   /* Text — 17.7:1 and 6.1:1 */
   --color-text: #1c1813;
@@ -95,6 +104,15 @@
     /* Global rather than scoped to tap targets, so a stray double-tap anywhere —
        a table cell, a card body, a paragraph — cannot zoom the page either. */
     touch-action: manipulation;
+    /*
+      Checkboxes, radios and range thumbs, tinted once.
+
+      `accent-color` inherits, so declaring it here reaches every control in the
+      app. Forty-nine of them carried `accent-[var(--color-primary)]`
+      individually, which is the same value written out once per input and one
+      more thing to forget on the fiftieth.
+    */
+    accent-color: var(--color-primary);
   }
 
   /* Prevent iOS auto-zoom on focused inputs, which fires below 16px and leaves the
@@ -184,6 +202,106 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+
+  /*
+    Section eyebrow — the small uppercase label above a region.
+
+    A class rather than a component on purpose. The seventeen call sites render
+    it as an `h2`, an `h3`, a `p` and a `span` depending on whether the region
+    has a heading in the outline, and most carry an `id` that a sibling's
+    `aria-labelledby` points at. A component would have to fix one tag and
+    re-expose the id, so it would take the semantics away from the caller to
+    give back the styling — the wrong trade for a rule with no markup of its own.
+  */
+  .eyebrow {
+    font-size: var(--text-xs);
+    line-height: var(--tw-leading, var(--text-xs--line-height));
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wider);
+    color: var(--color-text-secondary);
+  }
+
+  /*
+    The app's one raised surface.
+
+    Cards, panels and toolbars all sit on this. Below `sm` it gives up its
+    rounding and side borders and bleeds to the screen edge — a 16px gutter
+    either side of a data table costs more than the card outline is worth on a
+    390px screen. Twenty-three call sites repeated the whole string, and any
+    that mistyped the `max-sm:` half quietly got a different mobile treatment
+    from the card above it.
+  */
+  .surface-card {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface-raised);
+  }
+
+  @media (width < 40rem) {
+    .surface-card {
+      margin-inline: -1rem;
+      border-radius: 0;
+      border-inline-width: 0;
+    }
+  }
+
+  /*
+    The scroll box a wide table lives in, so the page never scrolls sideways.
+
+    `relative` is load-bearing and not decoration: a `sr-only` caption inside
+    the table is absolutely positioned, and with no positioned ancestor its
+    containing block becomes the page. It then escapes the scroller, parks at
+    its static offset far to the right and widens the document — horizontal
+    scroll on the whole page, caused by an element nobody can see.
+  */
+  .table-scroll {
+    position: relative;
+    overflow-x: auto;
+  }
+
+  /*
+    The two row rules every data table in the app shares.
+
+    Cell padding deliberately stays at the call site: it runs px-2, px-3 and
+    px-4 depending on how much the table has to fit, and alignment is per
+    column. Only the rules that were genuinely identical everywhere move here.
+  */
+  .table-head-row {
+    border-bottom: 1px solid var(--color-border);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    color: var(--color-text-secondary);
+  }
+
+  .table-row {
+    border-bottom: 1px solid var(--color-border-muted);
+  }
+
+  .table-row:last-child {
+    border-bottom-width: 0;
+  }
+
+  /*
+    Math typesetting.
+
+    The browser sets MathML in its own math font (STIX Two Math / Cambria Math),
+    whose glyphs run smaller on the body than Outfit's at the same nominal size.
+    A small bump puts an inline variable on the same visual footing as the prose
+    around it.
+  */
+  math {
+    font-size: 1.08em;
+  }
+
+  /*
+    A stacked construct — a fraction, or a sum with limits — halves its own
+    parts to fit. Inside the `text-xs` captions these equations live in, that
+    lands at about 8px and stops being readable, so they get the room back.
+  */
+  math:has(mfrac, munderover, munder, mover) {
+    font-size: 1.35em;
   }
 
   /* Hide scrollbar while keeping scroll functionality */

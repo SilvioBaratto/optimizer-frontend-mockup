@@ -1,0 +1,92 @@
+<section aria-labelledby="ft-spread-heading" class="flex flex-col gap-2">
+  <h2 id="ft-spread-heading" class="text-sm font-semibold text-text">Value spread</h2>
+
+  <app-bullet-chart
+    [title]="'Metric ' + metricLabel()"
+    [subtitle]="caption()"
+    [ariaLabel]="ariaLabel()"
+    [rows]="rows()"
+    mode="marker"
+    [domainMin]="-bandSd"
+    [domainMax]="bandSd"
+    [valueFormatter]="markerLabel"
+    valueAxisName="SD from the historical mean"
+    [height]="height"
+  >
+    <div class="flex flex-col gap-2 border-t border-border px-4 py-3 text-xs">
+      <!--
+        The band's word beside its marker, so the reading survives without the
+        drawing: a badge carries a label and a glyph, never a tint on its own.
+      -->
+      <ul class="flex flex-wrap items-center gap-x-4 gap-y-2">
+        @for (badge of badges(); track badge.factor) {
+          <li class="flex items-center gap-2" [attr.data-spread-badge]="badge.factor">
+            <span class="text-text">{{ badge.label }}</span>
+            <span class="tabular-nums text-text-secondary">{{ badge.reading }}</span>
+            <app-status-badge [label]="badge.band" [tone]="badge.tone" />
+          </li>
+        }
+      </ul>
+
+      <p data-testid="ft-spread-extreme" class="text-text-secondary">
+        @if (anyExtreme()) {
+          At least one factor sits beyond ±{{ bandSd }} SD of its {{ baseYear }} mean.
+        } @else {
+          {{ noExtremeNote }} — every reading is inside ±{{ bandSd }} SD of its
+          {{ baseYear }} mean.
+        }
+      </p>
+
+      <p data-testid="ft-spread-metric-note" class="text-text-secondary">{{ metricNote }}</p>
+
+      <!--
+        Factors with no band to sit on are named rather than dropped silently:
+        an absent marker and a marker at zero are different statements.
+      -->
+      @for (omission of omissions(); track omission.factor) {
+        <p class="text-text-secondary" [attr.data-spread-omitted]="omission.factor">
+          <span class="text-text">{{ omission.label }}</span> — no band. {{ omission.reason }}
+        </p>
+      }
+
+      <!--
+        The anti-extrapolation callout.
+
+        Both clauses come from the conflicted row of the signal table, so this
+        cannot say "cheap" while the table's arrow says "rich". The link points
+        at the guardrail banner rather than repeating what it says.
+      -->
+      @if (check(); as extrapolation) {
+        <div
+          data-testid="ft-extrapolation-check"
+          class="flex flex-col gap-1 rounded-md border border-warning border-dashed px-3 py-2"
+        >
+          <p class="font-medium text-text">
+            <span aria-hidden="true">!</span> {{ checkTitle }} —
+            <span data-testid="ft-extrapolation-summary">{{ extrapolation.summary }}</span>
+          </p>
+          <p class="text-text-secondary">{{ checkRule }}</p>
+          <p>
+            <!--
+              A button, not `<a href="#…">`. `index.html` sets `<base href="/">`
+              and a bare fragment resolves against the base, not the document,
+              so `href="#ft-guardrail-banner"` navigated to `/#ft-guardrail-banner`
+              — a full page load onto the dashboard. This moves the reader to
+              the notice and takes the focus with them, which is what the
+              reference was for.
+            -->
+            <button
+              type="button"
+              class="inline-flex min-h-11 items-center rounded-md px-1 font-medium text-primary underline underline-offset-2 hover:bg-primary-light"
+              [attr.aria-controls]="bannerId"
+              data-testid="ft-extrapolation-banner-link"
+              (click)="showGuardrailNotice()"
+            >
+              {{ bannerReference }}
+            </button>
+          </p>
+        </div>
+      }
+    </div>
+  </app-bullet-chart>
+</section>

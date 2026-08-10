@@ -14,7 +14,6 @@
           <input
             type="radio"
             name="revision-method"
-            class="accent-[var(--color-primary)]"
             [checked]="method() === m"
             (change)="onMethod(m)"
           />
@@ -24,18 +23,17 @@
     </fieldset>
 
     <p class="text-sm text-text-secondary">
-      As of t+Δt <span class="tabular-nums text-text">{{ asOf }}</span>
-      · t <span class="tabular-nums text-text">{{ previousAsOf }}</span>
+      As of <math><mi>t</mi><mo>+</mo><mi>Δ</mi><mi>t</mi></math>
+      <span class="tabular-nums text-text">{{ asOf }}</span>
+      · <app-math-var expr="t" /> <span class="tabular-nums text-text">{{ previousAsOf }}</span>
     </p>
 
-    <button
-      type="button"
-      class="ml-auto min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
-      [disabled]="state() === 'loading'"
-      (click)="refresh()"
-    >
-      <span aria-hidden="true">⟳</span> Refresh data
-    </button>
+    <app-refresh-control
+      class="ml-auto"
+      label="Refresh data"
+      [busy]="state() === 'loading'"
+      (refresh)="refresh()"
+    />
   </div>
 
   <p class="text-xs text-text-secondary">
@@ -56,13 +54,13 @@
 @if (state() === 'loading') {
   <div role="status" class="flex flex-col gap-6">
     <span class="sr-only">Recalculating the revision</span>
-    <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 p-4">
+    <div class="surface-card p-4">
       <app-skeleton-block height="h-5" [lines]="2" />
     </div>
-    <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 p-4">
+    <div class="surface-card p-4">
       <app-skeleton-block height="h-64" />
     </div>
-    <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 p-4">
+    <div class="surface-card p-4">
       <app-skeleton-block height="h-5" [lines]="4" />
     </div>
   </div>
@@ -76,7 +74,7 @@
 } @else if (state() === 'empty') {
   <app-empty-state
     title="No current portfolio to compare against"
-    detail="There is no z*_t on record for this scope, so there is nothing to revise. Complete a selection in Results & Frontier first."
+    detail="There is no z*ₜ on record for this scope, so there is nothing to revise. Complete a selection in Results & Frontier first."
   >
     <app-cross-page-link label="Results & Frontier" route="/results/results-frontier" />
   </app-empty-state>
@@ -85,7 +83,8 @@
   <app-info-card title="Revision classification">
     <div class="flex flex-col gap-3">
       <p class="text-sm text-text-secondary">
-        Where z*<sub>t</sub> stands at t+Δt under the updated parameters.
+        Where <app-math-var expr="z*_t" label="z star sub t, the portfolio held at t" /> stands at
+        <math><mi>t</mi><mo>+</mo><mi>Δ</mi><mi>t</mi></math> under the updated parameters.
       </p>
       <ul class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-6">
         @for (c of classifications; track c) {
@@ -123,7 +122,7 @@
       @if (method() === 'smith') {
         <app-frontier-chart
           title="New efficient frontier"
-          subtitle="z*_t now sits below it — A, B and C are the three points Smith identifies"
+          subtitle="z*ₜ now sits below it — A, B and C are the three points Smith identifies"
           [ariaLabel]="frontierDescription()"
           [curve]="frontierCurve()"
           [markers]="frontierMarkers()"
@@ -151,13 +150,13 @@
       } @else {
         <app-bar-chart
           title="Returns corrected for systematic risk"
-          subtitle="c_i = r_i − β_i·θ — the ranking the exchange rule works from"
+          subtitle="cᵢ = rᵢ − βᵢ·θ — the ranking the exchange rule works from"
           ariaLabel="Corrected return for each asset, used to rank the exchange"
           [categories]="correctedCategories()"
           [series]="correctedSeries()"
           [valueFormatter]="planeFormatter"
           categoryAxisName="asset"
-          valueAxisName="c_i"
+          valueAxisName="cᵢ"
           [height]="320"
           [showLegend]="false"
         />
@@ -219,12 +218,8 @@
       <app-action-button-row align="start">
         <button
           type="button"
-          class="min-h-11 rounded-md px-4 text-sm font-medium transition-colors disabled:opacity-50"
-          [class]="
-            verdict().convenient
-              ? 'min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50'
-              : 'min-h-11 rounded-md border border-border-control px-4 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50'
-          "
+          [appButton]="verdict().convenient ? 'primary' : 'secondary'"
+          size="md"
           [disabled]="outcome('approve').state === 'sending' || !hasCandidate()"
           (click)="submit('approve')"
         >
@@ -233,11 +228,8 @@
 
         <button
           type="button"
-          [class]="
-            !verdict().convenient
-              ? 'min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50'
-              : 'min-h-11 rounded-md border border-border-control px-4 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50'
-          "
+          [appButton]="verdict().convenient ? 'secondary' : 'primary'"
+          size="md"
           [disabled]="outcome('hold').state === 'sending'"
           (click)="submit('hold')"
         >
@@ -246,7 +238,7 @@
 
         <button
           type="button"
-          class="min-h-11 rounded-md border border-border-control px-4 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+          appButton="secondary" size="md"
           [disabled]="outcome('forward').state === 'sending'"
           (click)="submit('forward')"
         >

@@ -1,1 +1,105 @@
-<p>market-regimes works!</p>
+<!--
+  Regions follow `docs/22 Market Regimes.md` in order:
+  Toolbar → HeroStatCard → ChartPanel (probability path) → DataTable (regime
+  statistics) → ChartPanel (correlation diagnostic) → ChartPanel (macro
+  nowcast) → ChartPanel (momentum state) → ChartPanel (size premium) →
+  ChartPanel (value premium) → ContextBridgeCard → InfoCard (diagnostics).
+
+  The shell renders the <h1> and the breadcrumb from the route, so headings
+  here start at <h2>: each region labels itself, and the chart panels' own
+  titles sit at <h3> beneath those labels.
+-->
+
+<!-- Past five toolbar controls to the estimate they describe. -->
+<a href="#market-regimes-content" class="skip-link">Skip to the regime estimate</a>
+
+<!-- 1 · Toolbar — the coordinates every reading below is stated in. -->
+<app-market-regimes-toolbar />
+
+<div id="market-regimes-content" tabindex="-1" class="flex flex-col gap-6">
+  <!--
+    One live region for the whole page, and it stays in the document.
+
+    A `role="status"` that lives inside the loading branch is removed the moment
+    the run lands, and a removed live region announces nothing — so a reader who
+    changed the model heard "Re-estimating…" and then silence, with the new
+    reading somewhere below them. This one survives the transition and carries
+    the settled reading, which is the "riepilogo aria-live sintetico dello stato
+    corrente" the spec asks for.
+  -->
+  <p data-testid="mr-live-summary" role="status" class="sr-only">{{ liveSummary() }}</p>
+
+  @if (state() === 'loading') {
+    <!--
+      One placeholder per panel, at the height of the panel it stands in for,
+      so nothing jumps when the filter lands. The toolbar above stays in place
+      and refuses input rather than disappearing.
+    -->
+    <div data-testid="mr-loading" aria-busy="true" class="flex flex-col gap-6">
+      @for (panel of skeletonPanels; track panel.id) {
+        <app-skeleton-block [height]="panel.height" />
+      }
+    </div>
+  } @else {
+    <!--
+      A filter that did not converge does not empty the page. The last figures
+      stay where they were, drained of colour and labelled as old, because "no
+      estimate" and "the estimate from before this parameter changed" are
+      different situations and only one of them happened.
+    -->
+    @if (loadFailure(); as failure) {
+      <app-error-state
+        data-testid="mr-load-error"
+        [message]="failure"
+        [detail]="loadFailureDetail"
+        cause="load"
+        (retry)="retry()"
+      />
+    }
+
+    <!--
+      `grayscale`, not `opacity`: at 60% the page's secondary text drops under
+      the 4.5:1 this doc's accessibility section asks to be verified, and every
+      note and axis label on the page is that colour. Desaturating on the
+      luminance axis leaves each ratio intact.
+    -->
+    <div class="flex flex-col gap-6" [class.grayscale]="stale()">
+      <!-- 2 · HeroStatCard — the current state, and every state's probability. -->
+      <app-market-regimes-dominant-state />
+
+      <!-- 3 · ChartPanel — the probability path, stacked to 100% every month. -->
+      <app-market-regimes-probability-path />
+
+      <!-- 4 · DataTable — the states' statistics on the selected universe. -->
+      <app-market-regimes-statistics />
+
+      <!-- 5 · ChartPanel — exceedance correlations against a symmetric θ. -->
+      <app-market-regimes-correlation-diagnostic />
+
+      <!-- 6 · ChartPanel — the macro nowcast, running beside the returns filter. -->
+      <app-market-regimes-macro-nowcast />
+
+      <!-- 7 · ChartPanel — momentum's own UP/DOWN market state. -->
+      <app-market-regimes-momentum-state />
+
+      <!-- 8 · ChartPanel — the size premium, always over the four VAR regimes. -->
+      <app-market-regimes-size-premium />
+
+      <!-- 9 · ChartPanel — the value premium, on its own two-state model. -->
+      <app-market-regimes-value-premium />
+
+      <!-- 10 · ContextBridgeCard — the page's primary action. -->
+      <app-market-regimes-view-bridge />
+
+      <!-- 11 · InfoCard — the fit's diagnostics, always in the footer. -->
+      <app-market-regimes-diagnostics />
+    </div>
+  }
+</div>
+
+<!-- The entries the spec names, offered back as exits. -->
+<app-action-button-row align="start">
+  @for (page of relatedPages; track page.route) {
+    <app-cross-page-link [label]="page.label" [route]="page.route" />
+  }
+</app-action-button-row>

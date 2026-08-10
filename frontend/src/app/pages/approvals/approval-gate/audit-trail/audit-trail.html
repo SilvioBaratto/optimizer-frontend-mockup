@@ -1,0 +1,52 @@
+<app-info-card>
+  <h3 appCardTitle>Audit trail</h3>
+
+  <button
+    card-action
+    type="button"
+    appButton="ghost"
+    data-testid="audit-trail-toggle"
+    [attr.aria-expanded]="expanded()"
+    [attr.aria-controls]="regionId"
+    (click)="toggle()"
+  >
+    <!-- Decorative; aria-expanded and the label carry the state. -->
+    <span aria-hidden="true">{{ expanded() ? '&#9662;' : '&#9656;' }}</span>
+    {{ expanded() ? 'Hide' : 'Show' }} {{ count() }} checkpoints
+  </button>
+
+  <div [id]="regionId">
+    @if (expanded()) {
+      @if (count()) {
+        <!-- Ordered: the trail is a sequence, and its order is what makes it a
+             replay rather than a pile of stamps. -->
+        <ol data-testid="audit-trail-list" class="flex flex-col gap-2">
+          @for (checkpoint of checkpoints(); track checkpoint.id) {
+            <li class="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
+              <span class="shrink-0 text-xs text-text-secondary tabular-nums sm:min-w-40">
+                {{ checkpoint.date }} {{ checkpoint.at }}
+              </span>
+              <span class="min-w-0">
+                <span class="block text-sm break-words text-text">{{ checkpoint.label }}</span>
+                @if (checkpoint.detail) {
+                  <span class="block text-xs break-words text-text-secondary">
+                    {{ checkpoint.detail }}
+                  </span>
+                }
+              </span>
+            </li>
+          }
+        </ol>
+      } @else {
+        <p role="status" class="text-sm text-text-secondary">
+          No checkpoint has been recorded for this trade yet.
+        </p>
+      }
+    } @else {
+      <p class="text-sm text-text-secondary">
+        Every step change is checkpointed. Expand to read the {{ count() }} transitions recorded for
+        this trade.
+      </p>
+    }
+  </div>
+</app-info-card>

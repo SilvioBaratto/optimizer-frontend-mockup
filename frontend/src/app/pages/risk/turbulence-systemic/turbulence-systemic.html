@@ -1,1 +1,159 @@
-<p>turbulence-systemic works!</p>
+<!--
+  Regions follow `docs/25 Turbulence & Systemic Risk.md` in order. The shell
+  renders the <h1>, the breadcrumb and the skip link, so headings here start at
+  <h2> and the panel titles inside them are <h3>.
+-->
+
+<!-- 1 · KeyMetricsRow — the as-of stamp, the universe and the estimation windows. -->
+<app-turbulence-snapshot-bar />
+
+@switch (state()) {
+  <!--
+    Nothing to compute: no universe, or one younger than the windows the
+    indicators need. The bar above stays — it already says which universe is
+    selected and what the windows would be.
+  -->
+  @case ('empty') {
+    <app-empty-state [title]="emptyTitle()" [detail]="emptyDetail()">
+      <app-cross-page-link [label]="emptyAction.label" [route]="emptyAction.route" />
+    </app-empty-state>
+  }
+
+  <!--
+    Every one of the nine panels failed. A single failure never reaches here:
+    it is held against its own panel, which shows its own message and its own
+    retry while its neighbours keep their figures.
+  -->
+  @case ('error') {
+    <app-error-state
+      message="No indicator could be computed for the current window."
+      [detail]="errorDetail()"
+      cause="load"
+      (retry)="retry()"
+    />
+  }
+
+  <!--
+    Populated, and recomputing.
+
+    A refresh is not a state of its own here: the structure stays standing and
+    every region shows its own placeholder — six card skeletons in the grid,
+    each panel a block the height of the figure it stands in for. That is what
+    the spec asks for ("ogni ChartPanel o DataTable mostra uno SkeletonBlock
+    della stessa altezza del contenuto finale"), and it keeps the toolbar and
+    the jump links under the reader's hands while the numbers come back.
+  -->
+  @default {
+    <!-- 2, 3 · SectionLabel and the six current readings. -->
+    <app-turbulence-indicator-grid />
+
+    <!-- 4 · SectionNav — four in-page jumps, no reload. -->
+    <app-turbulence-section-nav (jump)="goToSection($event)" />
+
+    <!-- 5 · Toolbar — the shared display range and the overlay toggle. -->
+    <app-turbulence-display-toolbar />
+
+    <!-- 6, 7, 8 · Turbulence: the series, the pair inspector, the contributors. -->
+    <section
+      [id]="anchor['turbulence']"
+      class="ts-section flex flex-col gap-6"
+      aria-labelledby="ts-turbulence-heading"
+    >
+      <h2 id="ts-turbulence-heading" class="text-sm font-semibold text-text">Turbulence</h2>
+      <app-turbulence-chart />
+      <app-turbulence-pairwise-inspector />
+      <app-turbulence-contributors-table />
+    </section>
+
+    <!--
+      9, 10 · Compactness. Deferred: both are ECharts canvases below the fold.
+
+      The placeholder is the panel's own loading card, not a bare block. Two
+      reasons, and the second is the one that matters: it looks like the panel
+      that is arriving rather than like a grey slab, and the height of each
+      panel is then written down in exactly one place — beside the panel — so
+      the "not downloaded yet" box and the "recomputing" box cannot drift into
+      two different heights and jolt the page between them.
+    -->
+    <section
+      [id]="anchor['compactness']"
+      class="ts-section flex flex-col gap-6"
+      aria-labelledby="ts-compactness-heading"
+    >
+      <h2 id="ts-compactness-heading" class="text-sm font-semibold text-text">Compactness</h2>
+
+      @defer (on idle) {
+        <app-turbulence-absorption-chart />
+      } @placeholder {
+        <app-turbulence-panel-fallback panel="absorption" height="h-[520px] lg:h-[390px]" />
+      }
+
+      @defer (on idle) {
+        <app-turbulence-effective-rank-chart />
+      } @placeholder {
+        <app-turbulence-panel-fallback panel="effective-rank" height="h-[464px] lg:h-[366px]" />
+      }
+    </section>
+
+    <!-- 11 · PC1 growth: the share through time and the distribution of its changes. -->
+    <section
+      [id]="anchor['pc1-growth']"
+      class="ts-section flex flex-col gap-6"
+      aria-labelledby="ts-pc1-growth-heading"
+    >
+      <h2 id="ts-pc1-growth-heading" class="text-sm font-semibold text-text">PC1 Growth</h2>
+
+      @defer (on idle) {
+        <app-turbulence-pc1-growth />
+      } @placeholder {
+        <!-- Two figures live here; the height covers both. -->
+        <app-turbulence-panel-fallback panel="pc1-growth" height="h-[878px] lg:h-[798px]" />
+      }
+    </section>
+
+    <!-- 12, 13, 14 · Correlation structure: the spectrum, 1/I1 and the loadings. -->
+    <section
+      [id]="anchor['correlation-structure']"
+      class="ts-section flex flex-col gap-6"
+      aria-labelledby="ts-correlation-heading"
+    >
+      <h2 id="ts-correlation-heading" class="text-sm font-semibold text-text">
+        Correlation Structure
+      </h2>
+
+      @defer (on idle) {
+        <app-turbulence-eigen-spectrum />
+      } @placeholder {
+        <!-- One bar per asset: the spectrum is the tallest figure on the page. -->
+        <app-turbulence-panel-fallback panel="spectrum" height="h-[852px] lg:h-[722px]" />
+      }
+
+      @defer (on idle) {
+        <app-turbulence-participation-chart />
+      } @placeholder {
+        <app-turbulence-panel-fallback panel="participation" height="h-[476px] lg:h-[394px]" />
+      }
+
+      <app-turbulence-pc1-contribution-table />
+    </section>
+
+    <!--
+      15 · InfoCard — where these readings sit. Static, non-interactive, always
+      at the foot of the page: the indicators feed a regime state estimated
+      elsewhere, and this page neither re-identifies the regimes nor sizes the
+      losses.
+    -->
+    <app-info-card [title]="placementTitle">
+      <div class="flex flex-col gap-3">
+        @for (note of placementNotes; track note) {
+          <p class="text-sm text-text-secondary">{{ note }}</p>
+        }
+        <app-action-button-row align="start">
+          @for (page of relatedPages; track page.route) {
+            <app-cross-page-link [label]="page.label" [route]="page.route" />
+          }
+        </app-action-button-row>
+      </div>
+    </app-info-card>
+  }
+}

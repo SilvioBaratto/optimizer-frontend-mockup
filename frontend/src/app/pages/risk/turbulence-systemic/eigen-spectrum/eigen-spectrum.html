@@ -1,0 +1,48 @@
+@if (ready()) {
+  <app-bar-chart
+    title="Eigenvalue spectrum"
+    [subtitle]="subtitle()"
+    [ariaLabel]="ariaLabel()"
+    [categories]="categories()"
+    [series]="series()"
+    orientation="horizontal"
+    [refLines]="refLines()"
+    [valueFormatter]="formatter"
+    valueAxisName="lambda"
+    [height]="height()"
+  >
+    <div class="flex flex-col gap-3 border-t border-border px-4 py-3">
+      <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
+        <div class="flex flex-col gap-1">
+          <label for="ts-spectrum-window" class="text-xs text-text-secondary">Window ending</label>
+          <select
+            id="ts-spectrum-window"
+            appSelect
+            data-testid="spectrum-window"
+            (change)="onWindow($event)"
+          >
+            @for (window of windows; track window.id) {
+              <option [value]="window.id" [selected]="window.id === windowId()">
+                {{ window.label }}
+              </option>
+            }
+          </select>
+        </div>
+
+        <app-turbulence-coverage-note [coverage]="coverage()" />
+      </div>
+
+      <p data-testid="spectrum-counts" class="text-xs text-text-secondary">
+        <span aria-hidden="true">{{ aboveGlyph }}</span> marks the
+        {{ spectrum().aboveBound }} eigenvalues above the Wishart bound gamma+ of
+        {{ formatter(spectrum().gammaPlus) }};
+        {{ spectrum().significant }} satisfy the Kaiser-Guttman criterion lambda &gt; 1. The two are
+        different criteria and are counted separately.
+      </p>
+
+      <p class="text-xs text-text-secondary">{{ boundNote }}</p>
+    </div>
+  </app-bar-chart>
+} @else {
+  <app-turbulence-panel-fallback panel="spectrum" height="h-[852px] lg:h-[722px]" />
+}

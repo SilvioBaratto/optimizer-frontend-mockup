@@ -1,0 +1,82 @@
+<figure class="surface-card" aria-labelledby="factor-impact-heading">
+  <figcaption class="flex flex-col gap-0.5 border-b border-border px-4 py-3">
+    <h2 id="factor-impact-heading" class="text-sm font-medium text-text">
+      Systematic factor risk impact
+    </h2>
+    <p class="text-xs text-text-secondary">{{ impactNote }}</p>
+  </figcaption>
+
+  @if (loading()) {
+    <div data-testid="factor-skeleton" aria-busy="true" class="flex flex-col gap-2 px-4 py-4">
+      <app-skeleton-block height="h-6" [lines]="4" />
+    </div>
+  } @else {
+    <ul data-testid="factor-bars" class="flex flex-col">
+      @for (row of impacts(); track row.id) {
+        <li
+          [attr.data-factor]="row.id"
+          class="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-border-muted px-4 py-2 last:border-b-0 sm:flex-nowrap"
+        >
+          <span class="w-32 shrink-0 truncate text-sm text-text">{{ row.name }}</span>
+
+          <!-- Decoration: the percentage to its right is the reading. -->
+          <span
+            aria-hidden="true"
+            class="relative hidden h-3 min-w-0 flex-1 rounded-xs bg-surface-inset sm:block"
+          >
+            <span
+              class="absolute top-0 left-0 h-3 rounded-xs"
+              [class.bg-primary]="!row.residual"
+              [class.bg-border-control]="row.residual"
+              [style.width.%]="barWidth(row)"
+            ></span>
+          </span>
+
+          <span class="w-16 shrink-0 text-right text-sm font-medium tabular-nums text-text">{{
+            percent(row.impact)
+          }}</span>
+
+          <!--
+            Rendered only on the residual row and with no reserved width, so the
+            other rows keep one line at 320px and this one wraps rather than
+            widening the card.
+          -->
+          @if (row.residual) {
+            <span class="shrink-0 text-xs whitespace-nowrap text-text-secondary">
+              <span aria-hidden="true">◌</span> unexplained
+            </span>
+          }
+        </li>
+      }
+    </ul>
+
+    <p class="border-t border-border px-4 py-2 text-xs text-text-secondary tabular-nums">
+      Listed factors explain <span class="text-text">{{ percent(explained()) }}</span> of total
+      risk. {{ residualNote }}
+    </p>
+
+    <!--
+      Both controls belong to this panel alone. The spec says so twice, and the
+      view they drive is a plain signal with no path into a recompute, so the
+      toolbar's Group by and this select cannot fight over the same rows.
+    -->
+    <div class="flex flex-wrap items-end justify-between gap-3 border-t border-border px-4 py-2">
+      <div class="flex flex-col gap-1">
+        <label for="factor-impact-view" class="text-xs text-text-secondary">Group by</label>
+        <select id="factor-impact-view" appSelect class="max-w-48" (change)="onFactorView($event)">
+          @for (view of factorViews; track view) {
+            <option [value]="view" [selected]="factorView() === view">
+              {{ factorViewLabel[view] }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <button type="button" appButton="secondary" (click)="exportImpacts()">Export</button>
+    </div>
+
+    <p role="status" data-testid="factor-export-status" class="min-h-4 px-4 pb-2 text-xs text-text-secondary">
+      {{ exportNotice() }}
+    </p>
+  }
+</figure>

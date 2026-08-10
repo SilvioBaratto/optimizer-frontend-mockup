@@ -3,16 +3,14 @@
   <h1> and the breadcrumb, so headings here start at <h2>.
 -->
 
-<!-- CollectionStatBar — sticky, so the run and constraint set stay in sight. -->
-<div
-  class="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-b border-border bg-surface px-4 py-3 md:-mx-8 md:px-8"
->
+<!-- Sticky, so the run and constraint set stay in sight. -->
+<app-page-context-bar [compact]="true">
   <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
     <div class="flex items-center gap-2">
       <label for="run-selector" class="text-sm text-text-secondary">Run</label>
       <select
         id="run-selector"
-        class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+        appSelect
         (change)="onRun($event)"
       >
         @for (run of runs; track run.id) {
@@ -28,7 +26,7 @@
     </p>
 
     <p class="text-sm text-text-secondary">
-      Risk-free r<sub>f</sub>
+      Risk-free <app-math-var expr="r_f" label="r sub f, the risk-free rate" />
       @if (result(); as data) {
         <span class="tabular-nums text-text">
           {{ data.riskFreeRate !== null ? data.riskFreeRate.toFixed(2) + '%' : 'not configured' }}
@@ -51,7 +49,6 @@
         <input
           type="radio"
           name="constraint-view"
-          class="accent-[var(--color-primary)]"
           [checked]="constraintView() === view"
           [disabled]="!isViewComputed(view)"
           (change)="onConstraintView(view)"
@@ -65,7 +62,7 @@
       </label>
     }
   </fieldset>
-</div>
+</app-page-context-bar>
 
 @if (state() === 'error') {
   <app-error-state
@@ -104,10 +101,10 @@
     @if (state() === 'loading') {
       <div role="status" class="flex flex-col gap-6">
         <span class="sr-only">Loading the frontier for this run</span>
-        <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 p-4">
+        <div class="surface-card p-4">
           <app-skeleton-block height="h-72" />
         </div>
-        <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 p-4">
+        <div class="surface-card p-4">
           <app-skeleton-block height="h-5" [lines]="4" />
         </div>
       </div>
@@ -137,7 +134,7 @@
             <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
               <input
                 type="checkbox"
-                class="h-4 w-4 accent-[var(--color-primary)]"
+                class="h-4 w-4"
                 [checked]="showFrontier()"
                 (change)="showFrontier.set($any($event.target).checked)"
               />
@@ -147,7 +144,7 @@
             <label class="flex min-h-11 items-center gap-1.5 text-sm">
               <input
                 type="checkbox"
-                class="h-4 w-4 accent-[var(--color-primary)]"
+                class="h-4 w-4"
                 [checked]="showCal() && calAvailable()"
                 [disabled]="!calAvailable()"
                 (change)="showCal.set($any($event.target).checked)"
@@ -163,7 +160,7 @@
             <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
               <input
                 type="checkbox"
-                class="h-4 w-4 accent-[var(--color-primary)]"
+                class="h-4 w-4"
                 [checked]="showGmvp()"
                 (change)="showGmvp.set($any($event.target).checked)"
               />
@@ -173,7 +170,7 @@
             <label class="flex min-h-11 items-center gap-1.5 text-sm">
               <input
                 type="checkbox"
-                class="h-4 w-4 accent-[var(--color-primary)]"
+                class="h-4 w-4"
                 [checked]="showMdp() && mdpAvailable()"
                 [disabled]="!mdpAvailable()"
                 (change)="showMdp.set($any($event.target).checked)"
@@ -189,7 +186,7 @@
             <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
               <input
                 type="checkbox"
-                class="h-4 w-4 accent-[var(--color-primary)]"
+                class="h-4 w-4"
                 [checked]="showAssets()"
                 (change)="showAssets.set($any($event.target).checked)"
               />
@@ -203,11 +200,11 @@
             land on the ends of the computed range.
           -->
           <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <label for="target-return" class="text-sm text-text-secondary">Target return π</label>
+            <label for="target-return" class="text-sm text-text-secondary">Target return <app-math-var expr="π" /></label>
             <input
               id="target-return"
               type="range"
-              class="h-11 w-56 accent-[var(--color-primary)]"
+              class="h-11 w-56"
               min="0"
               [max]="sliderMax()"
               step="1"
@@ -220,7 +217,7 @@
             </output>
             <button
               type="button"
-              class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+              appButton="secondary"
               [disabled]="atRunTarget()"
               (click)="resetTarget()"
             >
@@ -241,13 +238,13 @@
         <app-info-card title="Selected portfolio">
           <dl class="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
             <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
-              <dt class="text-sm text-text-secondary">Expected return E(r)</dt>
+              <dt class="text-sm text-text-secondary">Expected return <app-math-var expr="E(r)" /></dt>
               <dd class="tabular-nums text-sm font-medium text-text">
                 {{ metrics.expectedReturn.toFixed(2) }}%
               </dd>
             </div>
             <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
-              <dt class="text-sm text-text-secondary">Diversification ratio D(w)</dt>
+              <dt class="text-sm text-text-secondary">Diversification ratio <app-math-var expr="D(w)" /></dt>
               <dd class="tabular-nums text-sm font-medium text-text">
                 {{ metrics.diversificationRatio.toFixed(2) }}
               </dd>
@@ -257,7 +254,7 @@
               <dd class="tabular-nums text-sm font-medium text-text">{{ metrics.sd.toFixed(2) }}%</dd>
             </div>
             <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
-              <dt class="text-sm text-text-secondary">Weighted avg correlation ρ(w)</dt>
+              <dt class="text-sm text-text-secondary">Weighted avg correlation <app-math-var expr="ρ(w)" /></dt>
               <dd class="tabular-nums text-sm font-medium text-text">
                 {{ metrics.weightedAvgCorrelation.toFixed(2) }}
               </dd>
@@ -269,19 +266,19 @@
               </dd>
             </div>
             <div class="flex items-baseline justify-between gap-3 border-b border-border-muted py-1">
-              <dt class="text-sm text-text-secondary">Concentration ratio CR(w)</dt>
+              <dt class="text-sm text-text-secondary">Concentration ratio <app-math-var expr="CR(w)" /></dt>
               <dd class="tabular-nums text-sm font-medium text-text">
                 {{ metrics.concentrationRatio.toFixed(3) }}
               </dd>
             </div>
             <div class="flex items-baseline justify-between gap-3 py-1">
-              <dt class="text-sm text-text-secondary">Correlation with the MDP ρ<sub>w,M</sub></dt>
+              <dt class="text-sm text-text-secondary">Correlation with the MDP <app-math-var expr="ρ_w,M" /></dt>
               <dd class="tabular-nums text-sm font-medium text-text">
                 {{ metrics.correlationWithMdp.toFixed(2) }}
               </dd>
             </div>
             <div class="flex items-baseline justify-between gap-3 py-1">
-              <dt class="text-sm text-text-secondary">Follows the π slider</dt>
+              <dt class="text-sm text-text-secondary">Follows the <app-math-var expr="π" /> slider</dt>
               <dd class="text-sm text-text-secondary">live</dd>
             </div>
           </dl>
@@ -326,20 +323,20 @@
     <app-action-button-row align="start">
       <button
         type="button"
-        class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+        appButton="secondary"
         (click)="exportWeights()"
       >
         Export weights (CSV)
       </button>
       <button
         type="button"
-        class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+        appButton="secondary"
         (click)="exportChart()"
       >
         Export chart (PNG)
       </button>
       <app-cross-page-link
-        label="Send selected portfolio to Backtest & Validation →"
+        label="Send selected portfolio to Backtest &amp; Validation"
         route="/results/backtest-validation"
         emphasis="filled"
       />

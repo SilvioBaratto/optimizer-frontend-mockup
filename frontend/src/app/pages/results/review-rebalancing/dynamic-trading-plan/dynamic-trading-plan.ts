@@ -4,6 +4,7 @@ import { CrossPageLink } from '../../../../shared/cross-page-link/cross-page-lin
 import { BarChartComponent, LineChartComponent, decimal } from '../../../../shared/charts';
 import type { CategorySeries } from '../../../../shared/charts';
 import { ReviewRebalancingService } from '../../../../services/review-rebalancing.service';
+import { MathVar } from '../../../../shared/math/math-var';
 
 /**
  * How fast to move toward the target, and why not all the way (Fondamenti
@@ -21,7 +22,7 @@ import { ReviewRebalancingService } from '../../../../services/review-rebalancin
  */
 @Component({
   selector: 'app-dynamic-trading-plan',
-  imports: [BarChartComponent, CrossPageLink, LineChartComponent],
+  imports: [BarChartComponent, CrossPageLink, LineChartComponent, MathVar],
   templateUrl: './dynamic-trading-plan.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

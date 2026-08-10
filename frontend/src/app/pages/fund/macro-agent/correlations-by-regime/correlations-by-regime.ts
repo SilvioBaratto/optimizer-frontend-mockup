@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { BarChartComponent, decimal } from '../../../../shared/charts';
 import type { CategorySeries } from '../../../../shared/charts';
 import { MacroRegimeService } from '../../../../services/macro-regime.service';
+import { SelectDirective } from '../../../../shared/ui/select/select.directive';
 
 /**
  * How the correlation structure itself moves between regimes.
@@ -18,7 +19,9 @@ import { MacroRegimeService } from '../../../../services/macro-regime.service';
  */
 @Component({
   selector: 'app-correlations-by-regime',
-  imports: [BarChartComponent],
+  imports: [BarChartComponent,
+    SelectDirective,
+  ],
   templateUrl: './correlations-by-regime.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

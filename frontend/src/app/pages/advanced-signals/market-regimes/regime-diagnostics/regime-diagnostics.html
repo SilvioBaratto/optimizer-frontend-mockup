@@ -1,0 +1,42 @@
+<!--
+  Projected as an `h2`, like the ten region labels above it: the footer is a
+  region of the page, not a panel of the Value Premium block it happens to
+  follow. `title` would render it at `h3` and nest it there.
+-->
+<app-info-card>
+  <h2 appCardTitle>Diagnostics</h2>
+  <div class="flex flex-col gap-2">
+    <dl class="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+      <div class="flex min-w-0 flex-col gap-0.5">
+        <dt class="text-xs text-text-secondary">Log-likelihood</dt>
+        <dd data-testid="mr-log-likelihood" class="tabular-nums text-text">
+          {{ logLikelihood() }}
+        </dd>
+      </div>
+      <div class="flex min-w-0 flex-col gap-0.5">
+        <dt class="text-xs text-text-secondary">Last calibration</dt>
+        <dd data-testid="mr-last-calibration" class="tabular-nums text-text">
+          {{ diagnostics().lastCalibration }}
+        </dd>
+      </div>
+      <div class="flex min-w-0 flex-col gap-0.5">
+        <dt class="text-xs text-text-secondary">Highest state probability</dt>
+        <dd data-testid="mr-top-probability" class="tabular-nums text-text">
+          {{ topProbability() }}
+        </dd>
+      </div>
+    </dl>
+
+    <!--
+      Words, never a tint. Announced politely: it qualifies a reading the reader
+      asked for rather than interrupting them, and it names the condition it was
+      raised on so the figure above it can be checked against it.
+    -->
+    @if (diagnostics().note; as note) {
+      <p data-testid="mr-low-confidence" role="status" class="flex gap-2 text-xs text-warning">
+        <span aria-hidden="true">!</span>
+        <span class="min-w-0 flex-1">{{ note }} — {{ confidenceBand() }}.</span>
+      </p>
+    }
+  </div>
+</app-info-card>

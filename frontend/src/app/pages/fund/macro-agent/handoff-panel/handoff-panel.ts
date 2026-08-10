@@ -4,6 +4,8 @@ import { ConfirmDialog } from '../../../../shared/confirm-dialog/confirm-dialog'
 import { CrossPageLink } from '../../../../shared/cross-page-link/cross-page-link';
 import { StatusBadge } from '../../../../shared/status-badge/status-badge';
 import { MacroRegimeService } from '../../../../services/macro-regime.service';
+import { ButtonDirective } from '../../../../shared/ui/button/button.directive';
+import { SelectDirective } from '../../../../shared/ui/select/select.directive';
 
 /** Windows the log can be filtered to. */
 const RANGES = [
@@ -23,7 +25,10 @@ const RANGES = [
  */
 @Component({
   selector: 'app-handoff-panel',
-  imports: [ConfirmDialog, CrossPageLink, StatusBadge],
+  imports: [ConfirmDialog, CrossPageLink, StatusBadge,
+    ButtonDirective,
+    SelectDirective,
+  ],
   templateUrl: './handoff-panel.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

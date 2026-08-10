@@ -1,0 +1,179 @@
+<section aria-labelledby="st-reverse-heading" class="flex flex-col gap-3">
+  <h2 id="st-reverse-heading" class="text-base font-medium text-text">Reverse stress test</h2>
+
+  <div class="surface-card flex flex-col gap-4 px-4 py-4">
+    <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
+      <div class="flex flex-col gap-1">
+        <label for="st-reverse-outcome" class="text-xs text-text-secondary">Target outcome</label>
+        <select appSelect id="st-reverse-outcome" [disabled]="busy()" (change)="onOutcome($event)">
+          @for (option of outcomes; track option) {
+            <option [value]="option" [selected]="option === outcome()">
+              {{ outcomeLabel[option] }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="st-reverse-target" class="text-xs text-text-secondary">Target level</label>
+        <span class="inline-flex items-center gap-2">
+          <input
+            id="st-reverse-target"
+            type="number"
+            step="0.1"
+            class="min-h-11 w-28 rounded-md border border-border-control bg-surface-raised px-2 text-right text-sm tabular-nums text-text"
+            [placeholder]="targetPlaceholder()"
+            [disabled]="busy()"
+            [value]="targetValue()"
+            (change)="onTarget($event)"
+          />
+          <span data-testid="reverse-target-unit" class="text-sm text-text-secondary">
+            {{ measureUnit() }}
+          </span>
+        </span>
+      </div>
+
+      <!--
+        `aria-disabled`, not `disabled`, while the search runs: it is the button
+        the reader just pressed, and disabling it takes it out of the tab order
+        and drops focus to `<body>` until the search lands.
+      -->
+      <button
+        type="button"
+        appButton="primary"
+        data-testid="search-reverse"
+        class="ml-auto aria-disabled:opacity-50"
+        [disabled]="!canSearch()"
+        [attr.aria-disabled]="busy() ? 'true' : null"
+        [attr.aria-busy]="searching() ? 'true' : null"
+        (click)="onSearch()"
+      >
+        {{ searching() ? 'Searching…' : 'Search minimal-plausibility scenario' }}
+      </button>
+    </div>
+
+    <!--
+      The measure the target level is stated in is the toolbar's, not a second
+      selector: the two exercises are read against one and the same measure.
+    -->
+    <p data-testid="reverse-context" class="text-xs text-text-secondary">
+      Impact measure <span class="text-text">{{ measureLabel[impactMeasure()] }}</span> · current
+      reading <span class="tabular-nums text-text">{{ currentLevel() }}</span
+      >. {{ outcomeDefinition() }}
+    </p>
+
+    @if (!canSearch()) {
+      <p class="text-xs text-text-secondary">{{ noTargetReason }}</p>
+    }
+
+    <!--
+      Inline, above the Result it belongs to: the target may be unreachable
+      within any plausible radius, which is an outcome of the exercise and not a
+      fault, and the recovery is to restate the target rather than to reload.
+    -->
+    @if (failure(); as error) {
+      <app-error-state
+        [message]="error.message"
+        [detail]="error.detail"
+        cause="action"
+        (retry)="onRetry()"
+      />
+    }
+
+    <!--
+      `tabindex="-1"` so Retry has somewhere to put focus: pressing it destroys
+      the alert the button lives in, and focus left alone falls to `<body>`.
+    -->
+    <h3 #resultHeading tabindex="-1" class="text-sm font-medium text-text">Result</h3>
+
+    @if (searching()) {
+      <div data-testid="reverse-skeleton" aria-busy="true" class="flex flex-col gap-2">
+        <app-skeleton-block height="h-6" [lines]="5" />
+      </div>
+    } @else if (result(); as found) {
+      <dl class="flex flex-col gap-2 text-sm">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+          <dt class="text-text-secondary">Minimal Maha to reach target</dt>
+          <dd data-testid="reverse-maha" class="font-medium tabular-nums text-text">
+            {{ maha(found.minimalMaha) }}
+          </dd>
+        </div>
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+          <dt class="text-text-secondary">Ell_k required</dt>
+          <dd data-testid="reverse-required-radius" class="tabular-nums text-text">
+            {{ requiredRadius() }}
+          </dd>
+        </div>
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+          <dt class="text-text-secondary">Target level</dt>
+          <dd class="tabular-nums text-text">{{ level(found.targetLevel) }}</dd>
+        </div>
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+          <dt class="text-text-secondary">From current</dt>
+          <dd class="tabular-nums text-text">
+            {{ level(found.currentLevel) }} — a loss of {{ points(found.requiredLoss) }}
+          </dd>
+        </div>
+      </dl>
+
+      <p data-testid="reverse-verdict" class="text-xs text-text-secondary">
+        {{ radiusVerdict() }} Computed in {{ found.unit }}, {{ found.computedAt }}.
+      </p>
+
+      @if (found.stale) {
+        <div data-testid="reverse-stale" class="flex flex-wrap items-center gap-2 text-xs">
+          <app-status-badge [label]="staleBadge" tone="warn" />
+          <span class="text-text-secondary">{{ staleNote }}</span>
+        </div>
+      }
+
+      <h4 class="text-sm font-medium text-text">Implied scenario</h4>
+
+      <div class="table-scroll">
+        <table class="w-full min-w-xl text-sm">
+          <caption class="sr-only">
+            The move each systematic factor makes in the least implausible scenario that reaches the
+            target. Nothing is pinned in a reverse search, so every factor moves; the ones carrying
+            the loss are marked as key drivers and the rest as minor moves.
+          </caption>
+          <thead>
+            <tr class="table-head-row">
+              <th scope="col" class="px-2 py-2 text-left font-medium">Factor</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">Move</th>
+              <th scope="col" class="px-2 py-2 text-left font-medium">Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (factor of found.scenario; track factor.factorId) {
+              <tr class="table-row" [attr.data-implied]="factor.factorId">
+                <th scope="row" class="px-2 py-1.5 text-left font-normal text-text">
+                  {{ factor.name }}
+                </th>
+                <td class="px-2 py-1.5 text-right tabular-nums text-text">{{ move(factor) }}</td>
+                <td class="px-2 py-1.5 text-left text-text-secondary">{{ roleOf(factor) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <p data-testid="implied-scenario-note" class="max-w-prose text-xs text-text-secondary">
+        {{ impliedScenarioNote }}
+      </p>
+
+      <app-action-button-row align="end">
+        <button
+          type="button"
+          appButton="secondary"
+          data-testid="reverse-save"
+          [disabled]="!canSave() || busy()"
+          (click)="onSave()"
+        >
+          Save scenario<span class="sr-only"> — this reverse result, to the library</span>
+        </button>
+      </app-action-button-row>
+    } @else {
+      <app-empty-state [title]="emptyMessage" [detail]="emptyDetail" />
+    }
+  </div>
+</section>

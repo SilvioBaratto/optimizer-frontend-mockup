@@ -1,0 +1,36 @@
+<section class="flex flex-col gap-2" aria-labelledby="mr-path-heading">
+  <h2 id="mr-path-heading" class="text-sm font-semibold text-text">Probability path</h2>
+
+  @if (hasPath()) {
+    <app-line-chart
+      [title]="title()"
+      [subtitle]="subtitle()"
+      [ariaLabel]="ariaLabel()"
+      [x]="months()"
+      [series]="series()"
+      [stack]="true"
+      [area]="true"
+      [zoomable]="true"
+      [zoomStart]="zoomStart"
+      [valueFormatter]="formatter"
+      [optionPatch]="chartOptionPatch"
+      xAxisName="Month"
+      yAxisName="P"
+      [height]="height"
+    >
+      <p class="border-t border-border px-4 py-3 text-xs text-text-secondary">
+        Hovering a band gives the month, the state and its probability. “View as table” above opens
+        the underlying data table — every month, every state, the same figures the bands are drawn
+        from.
+      </p>
+    </app-line-chart>
+  } @else {
+    <div class="surface-card">
+      <app-empty-state
+        data-testid="mr-path-empty"
+        [title]="emptyTitle"
+        [detail]="emptyDetail() ?? ''"
+      />
+    </div>
+  }
+</section>

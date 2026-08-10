@@ -31,23 +31,23 @@
     </div>
 
     @if (transactionOpen()) {
-      <div id="transaction-detail" class="relative overflow-x-auto">
+      <div id="transaction-detail" class="table-scroll">
         <table class="w-full min-w-xl text-sm">
           <caption class="sr-only">
             Buy and sell cost rates per asset, the amount traded and the resulting cost.
           </caption>
           <thead>
-            <tr class="border-b border-border text-xs text-text-secondary">
+            <tr class="table-head-row">
               <th scope="col" class="px-3 py-2 text-left font-medium">Asset</th>
-              <th scope="col" class="px-3 py-2 text-right font-medium">bc<sub>i</sub> %</th>
-              <th scope="col" class="px-3 py-2 text-right font-medium">sc<sub>i</sub> %</th>
+              <th scope="col" class="px-3 py-2 text-right font-medium"><app-math-var expr="bc_i" /> %</th>
+              <th scope="col" class="px-3 py-2 text-right font-medium"><app-math-var expr="sc_i" /> %</th>
               <th scope="col" class="px-3 py-2 text-right font-medium">Traded EUR</th>
               <th scope="col" class="px-3 py-2 text-right font-medium">Cost EUR</th>
             </tr>
           </thead>
           <tbody>
             @for (row of tradingRows(); track row.ticker) {
-              <tr class="border-b border-border-muted last:border-0">
+              <tr class="table-row">
                 <th scope="row" class="px-3 py-2 text-left font-normal text-text">
                   {{ row.ticker }} <span class="text-text-secondary">{{ row.name }}</span>
                 </th>
@@ -108,7 +108,7 @@
           Capital gain tax
         </button>
         <span class="flex items-center gap-2">
-          <label for="tax-rate" class="text-xs text-text-secondary">rate t<sub>cg</sub></label>
+          <label for="tax-rate" class="text-xs text-text-secondary">rate <app-math-var expr="t_cg" label="t sub c g, the capital gain tax rate" /></label>
           <input
             id="tax-rate"
             type="number"
@@ -128,13 +128,13 @@
     </div>
 
     @if (taxOpen()) {
-      <div id="tax-detail" class="relative overflow-x-auto">
+      <div id="tax-detail" class="table-scroll">
         <table class="w-full min-w-lg text-sm">
           <caption class="sr-only">
             Realised capital gain and tax due per disposal.
           </caption>
           <thead>
-            <tr class="border-b border-border text-xs text-text-secondary">
+            <tr class="table-head-row">
               <th scope="col" class="px-3 py-2 text-left font-medium">Asset</th>
               <th scope="col" class="px-3 py-2 text-right font-medium">Realised gain</th>
               <th scope="col" class="px-3 py-2 text-right font-medium">Tax due</th>
@@ -143,7 +143,7 @@
           </thead>
           <tbody>
             @for (row of disposalRows(); track row.ticker) {
-              <tr class="border-b border-border-muted last:border-0">
+              <tr class="table-row">
                 <th scope="row" class="px-3 py-2 text-left font-normal text-text">
                   {{ row.ticker }} <span class="text-text-secondary">{{ row.name }}</span>
                 </th>
@@ -183,7 +183,7 @@
   </div>
 
   <div class="flex flex-wrap items-baseline justify-between gap-3 pt-3">
-    <span class="text-sm font-semibold text-text">Total prc<sub>t+Δt</sub></span>
+    <span class="text-sm font-semibold text-text">Total <app-math-var expr="prc_t+Δt" label="p r c at t plus delta t, the total revision cost" /></span>
     <span class="tabular-nums text-base font-semibold text-text">
       EUR {{ money(cost().total) }}
     </span>

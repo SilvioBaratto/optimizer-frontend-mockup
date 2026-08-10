@@ -1,0 +1,80 @@
+<app-section-card-grid label="Approval queue" [columns]="1">
+  @if (queueEmpty()) {
+    <!--
+      A filter matching nothing inside a working page, or a snapshot with no
+      proposed trades at all. Same title, different way out — and no way out at
+      all is offered when there is nothing behind the filters to reveal.
+    -->
+    <app-empty-state [title]="emptyTitle" [detail]="emptyDetail()">
+      @if (totalCount() > 0) {
+        <button type="button" appButton="secondary" (click)="viewFullQueue()">
+          View full queue
+        </button>
+      }
+    </app-empty-state>
+  } @else {
+    <!--
+      `tabindex="-1"` is not a tab stop: it makes the container a programmatic
+      focus target and satisfies the rule that an element carrying a keyboard
+      handler must be focusable. The cards themselves are the tab stops.
+    -->
+    <div
+      role="grid"
+      tabindex="-1"
+      data-testid="approval-queue-grid"
+      [attr.aria-label]="gridLabel()"
+      class="flex flex-col gap-3"
+      (keydown)="onKeydown($event)"
+    >
+      @for (row of rows(); track row.tradeId) {
+        <div role="row">
+          <div role="gridcell">
+            <app-entity-card
+              class="block"
+              [title]="title(row)"
+              [meta]="meta(row)"
+              [selectable]="true"
+              [current]="row.tradeId === selectedId()"
+              (selected)="open(row.tradeId)"
+            >
+              <!--
+                One projected element, and a column below `sm`.
+
+                `app-entity-card` drops whatever it is given into a `shrink-0`
+                flex item, which is therefore sized at max-content and cannot
+                give way. Measured at 320px, the two badges and the wait laid
+                out in a row came to 265px against 261px of usable card, and
+                the document scrolled sideways by 5px. A column's max-content
+                is its *widest* child, so the cluster asks for one badge's
+                width there and returns to the wireframe's row from `sm` up,
+                where there is room for it.
+              -->
+              <span
+                class="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2"
+              >
+                <!-- The step, always in words. Colour is the second signal. -->
+                <app-status-badge [label]="stageBadge(row)" [tone]="stageTone(row)" />
+                @if (row.status !== 'pending') {
+                  <app-status-badge [label]="statusLabel[row.status]" [tone]="statusTone(row)" />
+                }
+                <span class="text-xs text-text-secondary tabular-nums">
+                  <span class="sr-only">waiting </span>{{ row.waiting }}
+                </span>
+              </span>
+            </app-entity-card>
+          </div>
+        </div>
+      }
+    </div>
+
+    @if (hiddenCount() > 0) {
+      <p
+        data-testid="queue-hidden-count"
+        class="flex flex-wrap items-center justify-between gap-2 text-xs text-text-secondary"
+      >
+        <span>… {{ hiddenCount() }} more trades in queue, hidden by the current filters</span>
+        <button type="button" appButton="ghost" (click)="viewFullQueue()">View full queue</button>
+      </p>
+    }
+  }
+</app-section-card-grid>

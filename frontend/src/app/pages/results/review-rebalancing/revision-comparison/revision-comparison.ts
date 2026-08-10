@@ -3,6 +3,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { StatusBadge, type StatusTone } from '../../../../shared/status-badge/status-badge';
 import { ACTION_LABEL, ACTION_NOTE, type RevisionAction } from '../../../../models/review-rebalancing.model';
 import { ReviewRebalancingService } from '../../../../services/review-rebalancing.service';
+import { ButtonDirective } from '../../../../shared/ui/button/button.directive';
+import { MathVar } from '../../../../shared/math/math-var';
 
 const COLLAPSED_ROWS = 4;
 
@@ -25,7 +27,10 @@ const ACTION_TONE: Record<RevisionAction, StatusTone> = {
  */
 @Component({
   selector: 'app-revision-comparison',
-  imports: [StatusBadge],
+  imports: [StatusBadge,
+    ButtonDirective,
+    MathVar,
+  ],
   templateUrl: './revision-comparison.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

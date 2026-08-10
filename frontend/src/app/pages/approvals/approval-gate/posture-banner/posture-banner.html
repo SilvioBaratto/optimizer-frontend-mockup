@@ -1,0 +1,20 @@
+<!--
+  Always present, never dismissible and never collapsed: this is the sentence
+  that says what pressing Approve further down the page will actually do, so
+  hiding it would leave the reader without the meaning of the only action the
+  page offers.
+-->
+<div
+  data-testid="posture-banner"
+  role="status"
+  aria-live="polite"
+  class="flex flex-col gap-2 rounded-md border border-border bg-surface-inset px-4 py-3 text-sm"
+>
+  <div class="flex flex-wrap items-baseline gap-x-3 gap-y-2">
+    <!-- The posture in words, with its glyph beside — never colour alone. -->
+    <app-status-badge [label]="badgeLabel()" [tone]="tone()" />
+    <p data-testid="posture-effect" class="min-w-0 flex-1 text-text">{{ effectSentence() }}</p>
+  </div>
+
+  <p class="text-text-secondary">{{ context() }}</p>
+</div>

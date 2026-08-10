@@ -1,0 +1,121 @@
+<!--
+  Region 1 of `docs/17 Guardrail & Kill-Switch.md`. The shell renders the <h1>,
+  and `app-hero-stat-card` renders this region's <h2>.
+
+  The toggle is projected into the card's action slot, which puts it first in
+  the DOM and therefore first in the page's tab order — the doc's
+  `### Accessibilità` asks for exactly that, on the grounds that the control
+  with deterministic priority over every other decision should not be reached
+  through anything else.
+-->
+<app-hero-stat-card eyebrow="APPROVALS · DETERMINISTIC CONTROL" title="Kill-switch">
+  <button
+    hero-action
+    type="button"
+    [appButton]="target() ? 'danger' : 'primary'"
+    size="md"
+    class="gap-1.5"
+    data-testid="kill-switch-toggle"
+    [disabled]="toggleDisabled()"
+    aria-describedby="kill-switch-pre-check"
+    (click)="openDialog()"
+  >
+    <span aria-hidden="true">{{ statusIcon[targetStatus()] }}</span>
+    {{ actionLabel[status()] }}
+  </button>
+
+  <div class="flex flex-col gap-2">
+    @if (busy()) {
+      <!-- Placeholders at the height of the status line they stand in for. -->
+      <div data-testid="kill-switch-loading" aria-busy="true" class="flex flex-col gap-2">
+        <p role="status" class="sr-only">Reading the current kill-switch state…</p>
+        <app-skeleton-block height="h-7" width="w-80" />
+        <app-skeleton-block height="h-4" width="w-full" />
+      </div>
+    } @else if (readError(); as failure) {
+      <!--
+        A read that failed, not an action that failed: announced politely, and
+        the toggle above is disabled for as long as this is on screen.
+      -->
+      <app-error-state
+        data-testid="kill-switch-error"
+        [message]="failure"
+        [detail]="unknownDetail"
+        cause="load"
+        (retry)="retryRead()"
+      />
+    } @else {
+      <!-- Icon *and* word, never colour alone. -->
+      <p
+        data-testid="kill-switch-status"
+        class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg"
+      >
+        <span
+          class="font-semibold"
+          [class.text-danger]="engaged()"
+          [class.text-success]="!engaged()"
+        >
+          <span aria-hidden="true">{{ statusIcon[status()] }}</span>
+          {{ statusLabel[status()] }}
+        </span>
+        <span data-testid="kill-switch-last-change" class="text-sm text-text-secondary">
+          · last change {{ killSwitch().changedAt }} by {{ killSwitch().changedBy }}
+        </span>
+      </p>
+
+      <p data-testid="kill-switch-reason" class="text-sm text-text-secondary">
+        Reason — {{ killSwitch().reason }}
+      </p>
+    }
+
+    <!--
+      The standing reminder, outside the state switch: the pre-check runs
+      before any model call whether or not the current reading is known.
+    -->
+    <p id="kill-switch-pre-check" data-testid="pre-check-note" class="text-sm text-text-secondary">
+      {{ preCheckNote }}
+    </p>
+
+    <!--
+      Mounted from the first render and empty until a write is confirmed. A
+      live region created at the same moment as its text is not announced, and
+      a region that echoed the current state on load would announce a halt that
+      never happened.
+    -->
+    <p aria-live="assertive" class="sr-only" data-testid="kill-switch-announcement">
+      {{ announcement() }}
+    </p>
+  </div>
+
+  <div
+    hero-footer
+    class="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2"
+  >
+    <p class="text-xs text-text-secondary">Guardrail state read at {{ readAt() }}</p>
+    <app-refresh-control
+      label="Re-read guardrail state"
+      [busy]="loading()"
+      (refresh)="refresh()"
+    />
+  </div>
+</app-hero-stat-card>
+
+<!--
+  The confirmation. It stays mounted; `[open]` drives it, and a failed write
+  leaves `open` true with the typed rationale still bound.
+-->
+<app-reason-dialog
+  [open]="dialogOpen()"
+  [title]="dialogTitle()"
+  [message]="dialogMessage()"
+  reasonLabel="Reason for the state change"
+  [reasonHint]="reasonHint"
+  [confirmLabel]="dialogTitle()"
+  [destructive]="target()"
+  [busy]="writing()"
+  [error]="dialogError()"
+  [retryable]="dialogRetryable()"
+  [(reason)]="reason"
+  (confirmed)="confirm($event)"
+  (cancelled)="close()"
+/>

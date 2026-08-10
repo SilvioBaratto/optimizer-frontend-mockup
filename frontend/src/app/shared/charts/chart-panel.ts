@@ -30,7 +30,7 @@ import type { ChartPointClick, ChartTable } from './chart-types';
     provideEchartsCore({ echarts: () => import('./echarts-core').then((m) => m.default) }),
   ],
   template: `
-    <figure class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+    <figure class="surface-card">
       @if (title() || subtitle() || table()) {
         <!--
           Stacked on narrow viewports: side-by-side squeezes a long title and a
@@ -45,9 +45,13 @@ import type { ChartPointClick, ChartTable } from './chart-types';
               <p class="text-xs text-text-secondary">{{ subtitle() }}</p>
             }
             @if (table()) {
+              <!--
+                The after-overlay grows the touch target to 44px without
+                growing the box, which would break the baseline alignment.
+              -->
               <button
                 type="button"
-                class="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-text-secondary underline underline-offset-2 hover:bg-surface-inset hover:text-text"
+                class="relative shrink-0 rounded-md px-2 py-1 text-xs font-medium text-text-secondary underline underline-offset-2 after:absolute after:-inset-x-1 after:-inset-y-2.5 after:content-[''] hover:bg-surface-inset hover:text-text"
                 [attr.aria-pressed]="showTable()"
                 (click)="showTable.set(!showTable())"
               >

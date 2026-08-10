@@ -1,1 +1,126 @@
-<p>report works!</p>
+<!--
+  Regions follow `docs/24 Report & Audit trail.md` in wireframe order:
+  TabBar → ActionButtonRow (Export) → FilterChipBar → InfoCard (audit posture)
+  → CollectionStatBar → DataTable → Pagination → DetailPanel.
+
+  Everything below the strip lives inside the tab panel: the export, the
+  filters and the count all describe the active tab, and the posture card is
+  what explains why two of the three tabs are empty.
+
+  The shell renders the <h1> and the breadcrumb, so headings here start at <h2>.
+-->
+
+<!-- Straight past the tab strip to the audit content, as the a11y section asks. -->
+<a href="#report-content" class="skip-link">Skip to the audit content</a>
+
+<!-- 1 · TabBar — three views over the same audit trail. -->
+<nav class="border-b border-border">
+  <ul role="tablist" aria-label="Audit views" class="flex flex-wrap gap-1">
+    @for (tab of tabs; track tab.id; let i = $index) {
+      <li role="presentation">
+        <button
+          #tabButton
+          type="button"
+          role="tab"
+          [id]="'report-tab-' + tab.id"
+          [attr.data-tab]="tab.id"
+          [attr.aria-selected]="activeTab() === tab.id"
+          aria-controls="report-content"
+          [attr.tabindex]="activeTab() === tab.id ? 0 : -1"
+          [attr.aria-disabled]="loading() ? 'true' : null"
+          class="min-h-11 border-b-2 px-3 text-sm transition-colors"
+          [class.border-primary]="activeTab() === tab.id"
+          [class.font-medium]="activeTab() === tab.id"
+          [class.text-text]="activeTab() === tab.id"
+          [class.border-transparent]="activeTab() !== tab.id"
+          [class.text-text-secondary]="activeTab() !== tab.id"
+          [class.opacity-60]="loading()"
+          (click)="selectTab(tab.id)"
+          (keydown)="onTabKeydown($event, i)"
+        >
+          {{ tab.label }}
+        </button>
+      </li>
+    }
+  </ul>
+</nav>
+
+<!--
+  One panel rather than three: the regions inside it are the same regions on
+  every tab, only their sixth block differs, so a panel per tab would be three
+  copies of the export menu, the filters and the posture card.
+-->
+<div
+  id="report-content"
+  role="tabpanel"
+  [attr.aria-labelledby]="'report-tab-' + activeTab()"
+  tabindex="0"
+  class="flex flex-col gap-6"
+>
+  <h2 class="sr-only">{{ activeTabTitle() }}</h2>
+
+  <!-- 2 · ActionButtonRow — Export over the filtered set of this tab. -->
+  <app-report-export-menu />
+
+  <!-- 3 · FilterChipBar — Agent, Decision type, Date range, free-text search. -->
+  <app-report-audit-filters />
+
+  <!-- 4 · InfoCard — what the audit trail does and does not promise. -->
+  <app-report-posture-card />
+
+  <!-- 5 · CollectionStatBar — the live count, the view and the scope. -->
+  <app-collection-stat-bar [parts]="statParts()" />
+
+  @if (state() === 'error') {
+    <!--
+      Above the table, as the spec places it. The rows underneath are the last
+      ones read successfully — the banner says so rather than leaving a stale
+      log to pass as the current one.
+    -->
+    <app-status-banner
+      variant="error"
+      [message]="
+        (errorMessage() ?? 'Unable to load the audit log.') +
+        ' Anything below is the last record read successfully and may not be complete.'
+      "
+      (retried)="retry()"
+    />
+  }
+
+  <!-- 6 · The active view. -->
+  @switch (activeTab()) {
+    @case ('orders-idempotency') {
+      <app-report-idempotency-panel />
+    }
+    @case ('positions-provenance') {
+      <app-report-provenance-panel />
+    }
+    @default {
+      <app-report-decision-table />
+    }
+  }
+
+  <!-- 7 · Pagination — over the filtered decision log. -->
+  @if (showPagination()) {
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex min-w-0 flex-wrap items-center gap-3">
+        <ui-pagination [page]="page()" [total]="pageCount()" (pageChange)="onPage($event)" />
+        <p class="text-xs text-text-secondary tabular-nums">
+          Page {{ page() }} of {{ pageCount() }}
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <label for="report-page-size" class="text-xs text-text-secondary">Rows</label>
+        <select id="report-page-size" appSelect class="max-w-24" (change)="onPageSize($event)">
+          @for (size of pageSizes; track size) {
+            <option [value]="size" [selected]="pageSize() === size">{{ size }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- 8 · DetailPanel — the decision exactly as it was produced. -->
+<app-report-decision-detail />

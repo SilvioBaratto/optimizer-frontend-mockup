@@ -1,0 +1,246 @@
+<!--
+  Regions 7, 9 and 10 — the expanded card with its method controls, the figure
+  that is the evidence for the classification, and the two actions under it.
+-->
+
+@if (detail(); as view) {
+  <!--
+    7 · EntityCard, expanded. The controls are here rather than inside the
+    listbox option because an option's children are presentational and would
+    never be announced.
+  -->
+  <section
+    data-testid="ads-selected-card"
+    aria-labelledby="ads-selected-card-heading"
+    class="surface-card flex flex-col gap-3 px-4 py-3"
+  >
+    <h2 id="ads-selected-card-heading" class="sr-only">
+      {{ view.signal.name }} — method and inclusion
+    </h2>
+
+    <p class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-secondary">
+      <span>{{ view.signal.categoryLabel }}</span>
+      <span aria-hidden="true">·</span>
+      <span class="tabular-nums">cov. {{ coverageText() }}</span>
+      @if (view.signal.partialCoverage) {
+        <span
+          data-testid="ads-detail-partial"
+          class="rounded-full border border-border-control px-2 py-0.5 text-xs"
+        >
+          <span aria-hidden="true">!</span> {{ partialBadge }}
+        </span>
+      }
+      <span aria-hidden="true">·</span>
+      <span class="tabular-nums">updated {{ view.signal.updatedAt }}</span>
+      <app-status-badge
+        [label]="temporalLabel[view.temporal]"
+        [tone]="temporalTone[view.temporal]"
+      />
+      @if (view.signal.feed !== 'live') {
+        <app-status-badge [label]="feedBadgeLabel()" [tone]="feedBadgeTone()" />
+      }
+    </p>
+
+    @if (view.signal.coverageNote; as note) {
+      <p data-testid="ads-detail-coverage-note" class="text-xs text-text-secondary">{{ note }}</p>
+    }
+
+    <!--
+      The method controls. They write straight through: the figure, the verdict
+      and the classification badge are computed off them, so there is nothing
+      for a save button to do.
+    -->
+    @if (view.signal.method === 'tone') {
+      <div class="flex flex-wrap gap-x-6 gap-y-3">
+        <div class="flex flex-col gap-1">
+          <span class="text-xs text-text-secondary">Dictionary</span>
+          <app-segmented-control
+            data-testid="ads-tone-dictionary"
+            [options]="dictionaryOptions()"
+            [value]="toneDictionary()"
+            label="Tone dictionary"
+            (valueChange)="onDictionary($event)"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <span class="text-xs text-text-secondary">Weighting</span>
+          <app-segmented-control
+            data-testid="ads-tone-weighting"
+            [options]="weightingOptions()"
+            [value]="toneWeighting()"
+            label="Term weighting"
+            (valueChange)="onWeighting($event)"
+          />
+        </div>
+      </div>
+
+      @if (showH4nNote()) {
+        <p data-testid="ads-h4n-note" class="flex gap-2 text-xs text-warning">
+          <span aria-hidden="true">!</span>
+          <span class="min-w-0 flex-1">{{ h4nNote }}</span>
+        </p>
+      }
+    }
+
+    @if (view.signal.method === 'aggregation') {
+      <div class="flex flex-col gap-1">
+        <span class="text-xs text-text-secondary">Aggregation</span>
+        <app-segmented-control
+          data-testid="ads-news-aggregation"
+          [options]="aggregationOptions()"
+          [value]="newsAggregation()"
+          label="News aggregation cadence"
+          (valueChange)="onAggregation($event)"
+        />
+      </div>
+    }
+
+    <p class="text-xs text-text-secondary">{{ view.signal.summary }}</p>
+  </section>
+
+  <!-- 9 · HeroStatCard — the evidence behind the classification. -->
+  <app-hero-stat-card [title]="view.signal.name" [eyebrow]="view.eyebrow">
+    <div hero-action class="flex flex-wrap items-center gap-2">
+      <app-status-badge
+        [label]="temporalLabel[view.temporal]"
+        [tone]="temporalTone[view.temporal]"
+      />
+    </div>
+
+    <div class="flex flex-col gap-4">
+      <!--
+        The focus target when the selection was moved from the keyboard. It is
+        a heading so the panel announces what it is; `tabindex="-1"` makes it a
+        programmatic target without adding a tab stop.
+
+        It names the panel, not the figure. The figure below is an
+        `app-chart-panel`, which renders the string passed to `[title]` as its
+        own `<h3>` inside the `<figcaption>` — printing `figureTitle` here too
+        put the same sentence on screen twice and gave the panel two identical
+        level-3 headings in a row.
+      -->
+      <h3 id="ads-detail-heading" tabindex="-1" class="text-base font-medium text-text">
+        Evidence for {{ view.signal.name }}
+      </h3>
+
+      <app-alt-data-detail-figure [view]="view" />
+
+      <p data-testid="ads-detail-verdict" class="text-sm text-text">{{ view.verdict }}</p>
+
+      <p class="text-xs text-text-secondary">{{ temporalDefinition[view.temporal] }}</p>
+
+      <div class="flex flex-col gap-1">
+        <h4 class="eyebrow">{{ flagsLabel }}</h4>
+        <ul data-testid="ads-detail-flags" class="flex list-disc flex-col gap-1 pl-5 text-sm text-text-secondary">
+          @for (flag of view.secondaryFlags; track $index) {
+            <li>{{ flag }}</li>
+          }
+        </ul>
+      </div>
+
+      @if (view.crossSectionalLink) {
+        <p>
+          <button
+            type="button"
+            appButton="ghost"
+            data-testid="ads-open-cross-sectional"
+            (click)="openCrossSectional()"
+          >
+            Read this index across the cross-section
+            <span aria-hidden="true">&rarr;</span>
+          </button>
+        </p>
+      }
+    </div>
+  </app-hero-stat-card>
+
+  <!-- 10 · ActionButtonRow — the methodology, and the one include control. -->
+  <app-action-button-row align="start">
+    <button
+      type="button"
+      appButton="secondary"
+      data-testid="ads-view-methodology"
+      aria-haspopup="dialog"
+      (click)="openMethodology()"
+    >
+      View methodology
+    </button>
+
+    <label
+      class="inline-flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-text transition-colors hover:bg-surface-inset"
+    >
+      <input
+        type="checkbox"
+        data-testid="ads-include-checkbox"
+        class="h-4 w-4 rounded border-border-control"
+        [checked]="included()"
+        (change)="onInclude()"
+      />
+      {{ includeLabel }}
+    </label>
+  </app-action-button-row>
+
+  <!--
+    Read-only, and mounted rather than created on open: destroying the
+    slide-over would destroy the component that un-inerts the rest of the
+    document and returns focus to the button that opened it.
+  -->
+  <app-slide-over
+    [open]="methodologyOpen()"
+    label="Signal methodology"
+    (closed)="closeMethodology()"
+  >
+    <div class="flex h-full min-h-0 flex-col">
+      <header class="flex items-start justify-between gap-2 border-b border-border px-4 py-3">
+        <div class="min-w-0">
+          <h2 data-testid="ads-methodology-heading" class="text-base font-medium text-text">
+            {{ view.signal.name }}
+          </h2>
+          <p class="text-xs text-text-secondary">Read-only — nothing is changed from here.</p>
+        </div>
+        <button
+          type="button"
+          class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-inset hover:text-text"
+          (click)="closeMethodology()"
+        >
+          <span aria-hidden="true">✕</span>
+          <span class="sr-only">Close the methodology panel</span>
+        </button>
+      </header>
+
+      <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        <dl class="flex flex-col gap-3 text-sm">
+          <div class="flex min-w-0 flex-col gap-0.5">
+            <dt class="text-text-secondary">Source</dt>
+            <dd class="text-text">{{ view.signal.source }}</dd>
+          </div>
+          <div class="flex min-w-0 flex-col gap-0.5">
+            <dt class="text-text-secondary">Construction</dt>
+            <dd class="text-text">{{ view.signal.summary }}</dd>
+          </div>
+          @if (view.methodLabel; as method) {
+            <div class="flex min-w-0 flex-col gap-0.5">
+              <dt class="text-text-secondary">Method in force</dt>
+              <dd data-testid="ads-methodology-method" class="text-text">{{ method }}</dd>
+            </div>
+          }
+          <div class="flex min-w-0 flex-col gap-0.5">
+            <dt class="text-text-secondary">Classification</dt>
+            <dd class="text-text">
+              {{ temporalLabel[view.temporal] }} — {{ temporalDefinition[view.temporal] }}
+            </dd>
+          </div>
+          <div class="flex min-w-0 flex-col gap-0.5">
+            <dt class="text-text-secondary">Update cadence</dt>
+            <dd class="text-text">{{ view.signal.cadence }}, last at {{ view.signal.updatedAt }}</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </app-slide-over>
+} @else {
+  <div class="surface-card">
+    <app-empty-state data-testid="ads-detail-empty" [title]="emptyTitle" [detail]="emptyDetail" />
+  </div>
+}

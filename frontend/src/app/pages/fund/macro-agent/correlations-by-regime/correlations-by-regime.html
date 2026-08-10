@@ -9,7 +9,7 @@
       <label for="regime-a" class="text-xs text-text-secondary">Regime A</label>
       <select
         id="regime-a"
-        class="min-h-11 min-w-0 max-w-48 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+        appSelect class="min-w-0 max-w-48"
         (change)="onRegimeA($event)"
       >
         @for (state of states; track state) {
@@ -21,7 +21,7 @@
       <label for="regime-b" class="text-xs text-text-secondary">Regime B</label>
       <select
         id="regime-b"
-        class="min-h-11 min-w-0 max-w-48 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+        appSelect class="min-w-0 max-w-48"
         (change)="onRegimeB($event)"
       >
         @for (state of states; track state) {
@@ -47,13 +47,13 @@
     [height]="280"
   />
 
-  <div class="relative overflow-x-auto">
+  <div class="table-scroll">
     <table class="w-full min-w-2xl text-sm">
       <caption class="sr-only">
         Correlation of each asset pair under every state of the four-state model.
       </caption>
       <thead>
-        <tr class="border-b border-border text-xs text-text-secondary">
+        <tr class="table-head-row">
           <th scope="col" class="px-3 py-2 text-left font-medium">Pair</th>
           @for (state of states; track state) {
             <th scope="col" class="px-3 py-2 text-right font-medium">{{ state }}</th>
@@ -65,7 +65,7 @@
       </thead>
       <tbody>
         @for (row of correlations; track row.pair) {
-          <tr class="border-b border-border-muted last:border-0">
+          <tr class="table-row">
             <th scope="row" class="px-3 py-2 text-left font-normal text-text">{{ row.pair }}</th>
             @for (state of states; track state) {
               <td

@@ -1,0 +1,205 @@
+<!--
+  Regions 7 + 8 — the FilterChipBar over the checkpointed trail, and the grid
+  of events under it with incremental pagination and a per-row detail drawer.
+-->
+<section class="flex flex-col gap-3">
+  <h2 class="eyebrow">GUARDRAIL AUDIT TRAIL</h2>
+
+  <app-filter-chip-bar
+    searchLabel="Search trade / agent / validator"
+    searchPlaceholder="TRD-2033 or concentration_limit"
+    [searchValue]="search()"
+    (searchChange)="onSearch($event)"
+    [count]="visibleCount()"
+    [total]="totalCount()"
+    countNoun="events"
+    [summary]="summary()"
+  >
+    <!--
+      The chip counts come from the search alone, not from the chips, so a
+      stage's count never vanishes because its own chip is off — which would
+      make the chips impossible to reason about.
+    -->
+    <div role="group" aria-label="Filter by pipeline stage" class="flex flex-wrap items-end gap-2">
+      @for (stage of stages; track stage) {
+        <button
+          type="button"
+          [attr.data-stage]="stage"
+          [attr.aria-pressed]="stageActive(stage)"
+          class="min-h-11 rounded-full border px-3 text-xs font-medium transition-colors"
+          [class.border-primary]="stageActive(stage)"
+          [class.bg-primary-light]="stageActive(stage)"
+          [class.text-primary]="stageActive(stage)"
+          [class.border-border-control]="!stageActive(stage)"
+          [class.text-text-secondary]="!stageActive(stage)"
+          (click)="toggleStage(stage)"
+        >
+          <span aria-hidden="true">{{ stageActive(stage) ? '☑' : '☐' }}</span>
+          {{ stageLabel[stage] }}
+          <span class="tabular-nums">({{ countByStage()[stage] }})</span>
+        </button>
+      }
+    </div>
+
+    <button
+      type="button"
+      appButton="secondary"
+      data-testid="audit-export"
+      [disabled]="exportDisabled()"
+      (click)="exportCsv()"
+    >
+      Export
+    </button>
+  </app-filter-chip-bar>
+
+  @if (busy()) {
+    <div data-testid="audit-loading" aria-busy="true" class="grid grid-cols-1 gap-3">
+      <p role="status" class="sr-only">Reading the guardrail audit trail…</p>
+      @for (row of skeletonRows; track row) {
+        <app-skeleton-block height="h-14" />
+      }
+    </div>
+  } @else if (error(); as failure) {
+    <!-- Localised: the limits grid and the pipeline above stay on screen. -->
+    <app-error-state
+      data-testid="audit-error"
+      [message]="failure"
+      detail="The kill-switch, the pipeline counters and the limits grid are unaffected."
+      cause="load"
+      (retry)="retry()"
+    />
+  } @else if (eventsEmpty()) {
+    <app-empty-state
+      title="No matching events"
+      [detail]="noEventsMessage + ' — widen the stage filter or clear the search.'"
+    >
+      <button
+        type="button"
+        appButton="primary"
+        size="md"
+        data-testid="audit-clear-filters"
+        [disabled]="!filtersActive()"
+        (click)="clearFilters()"
+      >
+        Clear filters
+      </button>
+    </app-empty-state>
+  } @else {
+    <app-section-card-grid [columns]="1">
+      @for (event of rows(); track event.id) {
+        <app-entity-card
+          [attr.data-event]="event.id"
+          [title]="title(event)"
+          [meta]="meta(event)"
+        >
+          <span class="flex shrink-0 items-center gap-2">
+            <app-status-badge
+              [attr.data-outcome]="event.id"
+              [label]="outcomeLabel[event.outcome]"
+              [tone]="event.outcome === 'fail' ? 'alert' : 'ok'"
+            />
+            <!--
+              `min-w-11` is not decoration. The label is a single 6px glyph, so
+              `size="xs"` gave this a 23×44 box — the only control on the page
+              under the 44px floor, and the one the doc names as the per-row
+              detail affordance.
+            -->
+            <button
+              type="button"
+              appButton="ghost"
+              size="xs"
+              class="min-w-11"
+              [attr.data-detail]="event.id"
+              [attr.aria-label]="detailLabel(event)"
+              (click)="open(event)"
+            >
+              <span aria-hidden="true">▸</span>
+            </button>
+          </span>
+        </app-entity-card>
+      }
+    </app-section-card-grid>
+
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <p class="text-xs text-text-secondary tabular-nums">{{ summary() }}</p>
+      <!--
+        Rendered disabled rather than removed: the control is part of the
+        region's shape, and a button that vanishes at the end of a list makes
+        "is that everything?" unanswerable.
+      -->
+      <button
+        type="button"
+        appButton="secondary"
+        size="md"
+        data-testid="audit-load-more"
+        [disabled]="!canLoadMore()"
+        (click)="loadMore()"
+      >
+        Load more
+      </button>
+    </div>
+  }
+
+  <p aria-live="polite" class="sr-only" data-testid="audit-export-notice">{{ exportNotice() }}</p>
+</section>
+
+<!--
+  The drawer stays mounted and is driven by `[open]`; wrapping the element in an
+  `@if` destroys the component that un-inerts the document behind it.
+-->
+<app-slide-over [open]="drawerOpen()" [label]="drawerLabel()" (closed)="close()">
+  @if (selected(); as event) {
+    <div class="flex h-full min-h-0 flex-col">
+      <header class="flex items-start justify-between gap-2 border-b border-border px-4 py-3">
+        <div class="min-w-0">
+          <h2 tabindex="-1" data-testid="audit-detail-title" class="text-base font-medium text-text">
+            {{ event.tradeId ?? notApplicable }} · {{ stageLabel[event.stage] }}
+          </h2>
+          <p class="text-xs text-text-secondary">
+            {{ event.date }} {{ event.at }} · {{ event.actor ?? notApplicable }}
+          </p>
+        </div>
+        <button
+          type="button"
+          class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-inset hover:text-text"
+          data-testid="audit-detail-close"
+          (click)="close()"
+        >
+          <span aria-hidden="true">✕</span>
+          <span class="sr-only">Close guardrail event detail</span>
+        </button>
+      </header>
+
+      <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        <app-status-badge
+          class="self-start"
+          [label]="outcomeLabel[event.outcome]"
+          [tone]="event.outcome === 'fail' ? 'alert' : 'ok'"
+        />
+
+        @if (event.errorType) {
+          <p data-testid="audit-detail-error-type" class="mt-3 text-xs text-text-secondary">
+            Raised as <span class="font-medium text-text">{{ event.errorType }}</span>
+          </p>
+        }
+
+        <!--
+          Verbatim. This is the string the backend log holds; a paraphrase here
+          would make the screen and the log two accounts of one event.
+        -->
+        @if (event.detail; as detail) {
+          <div class="table-scroll mt-2">
+            <pre
+              data-testid="audit-detail-message"
+              class="rounded-md bg-surface-inset px-3 py-2 text-xs text-text"
+            >{{ detail }}</pre>
+          </div>
+        } @else {
+          <p data-testid="audit-detail-message" class="mt-2 text-sm text-text-secondary">
+            {{ noOriginalError }}
+          </p>
+        }
+      </div>
+    </div>
+  }
+</app-slide-over>

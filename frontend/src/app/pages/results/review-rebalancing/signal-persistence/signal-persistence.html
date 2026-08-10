@@ -1,4 +1,4 @@
-<section class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+<section class="surface-card">
   <h2 class="sr-only">Signal persistence and turnover</h2>
   <button
     type="button"
@@ -12,8 +12,8 @@
       Signal persistence &amp; turnover
     </span>
     <span class="flex flex-wrap items-center gap-x-4 text-sm text-text-secondary">
-      <span>turnover T <span class="tabular-nums text-text">{{ turnover().toFixed(1) }}%</span></span>
-      <span>ρ<sub>f</sub> <span class="tabular-nums text-text">{{ factor().autocorrelation.toFixed(2) }}</span></span>
+      <span>turnover <app-math-var expr="T" label="T, the portfolio turnover" /> <span class="tabular-nums text-text">{{ turnover().toFixed(1) }}%</span></span>
+      <span><app-math-var expr="ρ_f" label="rho sub f, the factor autocorrelation" /> <span class="tabular-nums text-text">{{ factor().autocorrelation.toFixed(2) }}</span></span>
     </span>
   </button>
 
@@ -30,7 +30,7 @@
           <label for="factor-picker" class="text-xs text-text-secondary">Factor / signal</label>
           <select
             id="factor-picker"
-            class="min-h-11 min-w-0 max-w-72 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+            appSelect class="min-w-0 max-w-72"
             (change)="onFactor($event)"
           >
             @for (f of factors; track f.id) {
@@ -47,7 +47,6 @@
                 <input
                   type="radio"
                   name="ic-view"
-                  class="accent-[var(--color-primary)]"
                   [checked]="icView() === view"
                   (change)="icView.set(view)"
                 />
@@ -79,12 +78,16 @@
       <p class="text-sm text-text-secondary">
         A lagged IC that stays positive means the information persists; one that fades or turns
         negative means it is gone within a period or two. The horizon view accumulates it as
-        IC·√(h+1) — a persistent signal is worth more precisely because it keeps paying.
+        <math>
+          <mtext>IC</mtext>
+          <mo>&#x22C5;</mo>
+          <msqrt><mrow><mi>h</mi><mo>+</mo><mn>1</mn></mrow></msqrt>
+        </math> — a persistent signal is worth more precisely because it keeps paying.
       </p>
 
       <div class="flex flex-col gap-2">
         <label for="rho-target" class="text-xs text-text-secondary">
-          Target autocorrelation ρ<sub>target</sub>
+          Target autocorrelation <app-math-var expr="ρ_target" />
         </label>
         <div class="flex flex-wrap items-center gap-3">
           <input
@@ -93,7 +96,7 @@
             min="50"
             max="98"
             step="1"
-            class="h-11 w-56 accent-[var(--color-primary)]"
+            class="h-11 w-56"
             [value]="targetAutocorrelation() * 100"
             [attr.aria-valuetext]="
               'rho target ' + targetAutocorrelation().toFixed(2) +
@@ -102,7 +105,8 @@
             (input)="onRho($event)"
           />
           <output for="rho-target" class="text-sm tabular-nums text-text">
-            ρ {{ targetAutocorrelation().toFixed(2) }} · T {{ turnover().toFixed(1) }}% · IR
+            <app-math-var expr="ρ" /> {{ targetAutocorrelation().toFixed(2) }} ·
+            <app-math-var expr="T" /> {{ turnover().toFixed(1) }}% · IR
             {{ informationRatio().toFixed(2) }}
           </output>
         </div>
@@ -143,7 +147,7 @@
       <p class="text-sm text-text-secondary">
         Averaging the factor with its own lags raises its autocorrelation and cuts turnover, but
         lagged factors predict the next return more weakly, so the alpha falls with it. The
-        information ratio peaks near ρ {{ optimalRho.toFixed(2) }} — that peak, not the lowest
+        information ratio peaks near <app-math-var expr="ρ" /> {{ optimalRho.toFixed(2) }} — that peak, not the lowest
         possible turnover, is the amount of trading this signal justifies.
       </p>
     </div>

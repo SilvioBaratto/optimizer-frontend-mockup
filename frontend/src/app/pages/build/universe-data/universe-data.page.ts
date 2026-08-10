@@ -4,6 +4,7 @@ import { ActionButtonRow } from '../../../shared/action-button-row/action-button
 import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { EmptyState } from '../../../shared/empty-state/empty-state';
 import { InfoCard } from '../../../shared/info-card/info-card';
+import { MathVar } from '../../../shared/math/math-var';
 import { RetryButton } from '../../../shared/retry-button/retry-button';
 import { SkeletonBlock } from '../../../shared/skeleton-block/skeleton-block';
 import { StatusBadge, type StatusTone } from '../../../shared/status-badge/status-badge';
@@ -20,6 +21,8 @@ import {
 import { UniverseService } from '../../../services/universe.service';
 import { BuildStepTrackerService } from '../build-step-tracker.service';
 import { StepTracker } from '../step-tracker/step-tracker';
+import { ButtonDirective } from '../../../shared/ui/button/button.directive';
+import { SelectDirective } from '../../../shared/ui/select/select.directive';
 
 const ESTIMATORS: readonly CovarianceEstimator[] = ['sample', 'linear', 'nonlinear', 'ewma', 'dcc'];
 
@@ -58,10 +61,13 @@ const INLINE_ROWS = 5;
     ConfirmDialog,
     EmptyState,
     InfoCard,
+    MathVar,
     RetryButton,
     SkeletonBlock,
     StatusBadge,
     StepTracker,
+    ButtonDirective,
+    SelectDirective,
   ],
   templateUrl: './universe-data.page.html',
   styleUrl: './universe-data.page.css',

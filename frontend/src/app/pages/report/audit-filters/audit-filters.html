@@ -1,0 +1,124 @@
+<!--
+  No `[count]`/`[total]` on the chip bar: the CollectionStatBar below is the
+  page's live count, and two polite regions announcing the same number twenty
+  pixels apart is one announcement too many.
+-->
+<app-filter-chip-bar>
+  <div class="flex min-w-0 flex-col gap-1">
+    <label for="report-agent-filter" class="text-xs text-text-secondary">Agent</label>
+    <select
+      id="report-agent-filter"
+      appSelect
+      class="max-w-48"
+      [disabled]="loading()"
+      (change)="onAgent($event)"
+    >
+      @for (agent of agents; track agent) {
+        <option [value]="agent" [selected]="agentFilter() === agent">
+          {{ agentLabel[agent] }}
+        </option>
+      }
+    </select>
+  </div>
+
+  @if (showDecisionType()) {
+    <div class="flex min-w-0 flex-col gap-1">
+      <label for="report-type-filter" class="text-xs text-text-secondary">Decision type</label>
+      <select
+        id="report-type-filter"
+        appSelect
+        class="max-w-56"
+        [disabled]="loading()"
+        (change)="onDecisionType($event)"
+      >
+        @for (type of decisionTypes; track type) {
+          <option [value]="type" [selected]="decisionTypeFilter() === type">
+            {{ decisionTypeLabel[type] }}
+          </option>
+        }
+      </select>
+    </div>
+  }
+
+  <div class="flex min-w-0 flex-col gap-1">
+    <label for="report-range-filter" class="text-xs text-text-secondary">Date range</label>
+    <select
+      id="report-range-filter"
+      appSelect
+      class="max-w-44"
+      [disabled]="loading()"
+      (change)="onRange($event)"
+    >
+      @for (range of ranges; track range) {
+        <option [value]="range" [selected]="dateRange() === range">{{ rangeLabel[range] }}</option>
+      }
+    </select>
+  </div>
+
+  <!--
+    The field and its button are one control in two parts: Enter submits, and
+    so does the button. Nothing is applied while the reader is still typing.
+  -->
+  <div class="flex min-w-0 flex-col gap-1">
+    <label for="report-search" class="text-xs text-text-secondary">Search decisions</label>
+    <div class="flex min-w-0 items-center gap-2">
+      <input
+        id="report-search"
+        type="search"
+        data-testid="search-field"
+        placeholder="Search decisions…"
+        class="min-h-11 w-40 min-w-0 rounded-md border border-border-control bg-surface-raised px-3 text-sm text-text sm:w-56"
+        [value]="draft()"
+        [disabled]="loading()"
+        [attr.aria-describedby]="unsubmitted() ? 'report-search-hint' : null"
+        (input)="onDraft($event)"
+        (keydown.enter)="submitSearch()"
+      />
+      <button
+        type="button"
+        appButton="secondary"
+        data-testid="search-submit"
+        class="shrink-0"
+        [disabled]="loading()"
+        (click)="submitSearch()"
+      >
+        Search
+      </button>
+    </div>
+  </div>
+
+  @if (filtersActive()) {
+    <!--
+      Disabled with the rest of the bar while the log is being re-read, per the
+      Caricamento row. It is not the control that starts the read — that is the
+      Refresh below, which uses aria-disabled precisely because it is — so
+      `disabled` here drops nobody's focus, and letting it through would move
+      the query out from under a table that is currently blank.
+    -->
+    <button
+      type="button"
+      appButton="ghost"
+      class="self-end"
+      data-testid="filters-clear"
+      [disabled]="loading()"
+      (click)="clearFilters()"
+    >
+      Clear filters
+    </button>
+  }
+
+  <app-refresh-control
+    class="self-end"
+    label="Refresh log"
+    [busy]="loading()"
+    (refresh)="refresh()"
+  />
+</app-filter-chip-bar>
+
+<p id="report-search-hint" class="mt-1 text-xs text-text-secondary">
+  @if (unsubmitted()) {
+    Press Enter or Search to apply the text query. The selects apply as soon as they change.
+  } @else {
+    The filters narrow the query behind the table. They never change what was logged.
+  }
+</p>

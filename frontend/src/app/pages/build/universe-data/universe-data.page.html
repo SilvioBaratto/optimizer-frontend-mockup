@@ -7,11 +7,11 @@
 
 <!-- ParameterPanel — universe -->
 <section class="flex flex-col gap-3" aria-labelledby="panel-universe">
-  <h2 id="panel-universe" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+  <h2 id="panel-universe" class="eyebrow">
     Universe
   </h2>
 
-  <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+  <div class="surface-card">
     <div class="flex flex-col gap-3 border-b border-border px-4 py-3">
       <div class="flex flex-wrap items-end gap-2">
         <div class="flex min-w-52 flex-1 flex-col gap-1">
@@ -25,13 +25,13 @@
         </div>
         <button
           type="button"
-          class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
+          appButton="primary" size="md"
         >
           Add
         </button>
         <button
           type="button"
-          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          appButton="secondary"
         >
           Import list
         </button>
@@ -40,7 +40,7 @@
       <div class="flex flex-wrap gap-3">
         <div class="flex flex-col gap-1">
           <label for="filter-class" class="text-xs text-text-secondary">Asset class</label>
-          <select id="filter-class" class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text">
+          <select id="filter-class" appSelect>
             <option>All</option>
             <option>Equity</option>
             <option>Fixed income</option>
@@ -50,7 +50,7 @@
         </div>
         <div class="flex flex-col gap-1">
           <label for="filter-sector" class="text-xs text-text-secondary">Sector</label>
-          <select id="filter-sector" class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text">
+          <select id="filter-sector" appSelect>
             <option>All</option>
             <option>Technology</option>
             <option>Health care</option>
@@ -59,7 +59,7 @@
         </div>
         <div class="flex flex-col gap-1">
           <label for="filter-benchmark" class="text-xs text-text-secondary">Benchmark</label>
-          <select id="filter-benchmark" class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text">
+          <select id="filter-benchmark" appSelect>
             <option>S&amp;P 500</option>
             <option>MSCI World</option>
           </select>
@@ -74,13 +74,13 @@
       />
     } @else {
       <!-- Table scrolls inside its own box; the page never scrolls sideways. -->
-      <div class="relative overflow-x-auto">
+      <div class="table-scroll">
         <table class="w-full min-w-[46rem] text-sm">
           <caption class="sr-only">
             Assets in the universe, with available history, observation count and data status
           </caption>
           <thead>
-            <tr class="border-b border-border text-xs text-text-secondary">
+            <tr class="table-head-row">
               <th scope="col" class="px-4 py-2 text-left font-medium">
                 <span class="sr-only">Select</span>
               </th>
@@ -88,21 +88,27 @@
               <th scope="col" class="px-2 py-2 text-left font-medium">Name</th>
               <th scope="col" class="px-2 py-2 text-left font-medium">Class</th>
               <th scope="col" class="px-2 py-2 text-left font-medium">History</th>
-              <th scope="col" class="px-2 py-2 text-right font-medium">Obs (n)</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">Obs (<app-math-var expr="n" />)</th>
               <th scope="col" class="px-4 py-2 text-left font-medium">Status</th>
             </tr>
           </thead>
           <tbody>
             @for (asset of visibleAssets(); track asset.ticker) {
-              <tr class="border-b border-border-muted last:border-0">
+              <tr class="table-row">
                 <td class="px-4 py-2">
-                  <input
-                    type="checkbox"
-                    class="h-4 w-4 accent-[var(--color-primary)]"
-                    [attr.aria-label]="'Select ' + asset.ticker"
-                    [checked]="isSelected(asset.ticker)"
-                    (change)="toggleSelected(asset.ticker, $any($event.target).checked)"
-                  />
+                  <!--
+                    The label carries the 44px target; the negative margin keeps
+                    it from stacking on top of the cell's own padding.
+                  -->
+                  <label class="-my-2 flex min-h-11 w-11 items-center justify-center">
+                    <input
+                      type="checkbox"
+                      class="h-4 w-4"
+                      [attr.aria-label]="'Select ' + asset.ticker"
+                      [checked]="isSelected(asset.ticker)"
+                      (change)="toggleSelected(asset.ticker, $any($event.target).checked)"
+                    />
+                  </label>
                 </td>
                 <th scope="row" class="px-2 py-2 text-left font-medium text-text">
                   {{ asset.ticker }}
@@ -145,7 +151,7 @@
           @if (hiddenAssetCount() > 0) {
             <button
               type="button"
-              class="min-h-11 rounded-md px-3 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+              appButton="ghost"
               (click)="showAllAssets.set(!showAllAssets())"
             >
               {{ showAllAssets() ? 'Show fewer' : 'View full table' }}
@@ -153,7 +159,7 @@
           }
           <button
             type="button"
-            class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+            appButton="secondary"
             [disabled]="selected().length === 0"
             (click)="requestRemove()"
           >
@@ -167,15 +173,15 @@
 
 <!-- ParameterPanel — data source & sample window -->
 <section class="flex flex-col gap-3" aria-labelledby="panel-source">
-  <h2 id="panel-source" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+  <h2 id="panel-source" class="eyebrow">
     Data source &amp; sample window
   </h2>
 
-  <div class="flex flex-col gap-4 rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 px-4 py-3">
+  <div class="flex flex-col gap-4 surface-card px-4 py-3">
     <div class="flex flex-wrap gap-4">
       <div class="flex flex-col gap-1">
         <label for="data-source" class="text-xs text-text-secondary">Source</label>
-        <select id="data-source" class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text">
+        <select id="data-source" appSelect>
           <option>Internal price DB</option>
           <option>Vendor feed</option>
         </select>
@@ -185,11 +191,10 @@
         <legend class="text-xs text-text-secondary">Frequency</legend>
         <div class="flex min-h-11 items-center gap-4">
           @for (f of ['daily', 'monthly']; track f) {
-            <label class="flex items-center gap-1.5 text-sm text-text">
+            <label class="flex min-h-11 min-w-11 items-center gap-1.5 text-sm text-text">
               <input
                 type="radio"
                 name="frequency"
-                class="accent-[var(--color-primary)]"
                 [value]="f"
                 [checked]="frequency() === f"
                 (change)="onFrequency($any(f))"
@@ -212,15 +217,15 @@
 
     <dl class="flex flex-wrap gap-x-8 gap-y-2 border-t border-border pt-3 text-sm">
       <div class="flex items-baseline gap-2">
-        <dt class="text-text-secondary">Total observations n</dt>
+        <dt class="text-text-secondary">Total observations <app-math-var expr="n" /></dt>
         <dd class="tabular-nums font-medium text-text">{{ observations() }}</dd>
       </div>
       <div class="flex items-baseline gap-2">
-        <dt class="text-text-secondary">Universe size p</dt>
+        <dt class="text-text-secondary">Universe size <app-math-var expr="p" /></dt>
         <dd class="tabular-nums font-medium text-text">{{ universeSize() }} assets</dd>
       </div>
       <div class="flex items-baseline gap-2">
-        <dt class="text-text-secondary">p / n</dt>
+        <dt class="text-text-secondary"><math><mi>p</mi><mo>/</mo><mi>n</mi></math></dt>
         <dd class="tabular-nums font-medium text-text">{{ pOverN().toFixed(3) }}</dd>
       </div>
     </dl>
@@ -229,28 +234,28 @@
 
 <!-- ParameterPanel — data quality & winsorization -->
 <section class="flex flex-col gap-3" aria-labelledby="panel-quality">
-  <h2 id="panel-quality" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+  <h2 id="panel-quality" class="eyebrow">
     Data quality &amp; winsorization
   </h2>
 
-  <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+  <div class="surface-card">
     <div class="flex flex-wrap items-end gap-4 px-4 py-3">
       <fieldset class="flex flex-col gap-1">
         <legend class="text-xs text-text-secondary">Winsorization</legend>
         <div class="flex min-h-11 items-center gap-4">
-          <label class="flex items-center gap-1.5 text-sm text-text">
-            <input type="radio" name="winsor" class="accent-[var(--color-primary)]" [checked]="winsorizationOn()" (change)="winsorizationOn.set(true)" />
+          <label class="flex min-h-11 min-w-11 items-center gap-1.5 text-sm text-text">
+            <input type="radio" name="winsor" [checked]="winsorizationOn()" (change)="winsorizationOn.set(true)" />
             On
           </label>
-          <label class="flex items-center gap-1.5 text-sm text-text">
-            <input type="radio" name="winsor" class="accent-[var(--color-primary)]" [checked]="!winsorizationOn()" (change)="winsorizationOn.set(false)" />
+          <label class="flex min-h-11 min-w-11 items-center gap-1.5 text-sm text-text">
+            <input type="radio" name="winsor" [checked]="!winsorizationOn()" (change)="winsorizationOn.set(false)" />
             Off
           </label>
         </div>
       </fieldset>
 
       <div class="flex flex-col gap-1">
-        <label for="censored" class="text-xs text-text-secondary">Censored obs. per tail (i)</label>
+        <label for="censored" class="text-xs text-text-secondary">Censored obs. per tail (<app-math-var expr="i" />)</label>
         <input
           id="censored"
           type="number"
@@ -269,7 +274,7 @@
 
       <button
         type="button"
-        class="min-h-11 rounded-md px-3 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+        appButton="ghost"
         [attr.aria-expanded]="showBeforeAfter()"
         aria-controls="before-after"
         (click)="showBeforeAfter.set(!showBeforeAfter())"
@@ -280,23 +285,23 @@
 
     <!-- Collapsed by default, per the spec. -->
     @if (showBeforeAfter()) {
-      <div id="before-after" class="overflow-x-auto border-t border-border">
+      <div id="before-after" class="table-scroll border-t border-border">
         <table class="w-full min-w-[42rem] text-sm">
           <caption class="sr-only">
             Winsorised tail observations, with the effect on each asset's mean and standard deviation
           </caption>
           <thead>
-            <tr class="border-b border-border text-xs text-text-secondary">
+            <tr class="table-head-row">
               <th scope="col" class="px-4 py-2 text-left font-medium">Ticker</th>
               <th scope="col" class="px-2 py-2 text-left font-medium">Raw tail</th>
               <th scope="col" class="px-2 py-2 text-left font-medium">Winsorized replacement</th>
-              <th scope="col" class="px-2 py-2 text-right font-medium">Δ mean</th>
-              <th scope="col" class="px-4 py-2 text-right font-medium">Δ SD</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium"><math><mo lspace="0">&#x0394;</mo><mtext>mean</mtext></math></th>
+              <th scope="col" class="px-4 py-2 text-right font-medium"><math><mo lspace="0">&#x0394;</mo><mtext>SD</mtext></math></th>
             </tr>
           </thead>
           <tbody>
             @for (row of winsorized(); track row.ticker + row.at) {
-              <tr class="border-b border-border-muted last:border-0">
+              <tr class="table-row">
                 <th scope="row" class="px-4 py-2 text-left font-medium text-text">{{ row.ticker }}</th>
                 <td class="px-2 py-2 tabular-nums text-text-secondary">
                   {{ row.at }} · {{ row.rawReturn.toFixed(1) }}%
@@ -315,22 +320,22 @@
 
 <!-- ParameterPanel — expected returns -->
 <section class="flex flex-col gap-3" aria-labelledby="panel-returns">
-  <h2 id="panel-returns" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+  <h2 id="panel-returns" class="eyebrow">
     Expected returns
   </h2>
 
-  <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
-    <div class="relative overflow-x-auto">
+  <div class="surface-card">
+    <div class="table-scroll">
       <table class="w-full min-w-[46rem] text-sm">
         <caption class="sr-only">
           Historical mean return per asset with its standard error and 95% confidence interval
         </caption>
         <thead>
-          <tr class="border-b border-border text-xs text-text-secondary">
+          <tr class="table-head-row">
             <th scope="col" class="px-4 py-2 text-left font-medium">Ticker</th>
-            <th scope="col" class="px-2 py-2 text-right font-medium">R̄</th>
+            <th scope="col" class="px-2 py-2 text-right font-medium"><app-math-var expr="R̄" /></th>
             <th scope="col" class="px-2 py-2 text-right font-medium">SD</th>
-            <th scope="col" class="px-2 py-2 text-right font-medium">n</th>
+            <th scope="col" class="px-2 py-2 text-right font-medium"><app-math-var expr="n" /></th>
             <th scope="col" class="px-2 py-2 text-right font-medium">SE</th>
             <th scope="col" class="px-2 py-2 text-right font-medium">95% CI</th>
             <th scope="col" class="px-4 py-2 text-left font-medium">Flag</th>
@@ -338,7 +343,7 @@
         </thead>
         <tbody>
           @for (row of visibleEstimates(); track row.ticker) {
-            <tr class="border-b border-border-muted last:border-0">
+            <tr class="table-row">
               <th scope="row" class="px-4 py-2 text-left font-medium text-text">{{ row.ticker }}</th>
               @if (recalculating()) {
                 <td colspan="5" class="px-2 py-2"><app-skeleton-block height="h-4" /></td>
@@ -387,7 +392,7 @@
         </p>
         <button
           type="button"
-          class="min-h-11 rounded-md px-3 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+          appButton="ghost"
           (click)="showAllEstimates.set(!showAllEstimates())"
         >
           {{ showAllEstimates() ? 'Show fewer' : 'View full table' }}
@@ -401,7 +406,7 @@
     -->
     <div class="flex flex-wrap items-end gap-3 border-t border-border px-4 py-3">
       <div class="flex flex-col gap-1">
-        <label for="half-width" class="text-xs text-text-secondary">Target CI half-width h</label>
+        <label for="half-width" class="text-xs text-text-secondary">Target CI half-width <app-math-var expr="h" /></label>
         <input
           id="half-width"
           type="number"
@@ -413,7 +418,7 @@
         />
       </div>
       <p class="min-h-11 self-center text-sm text-text-secondary">
-        → required T
+        → required <app-math-var expr="T" />
         @for (r of requiredObservations(); track r.ticker) {
           <span class="ml-2 tabular-nums text-text">{{ r.ticker }} ~ {{ r.required }} obs</span>
         }
@@ -424,20 +429,19 @@
 
 <!-- ParameterPanel — covariance estimation -->
 <section class="flex flex-col gap-3" aria-labelledby="panel-covariance">
-  <h2 id="panel-covariance" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+  <h2 id="panel-covariance" class="eyebrow">
     Covariance estimation
   </h2>
 
-  <div class="rounded-lg border border-border bg-surface-raised max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+  <div class="surface-card">
     <fieldset class="border-b border-border px-4 py-3">
       <legend class="text-xs text-text-secondary">Estimator</legend>
       <div class="flex flex-wrap gap-4">
         @for (e of estimators; track e) {
-          <label class="flex min-h-11 items-center gap-1.5 text-sm text-text">
+          <label class="flex min-h-11 min-w-11 items-center gap-1.5 text-sm text-text">
             <input
               type="radio"
               name="estimator"
-              class="accent-[var(--color-primary)]"
               [checked]="estimator() === e"
               (change)="onEstimator(e)"
             />
@@ -456,7 +460,7 @@
         @case ('ewma') {
           <div class="flex flex-wrap items-end gap-4">
             <div class="flex flex-col gap-1">
-              <label for="decay" class="text-xs text-text-secondary">Decay factor λ</label>
+              <label for="decay" class="text-xs text-text-secondary">Decay factor <app-math-var expr="λ" /></label>
               <div class="flex min-h-11 items-center gap-2">
                 <input
                   id="decay"
@@ -464,7 +468,6 @@
                   min="0.80"
                   max="0.99"
                   step="0.01"
-                  class="accent-[var(--color-primary)]"
                   [value]="decay()"
                   (input)="onNumber($event, decay.set)"
                 />
@@ -472,15 +475,15 @@
               </div>
             </div>
             <div class="flex items-center gap-2">
-              <button type="button" class="min-h-11 rounded-md border border-border-control px-3 text-sm text-text hover:bg-surface-inset" (click)="decay.set(0.94)">
+              <button type="button" appButton="secondary" (click)="decay.set(0.94)">
                 0.94 daily
               </button>
-              <button type="button" class="min-h-11 rounded-md border border-border-control px-3 text-sm text-text hover:bg-surface-inset" (click)="decay.set(0.97)">
+              <button type="button" appButton="secondary" (click)="decay.set(0.97)">
                 0.97 monthly
               </button>
             </div>
             <div class="flex flex-col gap-1">
-              <label for="tolerance" class="text-xs text-text-secondary">Window tolerance Υ_L (%)</label>
+              <label for="tolerance" class="text-xs text-text-secondary">Window tolerance <app-math-var expr="Υ_L" /> (%)</label>
               <input
                 id="tolerance"
                 type="number"
@@ -493,7 +496,7 @@
               />
             </div>
             <p class="min-h-11 self-center text-sm text-text-secondary">
-              → effective obs K ~
+              → effective obs <app-math-var expr="K" /> ~
               <span class="tabular-nums text-text">{{ effectiveObservations() ?? '—' }}</span>
             </p>
           </div>
@@ -502,16 +505,16 @@
           <!-- Read-only: estimated, not user-set. -->
           <dl class="flex flex-wrap gap-x-8 gap-y-1 text-sm">
             <div class="flex items-baseline gap-2">
-              <dt class="text-text-secondary">α</dt>
+              <dt class="text-text-secondary"><app-math-var expr="α" /></dt>
               <dd class="tabular-nums text-text">{{ diagnostics().dcc?.alpha }}</dd>
             </div>
             <div class="flex items-baseline gap-2">
-              <dt class="text-text-secondary">β</dt>
+              <dt class="text-text-secondary"><app-math-var expr="β" /></dt>
               <dd class="tabular-nums text-text">{{ diagnostics().dcc?.beta }}</dd>
             </div>
             @if (diagnostics().dcc; as dcc) {
               <div class="flex items-baseline gap-2">
-                <dt class="text-text-secondary">α + β</dt>
+                <dt class="text-text-secondary"><math><mi>α</mi><mo>+</mo><mi>β</mi></math></dt>
                 <dd class="tabular-nums text-text">
                   {{ (dcc.alpha + dcc.beta).toFixed(3) }}
                   <span class="ml-1 text-text-secondary">
@@ -524,7 +527,7 @@
         }
         @case ('linear') {
           <p class="text-sm text-text-secondary">
-            Shrinkage intensity ρ (PRIAL)
+            Shrinkage intensity <app-math-var expr="ρ" /> (PRIAL)
             <span class="ml-2 tabular-nums text-text">{{ diagnostics().shrinkageIntensity }}</span>
           </p>
         }
@@ -546,7 +549,7 @@
 
       <dl class="flex flex-wrap gap-x-8 gap-y-1 border-t border-border pt-3 text-sm">
         <div class="flex items-baseline gap-2">
-          <dt class="text-text-secondary">p / n</dt>
+          <dt class="text-text-secondary"><math><mi>p</mi><mo>/</mo><mi>n</mi></math></dt>
           <dd class="tabular-nums text-text">{{ pOverN().toFixed(3) }}</dd>
         </div>
         <div class="flex items-baseline gap-2">
@@ -574,7 +577,7 @@
           </p>
           <button
             type="button"
-            class="min-h-11 rounded-md px-3 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+            appButton="ghost"
             (click)="showAllEigenvalues.set(!showAllEigenvalues())"
           >
             {{ showAllEigenvalues() ? 'Show fewer' : 'View full table' }}
@@ -610,20 +613,20 @@
 <app-action-button-row>
   <button
     type="button"
-    class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+    appButton="secondary"
     (click)="confirmReset.set(true)"
   >
     Reset
   </button>
   <button
     type="button"
-    class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+    appButton="secondary"
   >
     Save as draft
   </button>
   <button
     type="button"
-    class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+    appButton="primary" size="md"
     [disabled]="hasBlockingWarning() || recalculating()"
     (click)="continue()"
   >

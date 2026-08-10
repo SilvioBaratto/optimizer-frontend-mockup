@@ -41,13 +41,13 @@
       [showLegend]="false"
     />
 
-    <div class="relative overflow-x-auto">
+    <div class="table-scroll">
       <table class="w-full min-w-xl text-sm">
         <caption class="sr-only">
           How much each release moved the nowcast this month.
         </caption>
         <thead>
-          <tr class="border-b border-border text-xs text-text-secondary">
+          <tr class="table-head-row">
             <th scope="col" class="px-3 py-2 text-left font-medium">Release</th>
             <th scope="col" class="px-3 py-2 text-right font-medium">News</th>
             <th scope="col" class="px-3 py-2 text-left font-medium">Note</th>
@@ -55,7 +55,7 @@
         </thead>
         <tbody>
           @for (item of news; track item.release) {
-            <tr class="border-b border-border-muted last:border-0">
+            <tr class="table-row">
               <th scope="row" class="px-3 py-2 text-left font-normal text-text">{{ item.release }}</th>
               <td class="px-3 py-2 text-right tabular-nums text-text">
                 {{ item.news > 0 ? '+' : '' }}{{ item.news.toFixed(2) }}

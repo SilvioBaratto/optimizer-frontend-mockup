@@ -1,0 +1,166 @@
+@if (loading()) {
+  <div
+    data-testid="mlc-skeleton"
+    aria-busy="true"
+    class="surface-card flex flex-col gap-2 px-4 py-4"
+  >
+    <app-skeleton-block height="h-6" [lines]="4" />
+  </div>
+} @else if (hasContributions()) {
+  <app-bar-chart
+    title="Key risk factors — maximum loss contribution"
+    subtitle="LC(i, r_WC), descending. Shown as computed, never rescaled to 100%."
+    [ariaLabel]="ariaLabel()"
+    [categories]="categories()"
+    [series]="series()"
+    [valueFormatter]="valueFormatter()"
+    [refLines]="refLines()"
+    categoryAxisName="Factor"
+    valueAxisName="MLC"
+    [height]="height"
+    [showLegend]="false"
+  >
+    <div class="flex flex-col gap-2 border-t border-border px-4 py-3 text-xs text-text-secondary">
+      <!--
+        The sum and the sign of the interaction, in words. The bars cannot carry
+        this: a reader would have to compare four lengths against an invisible
+        100% total to see that they fall short of it, and the direction of the
+        shortfall is the entire finding.
+      -->
+      <p data-testid="mlc-interaction" class="text-sm text-text">
+        <span aria-hidden="true">{{ interactionIcon() }}</span>
+        {{ interactionSentence() }}
+      </p>
+      <p data-testid="mlc-interaction-note" class="max-w-prose">{{ interactionNote() }}</p>
+
+      @if (drivers().length > 0) {
+        <p data-testid="mlc-drivers">
+          Key risk factors, at or above {{ keyFactorThreshold }} of the loss:
+          @for (row of drivers(); track row.factorId) {
+            <span class="text-text"
+              >{{ row.name }} {{ share(row.share) }}@if (!$last) {, }</span
+            >
+          }
+        </p>
+      }
+
+      @if (stale()) {
+        <div data-testid="mlc-stale" class="flex flex-wrap items-center gap-2">
+          <app-status-badge [label]="staleBadge" tone="warn" />
+          <span>{{ staleNote }}</span>
+        </div>
+      }
+
+      <!--
+        `aria-haspopup="dialog"` rather than `aria-expanded`/`aria-controls`:
+        this opens a modal, not a disclosure, and the panel it names does not
+        exist until it is open — an `aria-controls` that resolves to nothing
+        for as long as the button is readable is worse than none at all.
+      -->
+      <div class="flex justify-end">
+        <button
+          type="button"
+          data-testid="mlc-details"
+          class="min-h-11 rounded-md px-2 text-xs font-medium text-primary underline underline-offset-2 hover:bg-primary-light"
+          aria-haspopup="dialog"
+          (click)="openDetail()"
+        >
+          Details
+        </button>
+      </div>
+    </div>
+  </app-bar-chart>
+} @else {
+  <div class="surface-card">
+    <app-empty-state [title]="emptyMessage" [detail]="emptyDetail" />
+  </div>
+}
+
+<!--
+  The per-factor arithmetic, in a panel rather than a second table beside the
+  chart. `app-slide-over` stays mounted and is driven by `[open]`: destroying it
+  would destroy the component that un-inerts the rest of the document.
+-->
+<app-slide-over
+  [open]="detailOpen()"
+  label="Maximum loss contribution detail"
+  (closed)="closeDetail()"
+>
+  <div id="stress-mlc-detail" class="flex h-full min-h-0 flex-col">
+    <header class="flex items-start justify-between gap-2 border-b border-border px-4 py-3">
+      <div class="min-w-0">
+        <h2 tabindex="-1" data-testid="mlc-detail-heading" class="text-base font-medium text-text">
+          Loss contribution detail
+        </h2>
+        <p class="text-xs text-text-secondary">{{ interactionSentence() }}</p>
+      </div>
+
+      <button
+        type="button"
+        class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-inset hover:text-text"
+        (click)="closeDetail()"
+      >
+        <span aria-hidden="true">✕</span>
+        <span class="sr-only">Close loss contribution detail</span>
+      </button>
+    </header>
+
+    <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      <div class="table-scroll">
+        <table class="w-full min-w-2xl text-sm">
+          <caption class="sr-only">
+            Each factor's worst-case move, the loss the book would take if only that factor moved to
+            it, and that loss as a share of the loss of the whole move.
+          </caption>
+          <thead>
+            <tr class="table-head-row">
+              <th scope="col" class="px-2 py-2 text-left font-medium">Factor</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">Worst-case move</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">Loss alone</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">LC(i, r_WC)</th>
+              <th scope="col" class="px-2 py-2 text-left font-medium">Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of contributions(); track row.factorId) {
+              <tr class="table-row" [attr.data-contribution]="row.factorId">
+                <th scope="row" class="px-2 py-1.5 text-left font-normal text-text">
+                  {{ row.name }}
+                </th>
+                <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">
+                  {{ move(row) }}
+                </td>
+                <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">
+                  {{ loss(row.individualLoss) }}
+                </td>
+                <td class="px-2 py-1.5 text-right font-medium tabular-nums text-text">
+                  {{ share(row.share) }}
+                </td>
+                <td class="px-2 py-1.5 text-left text-text-secondary">
+                  {{ row.driver ? driverLabel : nonDriverLabel }}
+                </td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="border-t border-border">
+              <th scope="row" class="px-2 py-2 text-left font-medium text-text">Σ MLC</th>
+              <td class="px-2 py-2 text-right text-text-secondary" aria-hidden="true">—</td>
+              <td class="px-2 py-2 text-right text-text-secondary" aria-hidden="true">—</td>
+              <td
+                data-testid="mlc-detail-sum"
+                class="px-2 py-2 text-right font-medium tabular-nums text-text"
+              >
+                {{ sumLabel() }}
+              </td>
+              <td class="px-2 py-2 text-left text-text-secondary">{{ comparison() }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <p class="mt-4 max-w-prose text-xs text-text-secondary">{{ contributionNote }}</p>
+      <p class="mt-2 max-w-prose text-xs text-text-secondary">{{ interactionNote() }}</p>
+    </div>
+  </div>
+</app-slide-over>

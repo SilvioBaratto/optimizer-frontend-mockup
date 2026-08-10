@@ -1,0 +1,131 @@
+<section aria-labelledby="st-library-heading" class="flex flex-col gap-3">
+  <!--
+    tabindex="-1" so focus has somewhere to land when the row it was standing on
+    is deleted; `styles.css` suppresses the ring on programmatic targets.
+  -->
+  <h2 id="st-library-heading" tabindex="-1" class="text-base font-medium text-text">
+    Scenario library
+  </h2>
+
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div class="flex flex-col gap-1">
+      <label for="st-library-filter" class="text-xs text-text-secondary">Type</label>
+      <select appSelect id="st-library-filter" (change)="onFilter($event)">
+        @for (option of filters; track option) {
+          <option [value]="option" [selected]="option === filter()">
+            {{ filterLabel[option] }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <p data-testid="library-count" class="text-xs text-text-secondary">{{ countLabel() }}</p>
+  </div>
+
+  @if (libraryEmpty()) {
+    <div class="surface-card">
+      <app-empty-state [title]="emptyMessage" [detail]="emptyDetail" />
+    </div>
+  } @else if (filteredOut()) {
+    <p
+      data-testid="library-filtered-out"
+      role="status"
+      class="surface-card px-4 py-10 text-center text-sm text-text-secondary"
+    >
+      {{ filteredOutMessage() }}
+    </p>
+  } @else {
+    <div class="surface-card">
+      <!-- Scrolls inside its own box so the page never scrolls sideways. -->
+      <div class="table-scroll">
+        <table class="w-full min-w-4xl text-sm">
+          <caption class="sr-only">
+            Saved scenarios with the parameters they were run at. CEP and the loss against the
+            expected scenario are printed in the impact measure of the row that produced them, which
+            is not necessarily the one selected in the toolbar. A reverse row reports the outcome it
+            reaches rather than a profit, so it has no loss to show.
+          </caption>
+
+          <thead>
+            <tr class="table-head-row">
+              <th scope="col" class="px-4 py-2 text-left font-medium">Name</th>
+              <th scope="col" class="px-2 py-2 text-left font-medium">Type</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">k</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">Maha</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">CEP</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">Loss vs μ</th>
+              <th scope="col" class="px-2 py-2 text-left font-medium">Run at</th>
+              <th scope="col" class="px-4 py-2 text-right font-medium">Row actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (row of rows(); track row.id) {
+              <tr class="table-row" [attr.data-scenario]="row.id">
+                <th scope="row" class="px-4 py-1.5 text-left font-normal text-text">
+                  {{ name(row) }}
+                </th>
+
+                <!-- Glyph and word together: the type has to read in greyscale. -->
+                <td class="px-2 py-1.5 text-left text-text-secondary">
+                  <span aria-hidden="true">{{ kindIcon[row.kind] }}</span>
+                  {{ kindLabel[row.kind] }}
+                </td>
+
+                <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">
+                  {{ radius(row.k) }}
+                </td>
+                <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">
+                  {{ maha(row.maha) }}
+                </td>
+                <td class="px-2 py-1.5 text-right tabular-nums text-text">{{ cep(row) }}</td>
+                <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">
+                  {{ loss(row) }}
+                </td>
+                <td class="px-2 py-1.5 text-left tabular-nums text-text-secondary">
+                  {{ row.runAt }}
+                </td>
+
+                <td class="px-4 py-1.5 text-right">
+                  <span class="inline-flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      appButton="ghost"
+                      [attr.data-load]="row.id"
+                      [disabled]="busy()"
+                      (click)="onLoad(row)"
+                    >
+                      Load<span class="sr-only"> {{ name(row) }}</span>
+                    </button>
+                    <button
+                      type="button"
+                      appButton="danger-outline"
+                      [attr.data-delete]="row.id"
+                      [disabled]="busy()"
+                      (click)="askDelete(row, $event)"
+                    >
+                      <span aria-hidden="true">✕</span> Delete<span class="sr-only">
+                        {{ name(row) }}</span
+                      >
+                    </button>
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- The page's only destructive action: never on the first click. -->
+  <app-confirm-dialog
+    [open]="pendingDelete() !== null"
+    [title]="deleteTitle"
+    [message]="deleteMessage()"
+    confirmLabel="Delete scenario"
+    [destructive]="true"
+    (confirmed)="confirmDelete()"
+    (cancelled)="cancelDelete()"
+  />
+</section>

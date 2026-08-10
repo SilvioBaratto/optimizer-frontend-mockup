@@ -1,0 +1,302 @@
+<section aria-labelledby="attribution-table-heading" class="flex flex-col gap-3">
+  <h2 id="attribution-table-heading" class="text-base font-medium text-text">
+    Risk contribution by {{ componentColumn().toLowerCase() }}
+  </h2>
+
+  <!--
+    The live count. The search narrows this list and nothing else: the TOTAL row
+    below and every figure in the summary stay whole-book, because a
+    decomposition of the rows that happen to match a search term does not sum to
+    the book's economic capital.
+  -->
+  <app-filter-chip-bar
+    [count]="visibleRows().length"
+    [total]="filteredTotal()"
+    [countNoun]="groupingNoun()"
+    [summary]="parameterSummary()"
+  />
+
+  <div class="surface-card">
+    @if (loading()) {
+      <div data-testid="table-skeleton" aria-busy="true" class="flex flex-col gap-2 px-4 py-4">
+        @for (row of skeletonRows; track row) {
+          <app-skeleton-block height="h-8" />
+        }
+      </div>
+    } @else if (noMatches()) {
+      <p role="status" class="px-4 py-10 text-center text-sm text-text-secondary">
+        No {{ componentColumn().toLowerCase() }} matches “{{ search() }}”. The book still holds
+        {{ rows().length }} {{ groupingNoun() }} — clear the search to see them.
+      </p>
+    } @else {
+      <!-- Scrolls inside its own box so the page never scrolls sideways. -->
+      <div class="table-scroll">
+        <table class="w-full min-w-4xl text-sm">
+          <caption class="sr-only">
+            The book's economic capital decomposed by {{ componentColumn().toLowerCase() }}: capital
+            weight, stand-alone risk, the with-without marginal contribution, the Euler contribution
+            and its share of the total, the component's RORAC and its marginal diversification
+            index. The {{ methodLabel() }} column is the principal one for the selected attribution
+            method. Column headers sort the table. The TOTAL row stays visible on every page. A
+            negative contribution is a hedge and is labelled as one.
+          </caption>
+
+          <thead>
+            <tr class="table-head-row">
+              <th scope="col" class="px-4 py-2 text-left font-medium" [attr.aria-sort]="ariaSort('name')">
+                <button
+                  type="button"
+                  class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 text-left hover:text-text"
+                  (click)="toggleSort('name')"
+                >
+                  {{ componentColumn() }} <span aria-hidden="true">{{ sortGlyph('name') }}</span>
+                </button>
+              </th>
+
+              <th scope="col" class="px-2 py-2 text-right font-medium" [attr.aria-sort]="ariaSort('weight')">
+                <button
+                  type="button"
+                  class="inline-flex min-h-11 items-center gap-1 rounded-md px-1"
+                  (click)="toggleSort('weight')"
+                >
+                  {{ weightColumn() }} <span aria-hidden="true">{{ sortGlyph('weight') }}</span>
+                </button>
+              </th>
+
+              <th scope="col" class="px-2 py-2 text-right font-medium" [attr.aria-sort]="ariaSort('standAlone')">
+                <button
+                  type="button"
+                  class="inline-flex min-h-11 items-center gap-1 rounded-md px-1"
+                  (click)="toggleSort('standAlone')"
+                >
+                  Stand-alone <span aria-hidden="true">{{ sortGlyph('standAlone') }}</span>
+                </button>
+              </th>
+
+              <!--
+                Both principles, side by side and always. `ρ_marg ≤ ρ_Euler` is
+                the inequality the page is about; hiding one behind a toolbar
+                control would make the reader hold a number in their head to see
+                it.
+              -->
+              <th scope="col" class="px-2 py-2 text-right font-medium" [attr.aria-sort]="ariaSort('marginal')">
+                <button
+                  type="button"
+                  class="inline-flex min-h-11 items-center gap-1 rounded-md px-1"
+                  (click)="toggleSort('marginal')"
+                >
+                  {{ methodColumn['marginal'] }}
+                  @if (isPrincipal('marginal')) {
+                    <span class="sr-only">— principal column for the Marginal method</span>
+                  }
+                  <span aria-hidden="true">{{ sortGlyph('marginal') }}</span>
+                </button>
+              </th>
+
+              <th scope="col" class="px-2 py-2 text-right font-medium" [attr.aria-sort]="ariaSort('euler')">
+                <button
+                  type="button"
+                  class="inline-flex min-h-11 items-center gap-1 rounded-md px-1"
+                  (click)="toggleSort('euler')"
+                >
+                  {{ methodColumn['euler'] }}
+                  @if (isPrincipal('euler')) {
+                    <span class="sr-only">— principal column for the Euler method</span>
+                  }
+                  <span aria-hidden="true">{{ sortGlyph('euler') }}</span>
+                </button>
+              </th>
+
+              <th scope="col" class="px-2 py-2 text-right font-medium" [attr.aria-sort]="ariaSort('contributionShare')">
+                <button
+                  type="button"
+                  class="inline-flex min-h-11 items-center gap-1 rounded-md px-1"
+                  (click)="toggleSort('contributionShare')"
+                >
+                  {{ shareColumn() }}
+                  <span aria-hidden="true">{{ sortGlyph('contributionShare') }}</span>
+                </button>
+              </th>
+
+              <th scope="col" class="px-2 py-2 text-right font-medium" [attr.aria-sort]="ariaSort('rorac')">
+                <button
+                  type="button"
+                  class="inline-flex min-h-11 items-center gap-1 rounded-md px-1"
+                  (click)="toggleSort('rorac')"
+                >
+                  RORAC <span aria-hidden="true">{{ sortGlyph('rorac') }}</span>
+                </button>
+              </th>
+
+              <th scope="col" class="px-4 py-2 text-right font-medium" [attr.aria-sort]="ariaSort('marginalDi')">
+                <button
+                  type="button"
+                  class="inline-flex min-h-11 items-center gap-1 rounded-md px-1"
+                  (click)="toggleSort('marginalDi')"
+                >
+                  Mrg. DI <span aria-hidden="true">{{ sortGlyph('marginalDi') }}</span>
+                </button>
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (row of pageRows(); track row.id; let i = $index) {
+              <!--
+                Hover writes the shared highlight the chart bars read, so the two
+                views point at the same component before either is clicked. The
+                tint is the same one selection uses; what separates them is the
+                ▸/▾ glyph and `aria-expanded` on the control below, not a shade.
+              -->
+              <tr
+                class="table-row"
+                [attr.data-highlighted]="highlightedComponentId() === row.id ? 'true' : null"
+                [class.bg-surface-inset]="
+                  selectedComponentId() === row.id || highlightedComponentId() === row.id
+                "
+                (mouseenter)="highlight(row.id)"
+                (mouseleave)="highlight(null)"
+              >
+                <th scope="row" class="px-4 py-1.5 text-left font-normal">
+                  <!--
+                    One tab stop for the body: only this row is tabbable when it
+                    is the active one, arrows move between rows, and Enter or
+                    Space opens the detail panel because it is a real button.
+                    aria-controls names the panel so the relationship survives it
+                    being a slide-over rather than a nested row.
+                  -->
+                  <button
+                    #rowButton
+                    type="button"
+                    [attr.data-row]="row.id"
+                    [attr.tabindex]="activeRowId() === row.id ? 0 : -1"
+                    class="inline-flex min-h-11 items-center gap-2 rounded-md text-left text-text"
+                    [attr.aria-expanded]="selectedComponentId() === row.id"
+                    aria-controls="risk-attribution-detail"
+                    (keydown)="onRowKeydown($event, i)"
+                    (focus)="highlight(row.id)"
+                    (blur)="highlight(null)"
+                    (click)="toggleRow(row)"
+                  >
+                    <span aria-hidden="true" class="text-text-secondary">{{
+                      selectedComponentId() === row.id ? '▾' : '▸'
+                    }}</span>
+                    <span class="font-medium">{{ row.name }}</span>
+                    @if (row.hedge) {
+                      <!-- Glyph and word. The colour repeats them; it never replaces them. -->
+                      <span class="text-xs whitespace-nowrap text-danger">
+                        <span aria-hidden="true">{{ hedgeIcon }}</span> {{ hedgeLabel }}
+                      </span>
+                    }
+                    <span class="sr-only">
+                      — {{ row.description }}@if (row.hedge) { , {{ hedgeNote }} }, show detail
+                    </span>
+                  </button>
+                </th>
+
+                <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">
+                  {{ weight(row) }}
+                </td>
+                <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">
+                  {{ amount(row.standAlone) }}
+                </td>
+                <td [class]="contributionClass(row.marginal, 'marginal')">
+                  {{ amount(row.marginal) }}
+                </td>
+                <td [class]="contributionClass(row.euler, 'euler')">
+                  {{ amount(row.euler) }}
+                </td>
+                <td [class]="shareClass(row.contribution)">
+                  {{ shareOf(row.contributionShare) }}
+                </td>
+
+                <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">
+                  @if (row.rorac === null) {
+                    <span aria-hidden="true">{{ notApplicable }}</span>
+                    <span class="sr-only">{{ roracUndefinedNote }}</span>
+                  } @else {
+                    {{ rorac(row.rorac) }}
+                  }
+                </td>
+
+                <td class="px-4 py-1.5 text-right tabular-nums text-text-secondary">
+                  @if (row.marginalDi === null) {
+                    <span aria-hidden="true">{{ notApplicable }}</span>
+                    <span class="sr-only">{{ marginalDiUndefinedNote }}</span>
+                  } @else {
+                    {{ marginalDi(row.marginalDi) }}
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+
+          <!--
+            The TOTAL row is a <tfoot> and is rendered on every page, sticky to
+            the bottom of the scroll box. It is the only place these sums are
+            taken: the KeyMetricsRow's EC, the chart's Σ stand-alone and the
+            diversification benefit all read the same object, so paginating away
+            from this row would hide the line every other panel is quoting.
+          -->
+          <tfoot>
+            <tr
+              data-testid="attribution-total-row"
+              class="sticky bottom-0 border-t border-border bg-surface-raised"
+            >
+              <th scope="row" class="px-4 py-2 text-left font-medium text-text">TOTAL</th>
+              <td class="px-2 py-2 text-right font-medium tabular-nums text-text">
+                {{ shareOf(totals().weight) }}
+              </td>
+              <td class="px-2 py-2 text-right font-medium tabular-nums text-text">
+                {{ amount(totals().standAlone) }}
+              </td>
+              <!--
+                Σ marginal, Σ Euler = EC, and the sum check beside them. The
+                three are the spec's TOTAL row: Σ marginal below EC is the
+                with-without shortfall, printed rather than rescaled away.
+              -->
+              <td class="px-2 py-2 text-right font-medium tabular-nums text-text">
+                {{ amount(totals().marginal) }}
+              </td>
+              <td class="px-2 py-2 text-right font-medium tabular-nums text-text">
+                {{ amount(totals().euler) }}
+              </td>
+              <td class="px-2 py-2 text-right font-medium tabular-nums text-text">
+                {{ shareOf(totals().contributionShare) }}
+              </td>
+              <td class="px-2 py-2 text-right font-medium tabular-nums text-text">
+                {{ rorac(totals().rorac) }}
+              </td>
+              <td class="px-4 py-2 text-right font-medium tabular-nums text-text-secondary">
+                <span aria-hidden="true">{{ notApplicable }}</span>
+                <span class="sr-only">
+                  The marginal diversification index is a per-component ratio and has no total.
+                </span>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div
+        class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-2"
+      >
+        <ui-pagination [page]="page()" [total]="totalPages()" (pageChange)="onPage($event)" />
+
+        <div class="flex items-center gap-2">
+          <label for="attribution-page-size" class="text-xs text-text-secondary">Rows</label>
+          <select
+            id="attribution-page-size"
+            appSelect
+            class="max-w-24"
+            (change)="onPageSize($event)"
+          >
+            @for (size of pageSizes; track size) {
+              <option [value]="size" [selected]="pageSize() === size">{{ size }}</option>
+            }
+          </select>
+        </div>
+      </div>
+    }
+  </div>
+</section>

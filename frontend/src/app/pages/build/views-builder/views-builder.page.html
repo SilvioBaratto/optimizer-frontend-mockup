@@ -5,20 +5,19 @@
 
 <app-step-tracker [current]="3" />
 
-<!-- ActionButtonRow — sticky, so Save stays reachable down a long page. -->
-<div
-  class="sticky top-0 z-20 -mx-4 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface px-4 py-3 md:-mx-8 md:px-8"
->
+<!-- Sticky, so Save stays reachable down a long page. -->
+<app-page-context-bar layout="row">
   <p class="text-sm text-text-secondary">
     Views
     <span class="ml-1 font-medium tabular-nums text-text">
-      K = {{ viewCount() }} of max N = {{ maxViews }}
+      <math><mi>K</mi><mo>=</mo><mn>{{ viewCount() }}</mn></math> of max
+      <math><mi>N</mi><mo>=</mo><mn>{{ maxViews }}</mn></math>
     </span>
   </p>
   <app-action-button-row>
     <button
       type="button"
-      class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+      appButton="secondary"
       [disabled]="!isDirty()"
       (click)="requestDiscard()"
     >
@@ -26,7 +25,7 @@
     </button>
     <button
       type="button"
-      class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+      appButton="primary" size="md"
       [disabled]="!canSave()"
       [attr.aria-busy]="saving() || null"
       (click)="save()"
@@ -40,7 +39,7 @@
       Complete or remove the flagged views before saving.
     </p>
   }
-</div>
+</app-page-context-bar>
 
 @if (banner(); as b) {
   <app-status-banner
@@ -60,7 +59,7 @@
     <div class="flex flex-col gap-3">
       <div class="flex flex-wrap items-end gap-6">
         <div class="flex flex-col gap-1">
-          <label for="tau" class="text-xs text-text-secondary">Equilibrium uncertainty τ</label>
+          <label for="tau" class="text-xs text-text-secondary">Equilibrium uncertainty <app-math-var expr="τ" /></label>
           <input
             id="tau"
             type="number"
@@ -74,7 +73,7 @@
         </div>
         <!-- Read-only here; a is set in the pages that produce it. -->
         <div class="flex flex-col gap-1">
-          <span class="text-xs text-text-secondary">Risk aversion a</span>
+          <span class="text-xs text-text-secondary">Risk aversion <app-math-var expr="a" /></span>
           <p class="min-h-11 text-sm tabular-nums text-text">
             {{ riskAversion.toFixed(2) }}
             <span class="ml-1 text-text-secondary">(read-only)</span>
@@ -82,7 +81,7 @@
         </div>
       </div>
       <p class="flex flex-wrap items-center gap-2 border-t border-border pt-2 text-sm text-text-secondary">
-        x_M and V sourced from Universe &amp; Data → Signals &amp; Factors
+        <app-math-var expr="x_M" label="x sub M, the market capitalisation weights" /> and <app-math-var expr="V" /> sourced from Universe &amp; Data → Signals &amp; Factors
         <app-status-badge label="up to date" tone="ok" />
       </p>
     </div>
@@ -92,12 +91,13 @@
 <!-- SectionLabel + views -->
 <section class="flex flex-col gap-3" aria-labelledby="views-label">
   <div class="flex flex-wrap items-center justify-between gap-3">
-    <h2 id="views-label" class="text-xs font-semibold uppercase tracking-wider text-text-secondary">
-      Views · K = {{ viewCount() }} of N = {{ maxViews }}
+    <h2 id="views-label" class="eyebrow">
+      Views · <math><mi>K</mi><mo>=</mo><mn>{{ viewCount() }}</mn></math> of
+      <math><mi>N</mi><mo>=</mo><mn>{{ maxViews }}</mn></math>
     </h2>
     <button
       type="button"
-      class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
+      appButton="secondary"
       [disabled]="atCapacity()"
       [attr.title]="atCapacity() ? 'Maximum number of views reached' : null"
       (click)="openAdd()"
@@ -120,7 +120,7 @@
     >
       <button
         type="button"
-        class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
+        appButton="primary" size="md"
         (click)="openAdd()"
       >
         + Add view
@@ -144,13 +144,13 @@
 
           <dl class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
             <div class="flex items-baseline gap-1.5">
-              <dt class="text-text-secondary">Q</dt>
+              <dt class="text-text-secondary"><app-math-var expr="Q" /></dt>
               <dd class="tabular-nums text-text">
                 {{ view.q === null ? '—' : view.q.toFixed(2) + '%' }}
               </dd>
             </div>
             <div class="flex items-baseline gap-1.5">
-              <dt class="text-text-secondary">Ω</dt>
+              <dt class="text-text-secondary"><app-math-var expr="Ω" /></dt>
               <dd class="tabular-nums text-text">{{ view.omega ?? '—' }}</dd>
             </div>
           </dl>
@@ -167,7 +167,7 @@
           <div class="ml-auto flex items-center gap-2">
             <button
               type="button"
-              class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+              appButton="secondary"
               [attr.aria-label]="'Edit view ' + (i + 1) + ', ' + view.type + ' view'"
               (click)="openEdit(view)"
             >
@@ -189,7 +189,7 @@
 
   <!-- ParameterPanel — inline editor, only while adding or editing. -->
   @if (editorOpen()) {
-    <div class="flex flex-col gap-4 rounded-lg border border-primary bg-surface-raised px-4 py-4 max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+    <div class="surface-card flex flex-col gap-4 border-primary px-4 py-4">
       <h3 class="text-sm font-medium text-text">
         {{ editingId() ? 'Edit view' : 'Add view' }}
       </h3>
@@ -202,7 +202,6 @@
               <input
                 type="radio"
                 name="view-type"
-                class="accent-[var(--color-primary)]"
                 [checked]="draft().type === t"
                 (change)="setType($any(t))"
               />
@@ -217,7 +216,7 @@
           <label for="view-asset" class="text-xs text-text-secondary">Asset</label>
           <select
             id="view-asset"
-            class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+            appSelect
             (change)="setDraftField('asset', $any($event.target).value)"
           >
             @for (a of assets; track a) {
@@ -233,7 +232,7 @@
             <label for="view-against" class="text-xs text-text-secondary">Second asset</label>
             <select
               id="view-against"
-              class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+              appSelect
               (change)="setDraftField('againstAsset', $any($event.target).value)"
             >
               <option value="" [selected]="!draft().againstAsset">Select…</option>
@@ -247,7 +246,7 @@
 
       <div class="flex flex-wrap items-end gap-4">
         <div class="flex flex-col gap-1">
-          <label for="view-q" class="text-xs text-text-secondary">Expected return Q (%)</label>
+          <label for="view-q" class="text-xs text-text-secondary">Expected return <app-math-var expr="Q" /> (%)</label>
           <input
             id="view-q"
             type="number"
@@ -258,7 +257,7 @@
           />
         </div>
         <div class="flex flex-col gap-1">
-          <label for="view-omega" class="text-xs text-text-secondary">View variance Ω</label>
+          <label for="view-omega" class="text-xs text-text-secondary">View variance <app-math-var expr="Ω" /></label>
           <input
             id="view-omega"
             type="number"
@@ -283,14 +282,14 @@
       <div class="flex flex-wrap justify-end gap-2">
         <button
           type="button"
-          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          appButton="secondary"
           (click)="cancelEditor()"
         >
           Cancel
         </button>
         <button
           type="button"
-          class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+          appButton="primary" size="md"
           [disabled]="!draftValid()"
           (click)="commitDraft()"
         >
@@ -308,7 +307,7 @@
       <button
         card-action
         type="button"
-        class="min-h-11 rounded-md px-2 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+        appButton="ghost" size="xs"
         [attr.aria-expanded]="showPMatrix()"
         aria-controls="p-matrix"
         (click)="showPMatrix.set(!showPMatrix())"
@@ -317,10 +316,10 @@
       </button>
 
       @if (showPMatrix()) {
-        <div id="p-matrix" class="relative overflow-x-auto">
+        <div id="p-matrix" class="table-scroll">
           @if (contributing().length === 0) {
             <p class="text-sm text-text-secondary">
-              No complete views — P is empty and the posterior equals the equilibrium.
+              No complete views — <app-math-var expr="P" /> is empty and the posterior equals the equilibrium.
             </p>
           } @else {
             <table class="w-full text-sm">
@@ -328,7 +327,7 @@
                 View-to-asset loading matrix P, one row per contributing view
               </caption>
               <thead>
-                <tr class="border-b border-border text-xs text-text-secondary">
+                <tr class="table-head-row">
                   <th scope="col" class="py-2 pr-4 text-left font-medium">View</th>
                   @for (asset of assets; track asset) {
                     <th scope="col" class="py-2 pr-4 text-right font-medium">{{ asset }}</th>
@@ -337,7 +336,7 @@
               </thead>
               <tbody>
                 @for (row of pMatrix(); track $index) {
-                  <tr class="border-b border-border-muted last:border-0">
+                  <tr class="table-row">
                     <th scope="row" class="py-2 pr-4 text-left font-medium text-text">
                       {{ contributingLabels()[$index] }}
                     </th>
@@ -359,7 +358,7 @@
       <button
         card-action
         type="button"
-        class="min-h-11 rounded-md px-2 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+        appButton="ghost" size="xs"
         [attr.aria-expanded]="showOmegaMatrix()"
         aria-controls="omega-matrix"
         (click)="showOmegaMatrix.set(!showOmegaMatrix())"
@@ -368,16 +367,16 @@
       </button>
 
       @if (showOmegaMatrix()) {
-        <div id="omega-matrix" class="relative overflow-x-auto">
+        <div id="omega-matrix" class="table-scroll">
           @if (contributing().length === 0) {
-            <p class="text-sm text-text-secondary">No complete views — Ω is empty.</p>
+            <p class="text-sm text-text-secondary">No complete views — <app-math-var expr="Ω" /> is empty.</p>
           } @else {
             <table class="w-full text-sm">
               <caption class="sr-only">
                 Diagonal matrix of view variances Ω
               </caption>
               <thead>
-                <tr class="border-b border-border text-xs text-text-secondary">
+                <tr class="table-head-row">
                   <th scope="col" class="py-2 pr-4 text-left font-medium">View</th>
                   @for (label of contributingLabels(); track label) {
                     <th scope="col" class="py-2 pr-4 text-right font-medium">{{ label }}</th>
@@ -386,7 +385,7 @@
               </thead>
               <tbody>
                 @for (row of omegaMatrix(); track $index) {
-                  <tr class="border-b border-border-muted last:border-0">
+                  <tr class="table-row">
                     <th scope="row" class="py-2 pr-4 text-left font-medium text-text">
                       {{ contributingLabels()[$index] }}
                     </th>
@@ -404,24 +403,25 @@
   </div>
 </div>
 
-<!-- Π* (prior) vs r_BL (posterior) -->
-<app-info-card title="Π* (prior) vs r_BL (posterior)">
-  <div class="relative overflow-x-auto">
+<!-- Π* (prior) vs r_BL (posterior) — subscripts as markup, see the projected heading -->
+<app-info-card>
+  <h3 appCardTitle><math><msup><mi>Π</mi><mo>*</mo></msup></math> (prior) vs <app-math-var expr="r_BL" /> (posterior)</h3>
+  <div class="table-scroll">
     <table class="w-full text-sm">
       <caption class="sr-only">
         Equilibrium implied return against the posterior expected return, per asset
       </caption>
       <thead>
-        <tr class="border-b border-border text-xs text-text-secondary">
+        <tr class="table-head-row">
           <th scope="col" class="py-2 pr-4 text-left font-medium">Asset</th>
-          <th scope="col" class="py-2 pr-4 text-right font-medium">Π* (prior)</th>
-          <th scope="col" class="py-2 pr-4 text-right font-medium">r_BL (posterior)</th>
-          <th scope="col" class="py-2 text-right font-medium">Δ</th>
+          <th scope="col" class="py-2 pr-4 text-right font-medium"><math><msup><mi>Π</mi><mo>*</mo></msup></math> (prior)</th>
+          <th scope="col" class="py-2 pr-4 text-right font-medium"><app-math-var expr="r_BL" /> (posterior)</th>
+          <th scope="col" class="py-2 text-right font-medium"><app-math-var expr="Δ" /></th>
         </tr>
       </thead>
       <tbody>
         @for (row of result().returns; track row.asset) {
-          <tr class="border-b border-border-muted last:border-0">
+          <tr class="table-row">
             <th scope="row" class="py-2 pr-4 text-left font-medium text-text">{{ row.asset }}</th>
             <td class="py-2 pr-4 text-right tabular-nums text-text-secondary">
               {{ row.prior.toFixed(2) }}%
@@ -440,24 +440,25 @@
   </div>
 </app-info-card>
 
-<!-- x_M (market) vs x_BL (posterior) -->
-<app-info-card title="x_M (market) vs x_BL (posterior)">
-  <div class="relative overflow-x-auto">
+<!-- x_M (market) vs x_BL (posterior) — subscripts as markup, see the projected heading -->
+<app-info-card>
+  <h3 appCardTitle><app-math-var expr="x_M" /> (market) vs <app-math-var expr="x_BL" /> (posterior)</h3>
+  <div class="table-scroll">
     <table class="w-full text-sm">
       <caption class="sr-only">
         Market capitalisation weights against posterior weights, per asset
       </caption>
       <thead>
-        <tr class="border-b border-border text-xs text-text-secondary">
+        <tr class="table-head-row">
           <th scope="col" class="py-2 pr-4 text-left font-medium">Asset</th>
-          <th scope="col" class="py-2 pr-4 text-right font-medium">x_M (market)</th>
-          <th scope="col" class="py-2 pr-4 text-right font-medium">x_BL (posterior)</th>
-          <th scope="col" class="py-2 text-right font-medium">Δ</th>
+          <th scope="col" class="py-2 pr-4 text-right font-medium"><app-math-var expr="x_M" /> (market)</th>
+          <th scope="col" class="py-2 pr-4 text-right font-medium"><app-math-var expr="x_BL" /> (posterior)</th>
+          <th scope="col" class="py-2 text-right font-medium"><app-math-var expr="Δ" /></th>
         </tr>
       </thead>
       <tbody>
         @for (row of result().weights; track row.asset) {
-          <tr class="border-b border-border-muted last:border-0">
+          <tr class="table-row">
             <th scope="row" class="py-2 pr-4 text-left font-medium text-text">{{ row.asset }}</th>
             <td class="py-2 pr-4 text-right tabular-nums text-text-secondary">
               {{ row.prior.toFixed(1) }}%
@@ -476,11 +477,12 @@
 </app-info-card>
 
 <!-- Uncertainty — collapsed by default. -->
-<app-info-card title="Uncertainty — V vs V_BL diagonals">
+<app-info-card>
+  <h3 appCardTitle>Uncertainty — <app-math-var expr="V" /> vs <app-math-var expr="V_BL" /> diagonals</h3>
   <button
     card-action
     type="button"
-    class="min-h-11 rounded-md px-2 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+    appButton="ghost" size="xs"
     [attr.aria-expanded]="showUncertainty()"
     aria-controls="uncertainty"
     (click)="showUncertainty.set(!showUncertainty())"
@@ -490,21 +492,21 @@
 
   @if (showUncertainty()) {
     <div id="uncertainty" class="flex flex-col gap-3">
-      <div class="relative overflow-x-auto">
+      <div class="table-scroll">
         <table class="w-full text-sm">
           <caption class="sr-only">
             Diagonal of the prior covariance against the posterior, per asset
           </caption>
           <thead>
-            <tr class="border-b border-border text-xs text-text-secondary">
+            <tr class="table-head-row">
               <th scope="col" class="py-2 pr-4 text-left font-medium">Asset</th>
-              <th scope="col" class="py-2 pr-4 text-right font-medium">V diag</th>
-              <th scope="col" class="py-2 text-right font-medium">V_BL diag</th>
+              <th scope="col" class="py-2 pr-4 text-right font-medium"><app-math-var expr="V" /> diag</th>
+              <th scope="col" class="py-2 text-right font-medium"><app-math-var expr="V_BL" /> diag</th>
             </tr>
           </thead>
           <tbody>
             @for (row of result().uncertainty; track row.asset) {
-              <tr class="border-b border-border-muted last:border-0">
+              <tr class="table-row">
                 <th scope="row" class="py-2 pr-4 text-left font-medium text-text">{{ row.asset }}</th>
                 <td class="py-2 pr-4 text-right tabular-nums text-text-secondary">
                   {{ row.prior.toFixed(6) }}
@@ -520,7 +522,7 @@
       <div class="flex justify-end">
         <button
           type="button"
-          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          appButton="secondary"
         >
           Inspect full matrix
         </button>

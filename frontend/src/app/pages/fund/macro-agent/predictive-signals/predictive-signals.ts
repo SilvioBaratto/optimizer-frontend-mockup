@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { StatusBadge, type StatusTone } from '../../../../shared/status-badge/status-badge';
 import type { SignalStatus } from '../../../../models/macro-regime.model';
 import { MacroRegimeService } from '../../../../services/macro-regime.service';
+import { MathVar } from '../../../../shared/math/math-var';
 
 const TONE: Record<SignalStatus, StatusTone> = {
   validated: 'ok',
@@ -22,7 +23,9 @@ const TONE: Record<SignalStatus, StatusTone> = {
  */
 @Component({
   selector: 'app-predictive-signals',
-  imports: [RouterLink, StatusBadge],
+  imports: [RouterLink, StatusBadge,
+    MathVar,
+  ],
   templateUrl: './predictive-signals.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

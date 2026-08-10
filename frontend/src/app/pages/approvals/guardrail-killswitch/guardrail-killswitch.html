@@ -1,1 +1,39 @@
-<p>guardrail-killswitch works!</p>
+<!--
+  Regions follow `docs/17 Guardrail & Kill-Switch.md` in wireframe order:
+  HeroStatCard → APPROVAL PIPELINE · TODAY → HARD LIMITS & VALIDATORS →
+  portfolio DI beside the marginal DI grid → FilterChipBar → audit trail.
+
+  There is deliberately no page-level toolbar and no page-level skip link. The
+  doc puts the kill-switch toggle first in the tab order after the shell, and
+  anything focusable above it here would be exactly the thing it must not be
+  reached through.
+-->
+
+<!-- 1 · HeroStatCard — the kill-switch, and the page's primary action. -->
+<app-kill-switch-hero />
+
+<!-- 2 + 3 · The four mandatory steps, with today's counters. -->
+<app-approval-pipeline />
+
+<!-- 4 + 5 · The configured limits and the validators that implement them. -->
+<app-hard-limits (logRequested)="focusAuditTrail()" />
+
+<!-- 6 · The diversification indices, read from Risk Attribution. -->
+<app-guardrail-concentration />
+
+<!--
+  7 + 8 · The checkpointed trail. `tabindex="-1"` makes it a focus target for
+  "View log" up in the limits grid, which filters this region from three
+  screens away.
+-->
+<div #auditRegion id="guardrail-audit-trail" tabindex="-1" class="flex flex-col gap-3">
+  <app-audit-trail />
+</div>
+
+<!--
+  There is no page-level exits row. The doc names exactly two CrossPageLinks
+  and says where each one lives — step [3] of the pipeline goes to the Human
+  Approval Gate, the InfoCard goes to Risk Attribution — and repeating them
+  down here put two links with the same name and the same destination on one
+  page, which is a list a screen-reader user has to disambiguate for nothing.
+-->

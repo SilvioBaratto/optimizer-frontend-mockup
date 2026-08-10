@@ -1,0 +1,292 @@
+<section class="surface-card">
+  @switch (state()) {
+    <!--
+      Placeholder rows at the height of the real ones, so nothing shifts when
+      the snapshot lands. aria-busy marks the region as still filling in.
+    -->
+    @case ('loading') {
+      <div data-testid="orders-skeleton" aria-busy="true" class="flex flex-col gap-2 px-4 py-4">
+        @for (row of skeletonRows; track row) {
+          <app-skeleton-block height="h-8" />
+        }
+      </div>
+    }
+
+    @case ('error') {
+      <div class="px-4 py-4">
+        <app-error-state
+          [message]="errorMessage() ?? 'Could not read the fund-state snapshot.'"
+          detail="The proposed orders are not shown because the list on screen would not be the one in the fund state. Nothing has been sent, and nothing is waiting on this page."
+          cause="load"
+          (retry)="retry()"
+        />
+      </div>
+    }
+
+    @case ('empty') {
+      <app-empty-state
+        title="No orders proposed"
+        detail="The execution agent has not written any orders into the fund state — either it has not run against the current target, or the last run found no turnover worth trading."
+      >
+        <app-cross-page-link label="Open Review & Rebalancing" route="/results/review-rebalancing" />
+      </app-empty-state>
+    }
+
+    @default {
+      @if (noMatches()) {
+        <p role="status" class="px-4 py-10 text-center text-sm text-text-secondary">
+          No proposed order matches the current filters. The agent still proposed
+          {{ totalCount() }} orders — clear the filters to see them.
+        </p>
+      } @else {
+        <!-- Scrolls inside its own box so the page never scrolls sideways. -->
+        <div class="table-scroll">
+          <table class="w-full min-w-4xl text-sm">
+            <caption class="sr-only">
+              Orders the execution agent proposed for the current target portfolio: symbol, side,
+              target change in shares, the scheduled trading trajectory, the estimated
+              implementation shortfall and its timing risk, and the pipeline stage each order has
+              reached. Column headers sort the table. No order can be approved, rejected or sent
+              from this table.
+            </caption>
+
+            <thead>
+              <tr class="table-head-row">
+                <!--
+                  Sortable headers, first use in the app.
+
+                  aria-sort lives on the <th> and carries the state; the control
+                  inside it is a real <button>, so it is reachable, activatable
+                  with Enter and Space, and has a 44px target. The glyph is
+                  decorative — a reader that cannot see it still hears the
+                  column's sort state from aria-sort.
+                -->
+                <th
+                  scope="col"
+                  class="px-4 py-2 text-left font-medium"
+                  [attr.aria-sort]="ariaSort('symbol')"
+                >
+                  <button
+                    type="button"
+                    class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 text-left hover:text-text"
+                    (click)="toggleSort('symbol')"
+                  >
+                    Symbol <span aria-hidden="true">{{ sortGlyph('symbol') }}</span>
+                  </button>
+                </th>
+
+                <th
+                  scope="col"
+                  class="px-2 py-2 text-left font-medium"
+                  [attr.aria-sort]="ariaSort('side')"
+                >
+                  <button
+                    type="button"
+                    class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 text-left hover:text-text"
+                    (click)="toggleSort('side')"
+                  >
+                    Side <span aria-hidden="true">{{ sortGlyph('side') }}</span>
+                  </button>
+                </th>
+
+                <th
+                  scope="col"
+                  class="px-2 py-2 text-right font-medium"
+                  [attr.aria-sort]="ariaSort('quantity')"
+                >
+                  <button
+                    type="button"
+                    class="inline-flex min-h-11 items-center gap-1 rounded-md px-1"
+                    (click)="toggleSort('quantity')"
+                  >
+                    Target ΔQty <span aria-hidden="true">{{ sortGlyph('quantity') }}</span>
+                  </button>
+                </th>
+
+                <!-- Not sortable: a trajectory has no single value to order by. -->
+                <th scope="col" class="px-2 py-2 text-left font-medium">Schedule</th>
+
+                <th
+                  scope="col"
+                  class="px-2 py-2 text-right font-medium"
+                  [attr.aria-sort]="ariaSort('shortfall')"
+                >
+                  <button
+                    type="button"
+                    class="inline-flex min-h-11 items-center gap-1 rounded-md px-1"
+                    (click)="toggleSort('shortfall')"
+                  >
+                    Est. E<span class="sr-only">, expected implementation shortfall in basis points</span>
+                    <span aria-hidden="true">{{ sortGlyph('shortfall') }}</span>
+                  </button>
+                </th>
+
+                <th
+                  scope="col"
+                  class="px-2 py-2 text-right font-medium"
+                  [attr.aria-sort]="ariaSort('risk')"
+                >
+                  <button
+                    type="button"
+                    class="inline-flex min-h-11 items-center gap-1 rounded-md px-1"
+                    (click)="toggleSort('risk')"
+                  >
+                    Est. √V<span class="sr-only">, timing risk in basis points, the square root of the shortfall variance</span>
+                    <span aria-hidden="true">{{ sortGlyph('risk') }}</span>
+                  </button>
+                </th>
+
+                <th
+                  scope="col"
+                  class="px-4 py-2 text-left font-medium"
+                  [attr.aria-sort]="ariaSort('stage')"
+                >
+                  <button
+                    type="button"
+                    class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 text-left"
+                    (click)="toggleSort('stage')"
+                  >
+                    Stage <span aria-hidden="true">{{ sortGlyph('stage') }}</span>
+                  </button>
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (order of visibleRows(); track order.id) {
+                <tr class="table-row" [class.bg-surface-inset]="selectedOrderId() === order.id">
+                  <th scope="row" class="px-4 py-1.5 text-left font-normal">
+                    <!--
+                      The ExpandCollapseToggle. aria-expanded says whether this
+                      row's detail is open and aria-controls names the panel it
+                      opens, so the relationship survives the panel being a
+                      slide-over rather than a nested row.
+                    -->
+                    <button
+                      type="button"
+                      [attr.data-order-toggle]="order.id"
+                      class="inline-flex min-h-11 items-center gap-2 rounded-md text-left text-text"
+                      [attr.aria-expanded]="selectedOrderId() === order.id"
+                      aria-controls="execution-order-detail"
+                      (click)="toggleRow(order)"
+                    >
+                      <span aria-hidden="true" class="text-text-secondary">{{
+                        selectedOrderId() === order.id ? '▾' : '▸'
+                      }}</span>
+                      <span class="font-medium">{{ order.symbol }}</span>
+                      <span class="sr-only">— {{ order.id }}, show order detail</span>
+                    </button>
+                  </th>
+
+                  <td class="px-2 py-1.5 text-left text-text-secondary">
+                    {{ sideLabel[order.side] }}
+                  </td>
+
+                  <td class="px-2 py-1.5 text-right tabular-nums text-text">
+                    {{ signedQuantity(order.targetQuantityDelta) }}
+                  </td>
+
+                  <td class="px-2 py-1.5 text-left">
+                    @if (order.trajectory.length) {
+                      <!--
+                        The sparkline is a drawing, so the numbers behind it are
+                        put on a real control: its accessible name lists the
+                        slices, and activating it opens the trajectory chart,
+                        whose "View as table" gives the full tabular form. The
+                        bars themselves are hidden from assistive tech.
+                      -->
+                      <button
+                        type="button"
+                        [attr.data-schedule-toggle]="order.id"
+                        class="inline-flex min-h-11 items-end gap-px rounded-md px-1"
+                        (click)="openRow(order)"
+                      >
+                        <span aria-hidden="true" class="flex h-5 items-end gap-px">
+                          @for (slice of order.trajectory; track $index) {
+                            <span
+                              class="w-1.5 rounded-t-xs bg-primary"
+                              [style.height.%]="barHeight(order, slice)"
+                            ></span>
+                          }
+                        </span>
+                        <span class="sr-only">{{ scheduleText(order) }}</span>
+                      </button>
+                    } @else {
+                      <span aria-hidden="true" class="text-text-secondary">{{ notAvailable }}</span>
+                      <span class="sr-only">Not scheduled — scheduling incomplete</span>
+                    }
+                  </td>
+
+                  <td class="px-2 py-1.5 text-right tabular-nums text-text">
+                    @if (order.estimatedShortfallBps !== null) {
+                      {{ shortfall(order.estimatedShortfallBps) }}
+                    } @else {
+                      <span aria-hidden="true" class="text-text-secondary">{{ notAvailable }}</span>
+                      <span class="sr-only">{{ unpricedNote }}</span>
+                    }
+                  </td>
+
+                  <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">
+                    @if (order.estimatedRiskBps !== null) {
+                      {{ risk(order.estimatedRiskBps) }}
+                    } @else {
+                      <span aria-hidden="true">{{ notAvailable }}</span>
+                      <span class="sr-only">{{ unpricedNote }}</span>
+                    }
+                  </td>
+
+                  <td class="px-4 py-1.5 text-left">
+                    <!-- Glyph plus word, always. Never the glyph or the colour alone. -->
+                    <span class="flex items-center gap-1.5 whitespace-nowrap text-text">
+                      <span
+                        aria-hidden="true"
+                        [class.text-danger]="order.status === 'blocked' || order.status === 'rejected'"
+                        [class.text-success]="order.status === 'approved'"
+                        >{{ stageIcon(order) }}</span
+                      >
+                      {{ stageText(order) }}
+                    </span>
+                    @if (reasonFor(order); as reason) {
+                      <!-- A rule that stops an order owes a sentence, not an icon. -->
+                      <span
+                        [attr.data-status-reason]="order.id"
+                        class="mt-0.5 block max-w-xs text-xs text-text-secondary"
+                        >{{ reason }}</span
+                      >
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div
+          class="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2"
+        >
+          <p class="text-xs text-text-secondary">
+            @if (!expanded() && hiddenCount() > 0) {
+              … {{ hiddenCount() }} more orders
+            } @else {
+              An order whose scheduling did not complete shows
+              <span aria-hidden="true">—</span>
+              <span class="sr-only">a dash</span>
+              in both estimate columns and cannot leave the pre-trade check.
+            }
+          </p>
+          @if (hiddenCount() > 0 || expanded()) {
+            <button type="button" appButton="secondary" (click)="expanded.set(!expanded())">
+              {{ expanded() ? 'Show fewer' : 'View full table' }}
+            </button>
+          }
+        </div>
+      }
+    }
+  }
+</section>
+
+@if (noMatches() && filtersActive()) {
+  <div class="mt-2 flex justify-end">
+    <button type="button" appButton="ghost" (click)="clearFilters()">Clear filters</button>
+  </div>
+}

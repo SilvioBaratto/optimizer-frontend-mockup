@@ -1,7 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 
+import { MathVar } from '../../../../shared/math/math-var';
 import { StatusBadge } from '../../../../shared/status-badge/status-badge';
 import { BacktestValidationService } from '../../../../services/backtest-validation.service';
+import { ButtonDirective } from '../../../../shared/ui/button/button.directive';
+import { SelectDirective } from '../../../../shared/ui/select/select.directive';
 
 const PAGE_SIZES = [10, 20, 50];
 
@@ -17,7 +20,10 @@ const PAGE_SIZES = [10, 20, 50];
  */
 @Component({
   selector: 'app-trial-log',
-  imports: [StatusBadge],
+  imports: [MathVar, StatusBadge,
+    ButtonDirective,
+    SelectDirective,
+  ],
   templateUrl: './trial-log.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

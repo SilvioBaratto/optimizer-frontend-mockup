@@ -1,0 +1,94 @@
+<section class="surface-card">
+  @if (state() === 'loading') {
+    <div data-testid="idempotency-skeleton" aria-busy="true" class="flex flex-col gap-2 px-4 py-4">
+      @for (row of skeletonRows; track row) {
+        <app-skeleton-block height="h-8" />
+      }
+    </div>
+  } @else if (records().length === 0) {
+    <!--
+      Not an error and not a filter that went too far: with no adapter
+      registered there is no POST, so there is no key, no deduplication result
+      and no order state to poll. The sentence is the posture's own, read from
+      the same signal doc 15's banner and doc 17's fourth step read.
+    -->
+    <app-empty-state
+      data-testid="idempotency-empty"
+      title="No idempotency records"
+      [detail]="emptyReason()"
+    >
+      <app-cross-page-link
+        label="Open Execution & Orders Agent"
+        route="/fund/execution-agent"
+      />
+    </app-empty-state>
+
+    <div class="border-t border-border px-4 py-3 text-sm text-text-secondary">
+      <h3 class="mb-1 text-sm font-medium text-text">What this tab records once a broker exists</h3>
+      <ul class="list-disc pl-5">
+        <li>the idempotency key generated client-side for each order intent;</li>
+        <li>the result of the deduplication check made before the POST;</li>
+        <li>the post-send polling state used to reconcile the order.</li>
+      </ul>
+      <p class="mt-2">
+        The requirement is recorded now rather than later because a resumed execution node restarts
+        from the beginning, which is exactly the case a key has to survive.
+      </p>
+    </div>
+  } @else {
+    <div class="table-scroll">
+      <table class="w-full min-w-3xl text-sm">
+        <caption class="sr-only">
+          Order intents and their idempotency record: the trade, the key generated before the POST,
+          the result of the deduplication check, the time of the send, and where the reconciliation
+          poll got to.
+        </caption>
+        <thead>
+          <tr class="table-head-row">
+            <th scope="col" class="px-4 py-2 text-left font-medium">Trade</th>
+            <th scope="col" class="px-2 py-2 text-left font-medium">Idempotency key</th>
+            <th scope="col" class="px-2 py-2 text-left font-medium">Deduplication</th>
+            <th scope="col" class="px-2 py-2 text-left font-medium">Posted</th>
+            <th scope="col" class="px-4 py-2 text-left font-medium">Reconciliation</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (record of records(); track record.id) {
+            <tr class="table-row">
+              <th scope="row" class="px-4 py-1.5 text-left font-normal text-text">
+                {{ record.tradeId }}
+                <span class="block text-xs text-text-secondary">{{ record.symbol }}</span>
+              </th>
+              <td class="px-2 py-1.5 text-left font-mono text-xs break-all text-text-secondary">
+                {{ record.idempotencyKey }}
+              </td>
+              <td class="px-2 py-1.5 text-left text-text">
+                <span class="flex items-center gap-1.5 whitespace-nowrap">
+                  <span aria-hidden="true">{{ dedupGlyph[record.dedup] }}</span>
+                  {{ dedupLabel[record.dedup] }}
+                </span>
+              </td>
+              <td class="px-2 py-1.5 text-left tabular-nums text-text-secondary">
+                @if (record.postedAt) {
+                  {{ record.postedAt }}
+                } @else {
+                  <span aria-hidden="true">{{ notApplicable }}</span>
+                  <span class="sr-only">not sent — the duplicate was suppressed first</span>
+                }
+              </td>
+              <td class="px-4 py-1.5 text-left text-text">
+                <span class="flex items-center gap-1.5 whitespace-nowrap">
+                  <span aria-hidden="true">{{ reconciliationGlyph[record.reconciliation] }}</span>
+                  {{ reconciliationLabel[record.reconciliation] }}
+                </span>
+                <span class="mt-0.5 block max-w-md text-xs text-text-secondary">
+                  {{ record.reconciliationNote }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

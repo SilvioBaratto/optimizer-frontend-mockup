@@ -1,0 +1,63 @@
+<!--
+  The anchor id lives on this wrapper rather than on the banner box, so the
+  Value Spread card's "See the guardrail notice" link still lands somewhere
+  after the notice has been dismissed for the session.
+-->
+<div #anchor [id]="bannerId" tabindex="-1">
+  @if (visible()) {
+    <div
+      role="status"
+      data-testid="ft-guardrail-notice"
+      class="flex flex-col gap-2 rounded-md border border-border bg-surface-inset px-4 py-3 text-sm"
+    >
+      @for (notice of notices; track notice.id) {
+        <p class="flex gap-2 text-text" [attr.data-guardrail]="notice.id">
+          <span aria-hidden="true" class="text-warning">!</span>
+          <span class="min-w-0">{{ notice.headline }}</span>
+        </p>
+      }
+
+      @if (detailOpen()) {
+        <div id="ft-guardrail-detail" class="flex flex-col gap-2 text-xs text-text-secondary">
+          @for (notice of notices; track notice.id) {
+            <p [attr.data-guardrail-detail]="notice.id" class="max-w-prose">{{ notice.detail }}</p>
+          }
+          @if (conflicted().length > 0) {
+            <p data-testid="ft-guardrail-conflict" class="max-w-prose">
+              Currently conflicting: {{ conflicted().join(', ') }}. The Value Spread card's
+              extrapolation callout is drawn from the same row.
+            </p>
+          }
+        </div>
+      }
+
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <button
+          type="button"
+          class="min-h-11 rounded-md px-2 text-sm font-medium text-primary underline underline-offset-2 transition-colors hover:bg-primary-light"
+          data-testid="ft-guardrail-detail-toggle"
+          [attr.aria-expanded]="detailOpen()"
+          aria-controls="ft-guardrail-detail"
+          (click)="toggleDetail()"
+        >
+          {{ detailOpen() ? 'Hide detail' : detailLabel }}
+        </button>
+
+        <!--
+          Closing hides the notice for this session and for this conflict.
+          It changes nothing about the constraints themselves, and the button
+          says so rather than implying an on/off switch.
+        -->
+        <button
+          type="button"
+          class="inline-flex min-h-11 items-center gap-2 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface"
+          data-testid="ft-guardrail-dismiss"
+          title="Hides this notice for the session. The guardrails stay in force."
+          (click)="dismiss()"
+        >
+          <span aria-hidden="true">&#10005;</span> {{ dismissLabel }}
+        </button>
+      </div>
+    </div>
+  }
+</div>

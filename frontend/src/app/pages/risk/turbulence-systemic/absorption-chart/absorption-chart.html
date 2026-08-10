@@ -1,0 +1,32 @@
+@if (ready()) {
+  <app-line-chart
+    title="Absorption ratio"
+    [subtitle]="subtitle()"
+    [ariaLabel]="ariaLabel()"
+    [x]="dates()"
+    [series]="series()"
+    [refPoints]="refPoints()"
+    [valueFormatter]="formatter"
+    xAxisName="Date"
+    yAxisName="AR"
+    [height]="300"
+  >
+    <div class="flex flex-col gap-2 border-t border-border px-4 py-3">
+      <p class="text-xs text-text-secondary">
+        Marked points are the dAR spikes at or above {{ spikeSigma }} sigma
+        ({{ spikeCount() }} in this window).
+      </p>
+      <p class="text-xs text-text-secondary">{{ comparisonNote }}</p>
+
+      <!--
+        The 500-day window can cover the whole universe while the 700-day
+        correlation window does not, so this panel reports its own count.
+      -->
+      <div class="flex flex-wrap items-center gap-2">
+        <app-turbulence-coverage-note [coverage]="coverage()" />
+      </div>
+    </div>
+  </app-line-chart>
+} @else {
+  <app-turbulence-panel-fallback panel="absorption" height="h-[520px] lg:h-[390px]" />
+}

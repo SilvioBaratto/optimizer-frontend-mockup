@@ -1,0 +1,35 @@
+/*
+  Scroll margin for the four SectionNav targets.
+
+  The in-page jump measures the pinned as-of bar and writes an exact inline
+  `scroll-margin-top` before it scrolls, because no single value is right at
+  every width. This is the case that never reaches that code: a jump link
+  opened in a new tab or copied out, where the browser resolves the fragment
+  itself on load and only CSS is consulted.
+
+  The bar is in normal flow below 48rem — nothing to clear — then measured at
+  242px, 156px and 112px as the four metrics fold from two columns to one row.
+  A fixed `scroll-mt-24` (96px) is under every one of those, which lands the
+  section heading behind the bar.
+*/
+.ts-section {
+  scroll-margin-top: 1rem;
+}
+
+@media (width >= 48rem) {
+  .ts-section {
+    scroll-margin-top: 258px;
+  }
+}
+
+@media (width >= 64rem) {
+  .ts-section {
+    scroll-margin-top: 172px;
+  }
+}
+
+@media (width >= 90rem) {
+  .ts-section {
+    scroll-margin-top: 128px;
+  }
+}

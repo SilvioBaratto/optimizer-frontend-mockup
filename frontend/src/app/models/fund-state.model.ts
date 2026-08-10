@@ -23,6 +23,32 @@ export interface AgentSummary {
   route: string;
 }
 
+// --- run identity ----------------------------------------------------------
+
+/**
+ * The deliberation runs the orchestrator still retains, newest first.
+ *
+ * A run id is the only token that crosses a page boundary: the audit log names
+ * one on every decision, the risk agent keeps a verdict per run, and a link
+ * from either of those arrives here carrying it. Naming the retained set once,
+ * in the model both sides already read, is what lets a page that receives an
+ * id say something true about it instead of assuming it means the run on
+ * screen.
+ *
+ * Retained is not the same as loaded. Only the newest run's checkpoints are
+ * held live — see `CURRENT_RUN_ID`.
+ */
+export const RETAINED_RUN_IDS: readonly string[] = ['1247', '1246', '1245'];
+
+/**
+ * The run whose checkpoints the deliberation view holds.
+ *
+ * Derived from the retained list rather than written out a second time: the
+ * newest retained run is by definition the one being deliberated, and a second
+ * literal would be free to drift away from the first.
+ */
+export const CURRENT_RUN_ID: string = RETAINED_RUN_IDS[0];
+
 // --- deliberation ----------------------------------------------------------
 
 /** The four agents, in the order they run. */

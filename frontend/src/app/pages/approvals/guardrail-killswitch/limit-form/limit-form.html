@@ -1,0 +1,167 @@
+<!--
+  A modal, not a page: the form edits the pass/fail boundary itself, so it is
+  held in front of the grid it changes rather than expanding a row of it.
+  Focus is trapped, Escape cancels, and the name field is the first focusable
+  child so it takes the opening focus.
+-->
+@if (open()) {
+  <div class="fixed inset-0 z-50 bg-text/40" aria-hidden="true"></div>
+
+  <div
+    class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center"
+    appFocusTrap
+    [active]="open()"
+    (closed)="cancel()"
+  >
+    <div
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="titleId"
+      data-testid="limit-form"
+      class="w-full max-w-lg rounded-lg border border-border bg-surface-raised shadow-xl"
+    >
+      <form class="flex flex-col gap-4 p-5" (submit)="submit($event)">
+        <h2 [id]="titleId" class="text-lg font-semibold text-text">{{ title() }}</h2>
+
+        <!--
+          The validators' own messages, in full and unedited. Type and field
+          come with them, because `PydanticCustomError` and `ValueError` are
+          raised by different checks and the log will show which.
+        -->
+        @if (errors().length > 0) {
+          <div
+            [id]="errorsId"
+            role="alert"
+            data-testid="limit-form-errors"
+            class="flex flex-col gap-2 rounded-md border border-danger bg-surface-inset px-3 py-2"
+          >
+            <p class="text-sm font-medium text-danger">
+              <span aria-hidden="true">✕</span>
+              Rejected by the pass/fail boundary — nothing was saved.
+            </p>
+            <ul class="flex flex-col gap-1">
+              @for (error of errors(); track error.message) {
+                <li class="text-sm text-text">
+                  <span class="text-xs font-medium text-text-secondary">
+                    {{ error.type }}{{ error.field ? ' · ' + error.field : '' }}
+                  </span>
+                  <br />
+                  <span data-testid="limit-form-error-message">{{ error.message }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
+        <div class="flex flex-col gap-1">
+          <label [for]="nameId" class="text-xs font-medium text-text">Limit name</label>
+          <input
+            [id]="nameId"
+            type="text"
+            data-testid="limit-form-name"
+            [value]="name()"
+            (input)="onName($event)"
+            [attr.aria-invalid]="invalidFields().has('name') ? 'true' : null"
+            [attr.aria-describedby]="errors().length > 0 ? errorsId : null"
+            class="min-h-11 w-full rounded-md border border-border-control bg-surface-raised px-3 text-sm text-text"
+          />
+          <p class="text-xs text-text-secondary">
+            Unique across the configured limits — the name identifies the validator in the audit
+            trail.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label [for]="scopeId" class="text-xs font-medium text-text">Limit scope</label>
+          <select
+            [id]="scopeId"
+            appSelect
+            data-testid="limit-form-scope"
+            class="w-full"
+            (change)="onScope($event)"
+          >
+            @for (option of scopes; track option) {
+              <option [value]="option" [selected]="scope() === option">
+                {{ scopeLabel[option] }}
+              </option>
+            }
+          </select>
+          <p data-testid="limit-form-validator" class="text-xs text-text-secondary">
+            Implemented by {{ validatorLabel[validator()] }} · unit {{ unitLabel[unit()] }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label [for]="thresholdId" class="text-xs font-medium text-text">Threshold</label>
+          <!--
+            Disabled rather than ignored for a kill-switch limit: the model
+            validator refuses a threshold on a predicate, so the form should
+            not let one be typed and then rejected.
+          -->
+          <input
+            [id]="thresholdId"
+            type="number"
+            step="0.1"
+            data-testid="limit-form-threshold"
+            [value]="threshold()"
+            [disabled]="!thresholdEnabled()"
+            (input)="onThreshold($event)"
+            [attr.aria-invalid]="invalidFields().has('threshold') ? 'true' : null"
+            [attr.aria-describedby]="errors().length > 0 ? errorsId : null"
+            class="min-h-11 w-full rounded-md border border-border-control bg-surface-raised px-3 text-sm text-text disabled:opacity-50"
+          />
+          @if (thresholdEnabled()) {
+            <p class="text-xs text-text-secondary">
+              Non-negative, quoted in {{ unitLabel[unit()] }}.
+            </p>
+          } @else {
+            <p data-testid="limit-form-threshold-note" class="text-xs text-text-secondary">
+              The kill-switch condition is a predicate and takes no threshold.
+            </p>
+          }
+        </div>
+
+        <!--
+          The label carries the height. A 20px checkbox is under the tap-target
+          floor on its own; a `for`-associated label is part of the same target,
+          so making the label 44px tall gives the control a 44px one.
+        -->
+        <div class="flex min-h-11 items-center gap-2">
+          <input
+            [id]="enabledId"
+            type="checkbox"
+            data-testid="limit-form-enabled"
+            class="h-5 w-5"
+            [checked]="enabled()"
+            (change)="onEnabled($event)"
+          />
+          <label [for]="enabledId" class="flex min-h-11 items-center text-sm text-text">
+            Enforce this limit
+          </label>
+        </div>
+
+        <div class="mt-2 flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            appButton="secondary"
+            size="md"
+            data-testid="limit-form-cancel"
+            (click)="cancel()"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            appButton="primary"
+            size="md"
+            data-testid="limit-form-save"
+            [disabled]="saving()"
+            [attr.aria-busy]="saving() || null"
+          >
+            {{ saving() ? 'Saving…' : 'Save limit' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

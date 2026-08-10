@@ -1,0 +1,101 @@
+<!--
+  Mounted only while open. The focus trap lives on the positioned layer, so its
+  siblings — the backdrop — go inert, it focuses the first focusable child (the
+  rationale field) on open, wraps Tab, and hands focus back to whatever opened
+  it when this view is destroyed.
+-->
+@if (open()) {
+  <div class="fixed inset-0 z-50 bg-text/40" data-testid="reason-dialog-backdrop" aria-hidden="true"></div>
+
+  <div
+    class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center"
+    appFocusTrap
+    [active]="open()"
+    (closed)="cancel()"
+  >
+    <div
+      role="alertdialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="titleId"
+      [attr.aria-describedby]="message() ? messageId : null"
+      data-testid="reason-dialog"
+      class="w-full max-w-md rounded-lg border border-border bg-surface-raised shadow-xl"
+    >
+      <div class="flex flex-col gap-3 p-5">
+        <h2 [id]="titleId" class="text-lg font-semibold text-text">{{ title() }}</h2>
+
+        @if (message()) {
+          <p [id]="messageId" class="text-sm text-text-secondary">{{ message() }}</p>
+        }
+
+        <!--
+          The blocking error. `role="alert"` because it follows something the
+          operator just did, and it is the only thing on screen standing
+          between them and a false belief about whether trading is halted.
+        -->
+        @if (error(); as failure) {
+          <p
+            [id]="errorId"
+            role="alert"
+            data-testid="reason-dialog-error"
+            class="rounded-md border border-danger bg-surface-inset px-3 py-2 text-sm text-danger"
+          >
+            <span aria-hidden="true">✕</span> {{ failure }}
+          </p>
+        }
+
+        <div class="flex flex-col gap-1">
+          <label [for]="fieldId" class="text-xs font-medium text-text">{{ reasonLabel() }}</label>
+          <textarea
+            [id]="fieldId"
+            data-testid="reason-dialog-field"
+            rows="3"
+            [value]="reason()"
+            (input)="onReason($event)"
+            [attr.aria-invalid]="error() && !retryable() ? 'true' : null"
+            [attr.aria-describedby]="describedBy() || null"
+            class="w-full rounded-md border border-border-control bg-surface-raised px-3 py-2 text-sm text-text"
+          ></textarea>
+          @if (reasonHint()) {
+            <p [id]="hintId" class="text-xs text-text-secondary">{{ reasonHint() }}</p>
+          }
+        </div>
+
+        <div class="mt-2 flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            appButton="secondary"
+            size="md"
+            data-testid="reason-dialog-cancel"
+            (click)="cancel()"
+          >
+            Cancel
+          </button>
+          <!--
+            Reads "Retry" while a *failed write* stands: the second press is a
+            second attempt at the same write, not a new decision. A rationale
+            that was never filled in is not a retry — nothing was sent — so the
+            button keeps its own label there.
+          -->
+          <button
+            type="button"
+            [appButton]="destructive() ? 'danger' : 'primary'"
+            size="md"
+            data-testid="reason-dialog-confirm"
+            [disabled]="busy()"
+            [attr.aria-busy]="busy() || null"
+            (click)="confirm()"
+          >
+            @if (busy()) {
+              Working…
+            } @else if (error() && retryable()) {
+              Retry
+            } @else {
+              {{ confirmLabel() }}
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

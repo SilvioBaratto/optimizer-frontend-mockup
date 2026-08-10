@@ -1,0 +1,64 @@
+<!--
+  ML Aggregation: regions 11 (ParameterPanel), 12 (DataTable) and 13
+  (ChartPanel). The table is what the models are chosen on; the figure is what
+  the choice is worth.
+-->
+
+<!-- 11 · ParameterPanel — how the long-short decile spread is weighted. -->
+<app-info-card title="Aggregation parameters">
+  <div class="flex flex-col gap-3">
+    <div class="flex flex-col gap-1">
+      <span class="text-xs text-text-secondary">Score weighting</span>
+      <app-segmented-control
+        data-testid="ads-score-weighting"
+        [options]="weightingOptions()"
+        [value]="weighting()"
+        label="Score weighting"
+        (valueChange)="onWeighting($event)"
+      />
+    </div>
+
+    <p class="text-xs text-text-secondary">{{ sharpeNote }}</p>
+  </div>
+</app-info-card>
+
+<!-- 12 · DataTable — the candidate models. -->
+<section aria-labelledby="ads-models-heading" class="flex flex-col gap-2">
+  <h3 id="ads-models-heading" class="text-base font-medium text-text">Candidate models</h3>
+  <app-alt-data-ml-model-table />
+</section>
+
+<!-- 13 · ChartPanel — the aggregate against its best single component. -->
+<section aria-labelledby="ads-aggregate-heading" class="flex flex-col gap-2">
+  <h3 id="ads-aggregate-heading" class="text-base font-medium text-text">
+    Aggregate score against its component signals
+  </h3>
+
+  <!--
+    Mounted whether or not a row has been picked. Picking one changes no focus
+    and no label, so this line is the only feedback a screen-reader user gets —
+    and a live region created at the same moment as its text is the classic
+    reason nothing is announced.
+  -->
+  <p data-testid="ads-selected-model-note" role="status" class="text-sm text-text">
+    @if (selectedNote(); as note) {
+      {{ note }}
+    }
+  </p>
+
+  <app-bar-chart
+    title="Long-short decile Sharpe ratio, annualised"
+    [subtitle]="subtitle()"
+    [ariaLabel]="ariaLabel()"
+    [categories]="categories()"
+    [series]="series()"
+    orientation="horizontal"
+    [valueFormatter]="formatter"
+    valueAxisName="Sharpe ratio"
+    categoryAxisName="Forecast"
+    [refLines]="refLines()"
+    [height]="260"
+  />
+
+  <p class="text-xs text-text-secondary">{{ dominantNote }}</p>
+</section>

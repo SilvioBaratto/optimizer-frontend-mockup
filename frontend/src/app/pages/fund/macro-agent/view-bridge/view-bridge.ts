@@ -6,6 +6,7 @@ import {
   type AssetClassFilter,
 } from '../../../../models/macro-regime.model';
 import { MacroRegimeService } from '../../../../services/macro-regime.service';
+import { SelectDirective } from '../../../../shared/ui/select/select.directive';
 
 const FILTERS: readonly AssetClassFilter[] = [
   'all',
@@ -27,7 +28,9 @@ const FILTERS: readonly AssetClassFilter[] = [
  */
 @Component({
   selector: 'app-view-bridge',
-  imports: [CrossPageLink],
+  imports: [CrossPageLink,
+    SelectDirective,
+  ],
   templateUrl: './view-bridge.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

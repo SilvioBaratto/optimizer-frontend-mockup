@@ -1,0 +1,29 @@
+<div class="surface-card flex flex-wrap items-end gap-x-6 gap-y-3 px-4 py-3">
+  <div class="flex flex-col gap-1">
+    <span class="text-xs text-text-secondary">Range</span>
+    <app-segmented-control
+      [options]="rangeOptions()"
+      [value]="range()"
+      label="Chart display range"
+      (valueChange)="onRange($event)"
+    />
+  </div>
+
+  <!--
+    The overlay toggle updates the drawing instantly and reloads nothing: the
+    threshold and the bands are both derived from series the charts already
+    hold.
+  -->
+  <label class="inline-flex min-h-11 items-center gap-2 text-sm text-text">
+    <input
+      type="checkbox"
+      data-testid="threshold-toggle"
+      class="size-4 rounded-sm border-border-control"
+      [checked]="showThresholdAndBands()"
+      (change)="onThresholdToggle($event)"
+    />
+    chi2 threshold and outlier bands
+  </label>
+
+  <p class="w-full text-xs text-text-secondary">{{ rangeNote }}</p>
+</div>

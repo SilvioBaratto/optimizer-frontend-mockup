@@ -1,0 +1,69 @@
+<app-info-card title="Audit posture">
+  @switch (state()) {
+    <!--
+      Placeholders at the height of the rows they stand in for. The card shows
+      no indicator at all while it is being re-read: half a posture is a
+      posture the reader would draw a conclusion from.
+    -->
+    @case ('loading') {
+      <div data-testid="posture-skeleton" aria-busy="true" class="flex flex-col gap-2">
+        @for (row of placeholders; track row) {
+          <app-skeleton-block height="h-6" />
+        }
+      </div>
+    }
+
+    @case ('error') {
+      <!--
+        The explicit fallback the spec asks for. Glyph plus words, never a
+        greyed-out row that reads as "off" — not knowing the state and knowing
+        it is off are different facts.
+      -->
+      <p data-testid="posture-unavailable" role="status" class="flex items-start gap-2 text-sm text-text">
+        <span aria-hidden="true" class="text-warning">{{ unavailableGlyph }}</span>
+        <span>
+          {{ unavailableLabel }} — the posture could not be read. Nothing below has changed; the
+          indicators are hidden rather than guessed at.
+        </span>
+      </p>
+    }
+
+    @default {
+      <dl class="flex flex-col gap-2">
+        @for (indicator of indicators(); track indicator.id) {
+          <div class="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
+            <dt class="w-full min-w-0 text-sm text-text-secondary sm:w-44 sm:shrink-0">
+              {{ indicator.label }}
+            </dt>
+            <dd class="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span class="flex items-baseline gap-1.5 text-sm font-medium text-text">
+                <!-- Decorative: the state beside it is what carries the meaning. -->
+                <span
+                  aria-hidden="true"
+                  [class.text-success]="indicator.on"
+                  [class.text-text-tertiary]="!indicator.on"
+                  >{{ indicator.on ? onGlyph : offGlyph }}</span
+                >
+                {{ indicator.state }}
+              </span>
+              <span class="min-w-0 text-sm text-text-secondary">{{ indicator.detail }}</span>
+            </dd>
+          </div>
+        }
+      </dl>
+
+      <!--
+        The provenance line, separated by a rule as the wireframe draws it. It
+        reads the same broker posture as the indicator above, so the two cannot
+        contradict each other.
+      -->
+      <p
+        data-testid="positions-source"
+        class="mt-3 flex flex-col gap-0.5 border-t border-border pt-3 text-sm sm:flex-row sm:gap-3"
+      >
+        <span class="w-full min-w-0 text-text-secondary sm:w-44 sm:shrink-0">Positions source</span>
+        <span class="min-w-0 flex-1 text-text">{{ positionsSourceLine() }}</span>
+      </p>
+    }
+  }
+</app-info-card>

@@ -19,10 +19,10 @@
     (input)="onText($event)"
   ></textarea>
 
-  <label class="flex items-start gap-2 text-sm text-text">
+  <label class="flex min-h-11 items-start gap-2 text-sm text-text">
     <input
       type="checkbox"
-      class="mt-1 h-4 w-4 accent-[var(--color-primary)]"
+      class="mt-1 h-4 w-4"
       [checked]="attested()"
       [disabled]="locked()"
       (change)="onAttested($event)"
@@ -50,14 +50,14 @@
     <div class="flex flex-wrap items-center gap-2">
       <button
         type="button"
-        class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+        appButton="secondary"
         (click)="saveDraft()"
       >
         Save draft
       </button>
       <button
         type="button"
-        class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+        appButton="primary" size="md"
         [disabled]="!canLock()"
         (click)="confirmingLock.set(true)"
       >

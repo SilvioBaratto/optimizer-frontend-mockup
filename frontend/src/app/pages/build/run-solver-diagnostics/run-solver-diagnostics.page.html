@@ -5,10 +5,8 @@
 
 <app-step-tracker [current]="5" />
 
-<!-- HeroStatCard — sticky, so status and the stop control stay reachable. -->
-<div
-  class="sticky top-0 z-20 -mx-4 flex flex-col gap-3 border-b border-border bg-surface px-4 py-3 md:-mx-8 md:px-8"
->
+<!-- Sticky, so status and the stop control stay reachable. -->
+<app-page-context-bar>
   <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
     <p class="flex items-center gap-2">
       <app-status-badge [label]="statusLabel()" [tone]="statusTone()" />
@@ -32,7 +30,7 @@
       -->
       <select
         id="past-runs"
-        class="min-h-11 min-w-0 max-w-48 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+        appSelect class="min-w-0 max-w-48"
       >
         @for (run of pastRuns; track run) {
           <option [value]="run">{{ run }}</option>
@@ -43,7 +41,7 @@
       @if (isRunning()) {
         <button
           type="button"
-          class="min-h-11 rounded-md border border-danger px-3 text-sm font-medium text-danger transition-colors hover:bg-surface-inset"
+          appButton="danger-outline"
           (click)="requestStop()"
         >
           Stop run
@@ -51,7 +49,7 @@
       } @else if (status() === 'stopped') {
         <button
           type="button"
-          class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
+          appButton="primary" size="md"
           (click)="restart()"
         >
           Resume configuration
@@ -59,7 +57,7 @@
       } @else {
         <button
           type="button"
-          class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
+          appButton="primary" size="md"
           (click)="restart()"
         >
           Run again
@@ -69,7 +67,7 @@
   </div>
 
   <p class="font-mono text-xs text-text-secondary">run {{ runId }}</p>
-</div>
+</app-page-context-bar>
 
 @if (isEmpty()) {
   <app-empty-state
@@ -78,7 +76,7 @@
   >
     <button
       type="button"
-      class="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
+      appButton="primary" size="md"
       (click)="restart()"
     >
       Run
@@ -124,8 +122,9 @@
         <div class="flex flex-wrap items-center gap-2">
           <dt class="w-44 text-text-secondary">Problem size</dt>
           <dd class="tabular-nums text-text">
-            n = {{ classification().variables }} vars · m = {{ classification().inequalities }} ineq
-            · p = {{ classification().equalities }} eq
+            <math><mi>n</mi><mo>=</mo><mn>{{ classification().variables }}</mn></math> vars
+            · <math><mi>m</mi><mo>=</mo><mn>{{ classification().inequalities }}</mn></math> ineq
+            · <math><mi>p</mi><mo>=</mo><mn>{{ classification().equalities }}</mn></math> eq
           </dd>
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -177,21 +176,19 @@
       <fieldset class="flex items-center gap-3">
         <legend class="sr-only">Scale</legend>
         <span class="text-xs text-text-secondary">Scale</span>
-        <label class="flex items-center gap-1.5 text-sm text-text">
+        <label class="flex min-h-11 min-w-11 items-center gap-1.5 text-sm text-text">
           <input
             type="radio"
             name="scale"
-            class="accent-[var(--color-primary)]"
             [checked]="!logScale()"
             (change)="logScale.set(false)"
           />
           Linear
         </label>
-        <label class="flex items-center gap-1.5 text-sm text-text">
+        <label class="flex min-h-11 min-w-11 items-center gap-1.5 text-sm text-text">
           <input
             type="radio"
             name="scale"
-            class="accent-[var(--color-primary)]"
             [checked]="logScale()"
             (change)="logScale.set(true)"
           />
@@ -203,7 +200,7 @@
         <label for="metric" class="text-xs text-text-secondary">Metric</label>
         <select
           id="metric"
-          class="min-h-11 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+          appSelect
           (change)="onMetric($event)"
         >
           <option value="objective" [selected]="metric() === 'objective'">Objective</option>
@@ -251,13 +248,13 @@
           </div>
         </dl>
 
-        <div class="relative overflow-x-auto">
+        <div class="table-scroll">
           <table class="w-full text-sm">
             <caption class="sr-only">
               The four KKT conditions, each with a binary outcome and its numeric residual
             </caption>
             <thead>
-              <tr class="border-b border-border text-xs text-text-secondary">
+              <tr class="table-head-row">
                 <th scope="col" class="py-2 pr-4 text-left font-medium">Condition</th>
                 <th scope="col" class="py-2 pr-4 text-left font-medium">Outcome</th>
                 <th scope="col" class="py-2 text-right font-medium">Residual</th>
@@ -265,7 +262,7 @@
             </thead>
             <tbody>
               @for (c of cert.conditions; track c.name) {
-                <tr class="border-b border-border-muted last:border-0">
+                <tr class="table-row">
                   <th scope="row" class="py-2 pr-4 text-left font-medium text-text">{{ c.name }}</th>
                   <td class="py-2 pr-4">
                     <app-status-badge
@@ -289,7 +286,7 @@
           <p class="text-sm font-medium text-text">Not applicable to this run</p>
           <button
             type="button"
-            class="min-h-11 rounded-md px-2 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+            appButton="ghost" size="xs"
             [attr.aria-expanded]="whyNotShownOpen()"
             aria-controls="why-not-shown"
             (click)="whyNotShownOpen.set(!whyNotShownOpen())"
@@ -322,7 +319,7 @@
       <div class="flex flex-col gap-3 text-sm">
         <dl class="flex flex-wrap gap-x-8 gap-y-2">
           <div class="flex items-baseline gap-2">
-            <dt class="text-text-secondary">Particles M</dt>
+            <dt class="text-text-secondary">Particles <app-math-var expr="M" /></dt>
             <dd class="tabular-nums text-text">{{ pso.particles }}</dd>
           </div>
           <div class="flex items-baseline gap-2">
@@ -330,15 +327,15 @@
             <dd class="text-text">{{ pso.topology }}</dd>
           </div>
           <div class="flex items-baseline gap-2">
-            <dt class="text-text-secondary">Inertia w</dt>
+            <dt class="text-text-secondary">Inertia <app-math-var expr="w" /></dt>
             <dd class="tabular-nums text-text">{{ pso.inertiaFrom }} → {{ pso.inertiaTo }} linear</dd>
           </div>
           <div class="flex items-baseline gap-2">
-            <dt class="text-text-secondary">Penalty ε</dt>
+            <dt class="text-text-secondary">Penalty <app-math-var expr="ε" /></dt>
             <dd class="tabular-nums text-text">{{ pso.penaltyFactor.toExponential(1) }}</dd>
           </div>
           <div class="flex items-baseline gap-2">
-            <dt class="text-text-secondary">K (max holdings)</dt>
+            <dt class="text-text-secondary"><app-math-var expr="K" /> (max holdings)</dt>
             <dd class="tabular-nums text-text">{{ pso.maxHoldings }}</dd>
           </div>
           <div class="flex items-baseline gap-2">
@@ -349,11 +346,15 @@
 
         <dl class="flex flex-wrap gap-x-8 gap-y-2 border-t border-border pt-3">
           <div class="flex items-baseline gap-2">
-            <dt class="text-text-secondary">Fitness = VP + penalty</dt>
-            <dd class="tabular-nums text-text">VP {{ pso.portfolioVariance.toFixed(4) }}</dd>
+            <dt class="text-text-secondary">
+              <math><mtext>Fitness</mtext><mo>=</mo><msub><mi>V</mi><mi>P</mi></msub><mo>+</mo><mtext>penalty</mtext></math>
+            </dt>
+            <dd class="tabular-nums text-text"><app-math-var expr="V_P" /> {{ pso.portfolioVariance.toFixed(4) }}</dd>
           </div>
           <div class="flex items-baseline gap-2">
-            <dt class="text-text-secondary">fitness − VP</dt>
+            <dt class="text-text-secondary">
+              <math><mtext>fitness</mtext><mo>&#x2212;</mo><msub><mi>V</mi><mi>P</mi></msub></math>
+            </dt>
             <dd class="tabular-nums text-text">{{ pso.penaltyShare.toFixed(4) }}</dd>
           </div>
         </dl>
@@ -377,7 +378,7 @@
       <div class="flex flex-wrap items-center gap-3">
         <button
           type="button"
-          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          appButton="secondary"
           [attr.aria-pressed]="paused()"
           (click)="togglePause()"
         >
@@ -385,7 +386,7 @@
         </button>
         <button
           type="button"
-          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          appButton="secondary"
           (click)="downloadLog()"
         >
           Download
@@ -393,7 +394,7 @@
         <label class="flex min-h-11 items-center gap-2 text-sm text-text">
           <input
             type="checkbox"
-            class="h-4 w-4 accent-[var(--color-primary)]"
+            class="h-4 w-4"
             [checked]="autoScroll()"
             (change)="autoScroll.set($any($event.target).checked)"
           />
@@ -414,7 +415,7 @@
           </p>
           <button
             type="button"
-            class="min-h-11 rounded-md px-3 text-sm font-medium text-primary transition-colors hover:bg-primary-light"
+            appButton="ghost"
             (click)="showFullLog.set(!showFullLog())"
           >
             {{ showFullLog() ? 'Show fewer' : 'View full log' }}
@@ -425,7 +426,7 @@
       <ul #logList class="max-h-64 overflow-y-auto font-mono text-xs">
         @for (entry of visibleLog(); track entry.id) {
           <li
-            class="flex gap-3 border-b border-border-muted py-1.5 last:border-0"
+            class="table-row flex gap-3 py-1.5"
             [class.text-warning]="entry.kind === 'notice'"
           >
             <span class="shrink-0 text-text-secondary">{{ entry.at }}</span>
@@ -466,7 +467,7 @@
       <!-- Capped for the same reason as the run selector above. -->
       <select
         id="compare"
-        class="min-h-11 min-w-0 max-w-48 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+        appSelect class="min-w-0 max-w-48"
         (change)="onCompare($event)"
       >
         <option value="none" [selected]="compareRun() === 'none'">none</option>
@@ -482,7 +483,7 @@
     </div>
     <button
       type="button"
-      class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+      appButton="secondary"
       (click)="exportDiagnostics()"
     >
       Export diagnostics

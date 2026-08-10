@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 
 import { AGENT_LABEL } from '../../../../models/fund-state.model';
 import { DeliberationService } from '../../../../services/deliberation.service';
+import { ButtonDirective } from '../../../../shared/ui/button/button.directive';
 
 /**
  * The checkpoint history — the audit record (Fondamenti §4).
@@ -12,6 +13,7 @@ import { DeliberationService } from '../../../../services/deliberation.service';
  */
 @Component({
   selector: 'app-audit-checkpoints',
+  imports: [ButtonDirective],
   templateUrl: './audit-checkpoints.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

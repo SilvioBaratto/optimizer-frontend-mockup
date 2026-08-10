@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import { ActionButtonRow } from '../../shared/action-button-row/action-button-row';
 import { CrossPageLink } from '../../shared/cross-page-link/cross-page-link';
@@ -7,6 +8,7 @@ import { EntityCard } from '../../shared/entity-card/entity-card';
 import { ErrorState } from '../../shared/error-state/error-state';
 import { HeroStatCard } from '../../shared/hero-stat-card/hero-stat-card';
 import { InfoCard } from '../../shared/info-card/info-card';
+import { MathVar } from '../../shared/math/math-var';
 import { RefreshControl } from '../../shared/refresh-control/refresh-control';
 import { SectionCardGrid } from '../../shared/section-card-grid/section-card-grid';
 import { SkeletonBlock } from '../../shared/skeleton-block/skeleton-block';
@@ -24,6 +26,7 @@ import {
 } from '../../models/optimization-run.model';
 import { FundService } from '../../services/fund.service';
 import { OptimizeService } from '../../services/optimize.service';
+import { SelectDirective } from '../../shared/ui/select/select.directive';
 
 const RISK_MEASURES: readonly RiskMeasure[] = ['variance', 'semi-variance', 'mad-squared'];
 
@@ -74,10 +77,13 @@ const AGENT_LABEL: Record<AgentStatus, string> = {
     FrontierChartComponent,
     HeroStatCard,
     InfoCard,
+    MathVar,
     RefreshControl,
+    RouterLink,
     SectionCardGrid,
     SkeletonBlock,
     StatusBadge,
+    SelectDirective,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',

@@ -1,0 +1,6 @@
+<div [class]="classes()">
+  @if (heading()) {
+    <h2 class="sr-only">{{ heading() }}</h2>
+  }
+  <ng-content />
+</div>

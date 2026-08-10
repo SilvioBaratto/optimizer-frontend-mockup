@@ -1,0 +1,177 @@
+<!--
+  The heading is projected as an `h2`, not passed as `title` (which the card
+  renders at `h3`). This is one of the eleven regions the spec lists, not a
+  panel inside the one above it: at `h3` the page's primary action and the
+  `Draft view` list under it came out as siblings, both nested beneath the
+  Value Premium heading in the document outline.
+-->
+<app-info-card>
+  <h2 appCardTitle>Regime-implied view</h2>
+  <div class="flex flex-col gap-3">
+    @if (view(); as draft) {
+      <!--
+        Provenance first. The direction is a function of the state named here
+        and of nothing else — there is no control on this card that sets it —
+        so the card cannot contradict the hero card above.
+      -->
+      <p class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
+        <span class="text-text-secondary">Derived from</span>
+        <span data-testid="mr-bridge-derived-from" class="font-medium tabular-nums text-text">
+          {{ derivedFrom() }}
+        </span>
+        <span data-testid="mr-bridge-direction" class="font-medium text-text">
+          <span aria-hidden="true">{{ directionIcon[draft.direction] }}</span>
+          {{ directionLabel[draft.direction] }}
+        </span>
+      </p>
+
+      <p class="text-xs text-text-secondary">
+        Recomputed from the current regime every time it changes; never set independently of the
+        card above.
+      </p>
+
+      <div class="flex flex-col gap-1">
+        <h3 class="text-sm font-medium text-text">Draft view</h3>
+        <ul data-testid="mr-bridge-clauses" class="flex flex-col gap-1 text-sm text-text">
+          <li data-clause="expected-returns">{{ draft.expectedReturns }}</li>
+          <li data-clause="correlations">{{ draft.correlations }}</li>
+          <li data-clause="covariance">{{ draft.covariance }}</li>
+        </ul>
+      </div>
+    } @else {
+      <p data-testid="mr-bridge-empty" role="status" class="text-sm text-text-secondary">
+        No regime estimate for this combination, so there is no view to draft.
+      </p>
+    }
+
+    <!--
+      A caution about a reading that exists, not a reason to withhold it: when
+      the top state probability sits near a half the filter is as likely to have
+      missed a turning point as caught one, and the reader is told so in words
+      before sending anything on.
+    -->
+    @if (lowConfidence()) {
+      <p data-testid="mr-bridge-low-confidence" class="flex gap-2 text-xs text-warning">
+        <span aria-hidden="true">!</span>
+        <span class="min-w-0 flex-1">{{ lowConfidenceNote }}</span>
+      </p>
+    }
+
+    @if (sendFailure(); as message) {
+      <app-error-state
+        data-testid="mr-bridge-error"
+        [message]="message"
+        [detail]="sendFailureDetail() ?? ''"
+        cause="action"
+        (retry)="retrySend()"
+      />
+    }
+
+    @if (sentView(); as sent) {
+      <p data-testid="mr-bridge-sent" role="status" class="text-sm text-text">
+        Sent to Views Builder at <span class="tabular-nums">{{ sent.at }}</span> —
+        {{ directionLabel[sent.direction] }} from {{ sent.state }}.
+      </p>
+      <app-cross-page-link label="Open Views Builder" [route]="viewsBuilderRoute" />
+    }
+
+    <p [id]="reasonId" class="sr-only">{{ unavailableReason }}</p>
+
+    <app-action-button-row align="start">
+      <button
+        type="button"
+        appButton="secondary"
+        data-testid="mr-preview-view"
+        class="aria-disabled:opacity-50"
+        aria-haspopup="dialog"
+        [attr.aria-disabled]="canUse() ? null : 'true'"
+        [attr.aria-describedby]="canUse() ? null : reasonId"
+        (click)="openPreview()"
+      >
+        Preview view
+      </button>
+
+      <!--
+        `aria-disabled`, never `disabled`: this is the button the reader just
+        pressed, and disabling it takes it out of the tab order and drops focus
+        to `<body>` until the hand-over lands. The second press is refused in
+        the handler instead.
+      -->
+      <button
+        type="button"
+        appButton="primary"
+        data-testid="mr-send-view"
+        class="aria-disabled:opacity-50"
+        [attr.aria-disabled]="canUse() && !sending() ? null : 'true'"
+        [attr.aria-describedby]="canUse() ? null : reasonId"
+        [attr.aria-busy]="sending() ? 'true' : null"
+        (click)="send()"
+      >
+        {{ sending() ? 'Sending…' : 'Send view to Views Builder →' }}
+      </button>
+    </app-action-button-row>
+  </div>
+</app-info-card>
+
+<!--
+  Read-only, and mounted rather than created on open: destroying the slide-over
+  would destroy the component that un-inerts the rest of the document and that
+  returns focus to the button which opened it.
+-->
+<app-slide-over [open]="previewOpen()" label="Regime-implied view preview" (closed)="closePreview()">
+  <div class="flex h-full min-h-0 flex-col">
+    <header class="flex items-start justify-between gap-2 border-b border-border px-4 py-3">
+      <div class="min-w-0">
+        <h2 data-testid="mr-preview-heading" class="text-base font-medium text-text">
+          Regime-implied view
+        </h2>
+        <p class="text-xs text-text-secondary">Read-only preview — nothing is sent from here.</p>
+      </div>
+      <button
+        type="button"
+        class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-inset hover:text-text"
+        (click)="closePreview()"
+      >
+        <span aria-hidden="true">✕</span>
+        <span class="sr-only">Close the regime-implied view preview</span>
+      </button>
+    </header>
+
+    <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      @if (view(); as draft) {
+        <dl class="flex flex-col gap-3 text-sm">
+          <div class="flex min-w-0 flex-col gap-0.5">
+            <dt class="text-text-secondary">Derived from</dt>
+            <dd data-testid="mr-preview-derived-from" class="tabular-nums text-text">
+              {{ derivedFrom() }}
+            </dd>
+          </div>
+          <div class="flex min-w-0 flex-col gap-0.5">
+            <dt class="text-text-secondary">Direction</dt>
+            <dd data-testid="mr-preview-direction" class="text-text">
+              <span aria-hidden="true">{{ directionIcon[draft.direction] }}</span>
+              {{ directionLabel[draft.direction] }}
+            </dd>
+          </div>
+          <div class="flex min-w-0 flex-col gap-0.5">
+            <dt class="text-text-secondary">Expected returns</dt>
+            <dd class="text-text">{{ draft.expectedReturns }}</dd>
+          </div>
+          <div class="flex min-w-0 flex-col gap-0.5">
+            <dt class="text-text-secondary">Correlations</dt>
+            <dd class="text-text">{{ draft.correlations }}</dd>
+          </div>
+          <div class="flex min-w-0 flex-col gap-0.5">
+            <dt class="text-text-secondary">Covariance</dt>
+            <dd class="text-text">{{ draft.covariance }}</dd>
+          </div>
+        </dl>
+
+        <p class="mt-4 max-w-prose text-xs text-text-secondary">
+          Sending this hands it to Views Builder as a pre-filled proposal. It is refined there before
+          it meets the market equilibrium; nothing is applied to a portfolio from this page.
+        </p>
+      }
+    </div>
+  </div>
+</app-slide-over>

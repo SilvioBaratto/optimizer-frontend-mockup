@@ -2,13 +2,13 @@
   <p class="sr-only" aria-live="polite">{{ announcement() }}</p>
 
   @if (mode() === 'preview') {
-    <div class="relative overflow-x-auto">
+    <div class="table-scroll">
       <table class="w-full min-w-lg text-sm">
         <caption class="sr-only">
           The payload the agent would write to the shared state, against what was last published.
         </caption>
         <thead>
-          <tr class="border-b border-border text-xs text-text-secondary">
+          <tr class="table-head-row">
             <th scope="col" class="px-3 py-2 text-left font-medium">Payload</th>
             <th scope="col" class="px-3 py-2 text-left font-medium">vs last</th>
             <th scope="col" class="px-3 py-2 text-left font-medium">Current value</th>
@@ -16,7 +16,7 @@
         </thead>
         <tbody>
           @for (line of payload(); track line.id) {
-            <tr class="border-b border-border-muted last:border-0">
+            <tr class="table-row">
               <th scope="row" class="px-3 py-2 text-left font-normal text-text">{{ line.label }}</th>
               <td class="px-3 py-2">
                 <!-- Words, not a colour: "changed" is the whole reason to publish. -->
@@ -40,7 +40,7 @@
     <div class="flex flex-col gap-2">
       <button
         type="button"
-        class="min-h-11 self-start rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+        appButton="primary" size="md" class="self-start"
         [disabled]="!hasChanges()"
         (click)="confirming.set(true)"
       >
@@ -70,7 +70,7 @@
         <label for="handoff-range" class="text-xs text-text-secondary">Handoff log date range</label>
         <select
           id="handoff-range"
-          class="min-h-11 min-w-0 max-w-48 rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+          appSelect class="min-w-0 max-w-48"
           (change)="onRange($event)"
         >
           @for (r of ranges; track r.id) {
@@ -85,13 +85,13 @@
         No publications match. Widen the date range or clear the search.
       </p>
     } @else {
-      <div class="relative overflow-x-auto">
+      <div class="table-scroll">
         <table class="w-full min-w-2xl text-sm">
           <caption class="sr-only">
             Every publication of this agent's payload to the shared state.
           </caption>
           <thead>
-            <tr class="border-b border-border text-xs text-text-secondary">
+            <tr class="table-head-row">
               <th scope="col" class="px-3 py-2 text-left font-medium">Published</th>
               <th scope="col" class="px-3 py-2 text-left font-medium">By</th>
               <th scope="col" class="px-3 py-2 text-left font-medium">Driver</th>
@@ -100,7 +100,7 @@
           </thead>
           <tbody>
             @for (entry of filteredLog(); track entry.id) {
-              <tr class="border-b border-border-muted last:border-0">
+              <tr class="table-row">
                 <th scope="row" class="px-3 py-2 text-left font-mono font-normal tabular-nums text-text">
                   {{ entry.at }}
                 </th>

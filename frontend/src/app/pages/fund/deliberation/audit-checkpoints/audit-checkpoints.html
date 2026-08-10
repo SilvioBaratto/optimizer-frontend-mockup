@@ -4,14 +4,14 @@
       No checkpoints yet. Each agent write saves one; start a run to record them.
     </p>
   } @else {
-    <div class="relative overflow-x-auto">
+    <div class="table-scroll">
       <table class="w-full min-w-2xl text-sm">
         <caption class="sr-only">
           Every step at which the frozen state was saved: the step number, the field written, the
           agent that wrote it and the time.
         </caption>
         <thead>
-          <tr class="border-b border-border text-xs text-text-secondary">
+          <tr class="table-head-row">
             <th scope="col" class="px-3 py-2 text-left font-medium">
               <span class="sr-only">Compare</span>
             </th>
@@ -27,7 +27,7 @@
         <tbody>
           @for (row of rows(); track row.step) {
             <tr
-              class="border-b border-border-muted last:border-0"
+              class="table-row"
               [class.bg-surface-inset]="activeCheckpoint()?.step === row.step"
               [attr.aria-current]="activeCheckpoint()?.step === row.step ? 'true' : null"
             >
@@ -35,7 +35,7 @@
                 <label class="flex min-h-11 items-center">
                   <input
                     type="checkbox"
-                    class="h-4 w-4 accent-[var(--color-primary)]"
+                    class="h-4 w-4"
                     [checked]="isCompared(row.step)"
                     (change)="toggleCompare(row.step)"
                   />
@@ -80,7 +80,7 @@
       @if (comparisonSteps().length > 0) {
         <button
           type="button"
-          class="min-h-11 rounded-md border border-border-control px-3 text-sm font-medium text-text transition-colors hover:bg-surface-inset"
+          appButton="secondary"
           (click)="clearComparison()"
         >
           Clear comparison
@@ -89,13 +89,13 @@
     </div>
 
     @if (showComparison()) {
-      <div class="relative overflow-x-auto rounded-md border border-border bg-surface-inset">
+      <div class="table-scroll rounded-md border border-border bg-surface-inset">
         <table class="w-full min-w-xl text-sm">
           <caption class="px-3 pt-3 text-left text-sm font-medium text-text">
             Fund state compared across the selected checkpoints
           </caption>
           <thead>
-            <tr class="border-b border-border text-xs text-text-secondary">
+            <tr class="table-head-row">
               <th scope="col" class="px-3 py-2 text-left font-medium">Field</th>
               @for (c of compared(); track c.step) {
                 <th scope="col" class="px-3 py-2 text-left font-medium">step {{ c.step }}</th>
@@ -104,7 +104,7 @@
           </thead>
           <tbody>
             @for (field of fieldNames(); track field) {
-              <tr class="border-b border-border-muted last:border-0">
+              <tr class="table-row">
                 <th scope="row" class="px-3 py-2 text-left font-mono font-normal text-text">
                   {{ field }}
                   <!-- Difference stated in words, not carried by a highlight. -->

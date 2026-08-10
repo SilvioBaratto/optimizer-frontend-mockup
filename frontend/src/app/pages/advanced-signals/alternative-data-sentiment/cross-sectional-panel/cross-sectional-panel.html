@@ -1,0 +1,85 @@
+<!--
+  Cross-Sectional Sentiment: regions 11 (ParameterPanel) and 13 (ChartPanel).
+  Both regimes are always drawn — the finding is the difference between them, and
+  one series cannot state a difference.
+-->
+
+<!-- 11 · ParameterPanel — regime, index basis, firm characteristic. -->
+<app-info-card title="Cross-sectional parameters">
+  <div class="flex flex-col gap-4">
+    <div class="flex flex-wrap gap-x-6 gap-y-3">
+      <div class="flex flex-col gap-1">
+        <span class="text-xs text-text-secondary">Sentiment regime</span>
+        <app-segmented-control
+          data-testid="ads-regime-toggle"
+          [options]="regimeOptions()"
+          [value]="regime()"
+          label="Sentiment regime"
+          (valueChange)="onRegime($event)"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <span class="text-xs text-text-secondary">Index basis</span>
+        <app-segmented-control
+          data-testid="ads-basis-toggle"
+          [options]="basisOptions()"
+          [value]="basis()"
+          label="Sentiment index basis"
+          (valueChange)="onBasis($event)"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="ads-characteristic" class="text-xs text-text-secondary">
+          Firm characteristic
+        </label>
+        <select
+          appSelect
+          id="ads-characteristic"
+          data-testid="ads-characteristic"
+          (change)="onCharacteristic($event)"
+        >
+          @for (option of characteristics; track option) {
+            <option [value]="option" [selected]="option === characteristic()">
+              {{ characteristicLabel[option] }}
+            </option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <p data-testid="ads-basis-definition" class="text-xs text-text-secondary">
+      {{ basisDefinition[basis()] }}
+    </p>
+
+    <p class="text-xs text-text-secondary">{{ modelNote }}</p>
+  </div>
+</app-info-card>
+
+<!-- 13 · ChartPanel — the conditional cross-section, with its own table view. -->
+<section aria-labelledby="ads-cross-section-heading" class="flex flex-col gap-2">
+  <h3 id="ads-cross-section-heading" class="text-base font-medium text-text">
+    Return spread by decile, conditioned on the regime
+  </h3>
+
+  <p data-testid="ads-spread-summary" class="text-sm text-text">{{ spreadText() }}</p>
+
+  <app-bar-chart
+    [title]="title()"
+    [subtitle]="subtitle()"
+    [ariaLabel]="ariaLabel()"
+    [categories]="categories()"
+    [series]="series()"
+    orientation="vertical"
+    [valueFormatter]="formatter"
+    valueAxisName="Monthly return"
+    categoryAxisName="Decile"
+    [refLines]="refLines"
+    [height]="340"
+  />
+
+  <p data-testid="ads-shape-note" class="text-xs text-text-secondary">
+    {{ shapeLabel[result().shape] }} — {{ result().note }}
+  </p>
+</section>

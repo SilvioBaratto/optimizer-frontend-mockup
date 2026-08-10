@@ -1,0 +1,76 @@
+<!--
+  Reading order is left to right, top to bottom, and it is also the order of
+  what each control costs: the three that re-read the loss distribution first,
+  then the one that slices a chart, then the one that only changes units.
+-->
+<app-page-context-bar heading="Risk monitoring controls" compact>
+  <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
+    <div class="flex flex-col gap-1">
+      <span class="text-xs text-text-secondary">Confidence</span>
+      <app-segmented-control
+        [options]="confidenceOptions()"
+        [value]="confidenceValue()"
+        label="Confidence level"
+        (valueChange)="onConfidence($event)"
+      />
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <span class="text-xs text-text-secondary">Method</span>
+      <app-segmented-control
+        [options]="methodOptions()"
+        [value]="methodValue()"
+        label="VaR method"
+        (valueChange)="onMethod($event)"
+      />
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <label for="rm-holding-period" class="text-xs text-text-secondary">Holding period</label>
+      <select
+        appSelect
+        id="rm-holding-period"
+        [disabled]="busy()"
+        (change)="onHoldingPeriod($event)"
+      >
+        @for (period of holdingPeriods; track period) {
+          <option [value]="period" [selected]="period === holdingPeriod()">
+            {{ holdingPeriodLabel[period] }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <label for="rm-lookback" class="text-xs text-text-secondary">Lookback window</label>
+      <select appSelect id="rm-lookback" [disabled]="busy()" (change)="onLookback($event)">
+        @for (window of lookbackWindows; track window) {
+          <option [value]="window" [selected]="window === lookback()">
+            {{ lookbackLabel[window] }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <span class="text-xs text-text-secondary">Drawdown units</span>
+      <app-segmented-control
+        [options]="unitsOptions()"
+        [value]="unitsValue()"
+        label="Drawdown units"
+        (valueChange)="onUnits($event)"
+      />
+    </div>
+
+    <!--
+      The stamp is read-only and says so: it is the moment the numbers below
+      were computed, and nothing on this page can set it but a completed run.
+    -->
+    <div class="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+      <p data-testid="as-of" class="text-xs text-text-secondary">
+        As of <span class="tabular-nums text-text">{{ asOf() }}</span>
+      </p>
+      <app-refresh-control [busy]="busy()" (refresh)="onRefresh()" />
+    </div>
+  </div>
+</app-page-context-bar>

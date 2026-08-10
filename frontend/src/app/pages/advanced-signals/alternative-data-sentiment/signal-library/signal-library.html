@@ -1,0 +1,268 @@
+<!--
+  Regions 5 to 8 — filter bar, badge legend, and the grid of signals.
+
+  The grid is a single-select listbox with a second, independent state on each
+  option: `aria-selected` is the card driving the detail panel, `aria-checked`
+  is the card being handed to Views Builder. Enter moves the first, Space the
+  second, arrows neither.
+-->
+
+<!-- 5 · FilterChipBar — search and the six category chips, with a live count. -->
+<app-filter-chip-bar
+  searchLabel="Search signals"
+  searchPlaceholder="Search signals…"
+  [searchValue]="query()"
+  (searchChange)="onSearch($event)"
+  [count]="rows().length"
+  [total]="total()"
+  countNoun="matching"
+>
+  <!--
+    The last chip on cannot be switched off — the spec requires at least one
+    category to stay selected. `aria-disabled` says so before the press and the
+    live line below says so after it: a control that silently does nothing when
+    pressed reads as broken, not as validated.
+  -->
+  <div role="group" aria-label="Signal category" class="flex flex-wrap items-center gap-2">
+    @for (category of categories; track category) {
+      <button
+        type="button"
+        [attr.data-category]="category"
+        [attr.aria-pressed]="isCategoryActive(category)"
+        [attr.aria-disabled]="isLastCategory(category) ? 'true' : null"
+        [attr.aria-describedby]="isLastCategory(category) ? 'ads-category-rule' : null"
+        class="min-h-11 rounded-full border px-3 text-xs font-medium transition-colors"
+        [class.border-primary]="isCategoryActive(category)"
+        [class.bg-primary-light]="isCategoryActive(category)"
+        [class.text-primary]="isCategoryActive(category)"
+        [class.border-border-control]="!isCategoryActive(category)"
+        [class.text-text-secondary]="!isCategoryActive(category)"
+        (click)="toggleCategory(category)"
+      >
+        <span aria-hidden="true">{{ isCategoryActive(category) ? '×' : '+' }}</span>
+        {{ categoryLabel[category] }}
+      </button>
+    }
+  </div>
+</app-filter-chip-bar>
+
+<!--
+  Mounted empty rather than inserted with its text: a live region that appears
+  at the same moment as its message is the classic reason nothing is announced.
+-->
+<p id="ads-category-rule" role="status" class="text-xs text-text-secondary">
+  @if (lastCategoryLeft()) {
+    <span data-testid="ads-category-rule">{{ categoryRuleNote }}</span>
+  }
+</p>
+
+<!-- 8 · StatusBadge — the legend for the classification the cards carry. -->
+<section aria-labelledby="ads-legend-heading" class="flex flex-col gap-2">
+  <h3 id="ads-legend-heading" class="eyebrow">Classification legend</h3>
+  <div data-testid="ads-legend" class="flex flex-wrap items-center gap-2">
+    @for (item of temporalClasses; track item) {
+      <app-status-badge [label]="temporalLabel[item]" [tone]="temporalTone[item]" />
+    }
+    <app-status-badge [label]="feedLabel.failed" tone="alert" />
+  </div>
+  <p class="text-xs text-text-secondary">{{ failedFeedNote }}</p>
+</section>
+
+<!-- 6 & 7 · SectionCardGrid — one option per signal. -->
+<section aria-labelledby="ads-grid-heading" class="flex flex-col gap-3">
+  <h3 id="ads-grid-heading" class="eyebrow">Available signals</h3>
+  <p id="ads-grid-hint" class="text-xs text-text-secondary">{{ selectionHint }}</p>
+
+  @if (libraryEmpty()) {
+    <!--
+      Nothing available at all: either the universe is out of reach of every
+      feed, or the window is. The two have different ways forward, so they are
+      different messages.
+    -->
+    <!--
+      Each of these carries the way out the spec's empty state asks for: an
+      action that widens the interval or changes the universe. A message with
+      no way forward leaves the reader to work out which of the two knobs above
+      is the one that emptied the grid.
+    -->
+    <div class="surface-card">
+      @if (universeHasNoCoverage()) {
+        <app-empty-state
+          data-testid="ads-empty-universe"
+          [title]="emptyUniverseTitle"
+          [detail]="emptyUniverseDetail"
+        >
+          <button
+            type="button"
+            appButton="primary"
+            data-testid="ads-empty-universe-action"
+            (click)="useCoveredUniverse()"
+          >
+            Switch to {{ coveredUniverseName() }}
+          </button>
+        </app-empty-state>
+      } @else {
+        <app-empty-state
+          data-testid="ads-empty-window"
+          [title]="emptyWindowTitle"
+          [detail]="emptyWindowDetail"
+        >
+          <button
+            type="button"
+            appButton="primary"
+            data-testid="ads-empty-window-action"
+            (click)="widenWindow()"
+          >
+            Widen the window to the full history
+          </button>
+        </app-empty-state>
+      }
+    </div>
+  } @else if (rows().length === 0) {
+    <div class="surface-card">
+      @if (onlyMl()) {
+        <app-empty-state
+          data-testid="ads-empty-ml"
+          [title]="mlEmptyTitle"
+          [detail]="mlEmptyDetail"
+        >
+          <button
+            type="button"
+            appButton="secondary"
+            data-testid="ads-empty-ml-action"
+            (click)="clearFilters()"
+          >
+            Switch every category back on
+          </button>
+        </app-empty-state>
+      } @else {
+        <app-empty-state
+          data-testid="ads-empty-filters"
+          [title]="noMatchTitle"
+          [detail]="noMatchDetail"
+        >
+          <button
+            type="button"
+            appButton="secondary"
+            data-testid="ads-empty-filters-action"
+            (click)="clearFilters()"
+          >
+            Clear the search and the category filters
+          </button>
+        </app-empty-state>
+      }
+    </div>
+  } @else {
+    <!--
+      Hand-rolled rather than `app-section-card-grid` + `app-entity-card`, for
+      two reasons that are both about this region's contract:
+
+      - the grid has to be a `role="listbox"` and each card a `role="option"`
+        carrying two independent states. `app-section-card-grid` puts either no
+        role or `role="list"` on its grid, and `<li>` children of a `<div>` are
+        not valid markup;
+      - `app-entity-card` renders the whole card as one `<button>` or `<a>`,
+        which cannot also be an option, and its projected action slot is
+        `shrink-0` at `max-content`, so the badges and the include control could
+        never wrap inside it at 320px.
+
+      `grid-cols-1 lg:grid-cols-2` is written out in full: Tailwind scans source
+      for literal class strings, and an interpolated one is silently never
+      emitted.
+    -->
+    <ul
+      role="listbox"
+      aria-labelledby="ads-grid-heading"
+      aria-describedby="ads-grid-hint"
+      class="grid grid-cols-1 gap-3 lg:grid-cols-2"
+    >
+      @for (row of rows(); track row.id; let i = $index) {
+        <li
+          #option
+          role="option"
+          [attr.data-signal]="row.id"
+          [attr.aria-selected]="isSelected(row)"
+          [attr.aria-checked]="isIncluded(row)"
+          [attr.aria-label]="optionLabel(row)"
+          [attr.tabindex]="i === focusIndex() ? 0 : -1"
+          class="flex cursor-pointer flex-col gap-2 rounded-md border px-4 py-3 transition-colors"
+          [class.border-primary]="isSelected(row)"
+          [class.bg-primary-light]="isSelected(row)"
+          [class.border-border]="!isSelected(row)"
+          [class.bg-surface-raised]="!isSelected(row)"
+          [class.hover:bg-surface-inset]="!isSelected(row)"
+          (click)="drive(row, i)"
+          (keydown)="onKeydown($event, i)"
+        >
+          <span class="flex min-w-0 items-start justify-between gap-2">
+            <span class="min-w-0 text-sm font-medium text-text">{{ row.name }}</span>
+            <app-status-badge
+              [label]="temporalLabel[row.temporal]"
+              [tone]="temporalTone[row.temporal]"
+            />
+          </span>
+
+          <span class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-secondary">
+            <span>{{ row.categoryLabel }}</span>
+            <span aria-hidden="true">·</span>
+            <span class="tabular-nums">cov. {{ coverageText(row) }}</span>
+            @if (row.partialCoverage) {
+              <span
+                [attr.data-partial]="row.id"
+                class="rounded-full border border-border-control px-2 py-0.5 text-text-secondary"
+              >
+                <span aria-hidden="true">!</span> {{ partialBadge }}
+              </span>
+            }
+            <span aria-hidden="true">·</span>
+            <span class="tabular-nums">updated {{ updatedDate(row) }}</span>
+          </span>
+
+          <!--
+            The feed badge carries the last-good timestamp on a failed feed. The
+            card is not removed and not disabled: partial data is data.
+          -->
+          @if (row.feed !== 'live') {
+            <span [attr.data-feed]="row.id" class="flex">
+              <app-status-badge [label]="feedBadgeLabel(row)" [tone]="feedBadgeTone(row)" />
+            </span>
+          }
+
+          @if (methodSummary(row); as method) {
+            <span [attr.data-method-summary]="row.id" class="text-xs text-text-secondary">
+              Method: {{ method }}
+            </span>
+          }
+
+          <!--
+            The include control for a pointer. Not in the tab order and hidden
+            from assistive tech on purpose: the option itself carries
+            `aria-checked`, and Space on the card is the keyboard path. Two
+            announced controls for one state would be read twice.
+          -->
+          <span class="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              tabindex="-1"
+              aria-hidden="true"
+              [attr.data-include]="row.id"
+              class="inline-flex min-h-11 items-center gap-2 rounded-md px-2 text-xs font-medium transition-colors hover:bg-surface-inset"
+              [class.text-primary]="isIncluded(row)"
+              [class.text-text-secondary]="!isIncluded(row)"
+              (click)="toggleInclude(row, $event)"
+            >
+              <span>{{ isIncluded(row) ? '[×]' : '[ ]' }}</span>
+              {{ includeLabel }}
+            </button>
+
+            @if (isSelected(row)) {
+              <span data-testid="ads-driving-detail" class="text-xs font-medium text-primary">
+                Showing evidence
+              </span>
+            }
+          </span>
+        </li>
+      }
+    </ul>
+  }
+</section>

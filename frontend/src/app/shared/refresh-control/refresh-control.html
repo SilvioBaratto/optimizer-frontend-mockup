@@ -1,9 +1,23 @@
+<!--
+  Ghost, not outlined. Refresh is a tertiary action sitting beside the state it
+  re-reads, and a boxed control there adds an outline to every card that can
+  reload itself. The accent-coloured label carries the affordance instead.
+
+  `aria-disabled` rather than `disabled`, and that distinction is load-bearing.
+  This is the button that STARTS the run which then sets `busy`, so the reader
+  pressing it is standing on the element being disabled — and a disabled element
+  cannot hold focus, so the browser drops it to <body> and the next Tab restarts
+  at the top of the document. `aria-disabled` announces the state without
+  removing the element from the focus order; `onClick` below refuses the second
+  press, so the semantics are unchanged.
+-->
 <button
   type="button"
-  class="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border-control px-3 text-sm text-text transition-colors hover:bg-surface-inset disabled:opacity-50"
-  [disabled]="busy()"
+  appButton="ghost"
+  class="gap-1.5 aria-disabled:pointer-events-none aria-disabled:opacity-50"
+  [attr.aria-disabled]="busy() || null"
   [attr.aria-busy]="busy() || null"
-  (click)="refresh.emit()"
+  (click)="onClick()"
 >
   <span aria-hidden="true">&#8635;</span>
   {{ label() }}

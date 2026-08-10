@@ -1,0 +1,70 @@
+@if (trade(); as trade) {
+  <section
+    id="approval-trade-detail"
+    aria-labelledby="approval-trade-detail-heading"
+    class="flex flex-col gap-4"
+  >
+    <header class="flex flex-col gap-1">
+      <!-- Focusable so a selection can land here; never in the tab order. -->
+      <h2
+        #panelHeading
+        id="approval-trade-detail-heading"
+        data-testid="detail-heading"
+        tabindex="-1"
+        class="text-base font-medium text-text"
+      >
+        {{ headingText() }}
+      </h2>
+      <p class="text-sm text-text-secondary">
+        Proposed by <span class="text-text">{{ trade.proposedBy }}</span> · queued
+        <span class="tabular-nums">{{ trade.queuedAt }}</span> · waiting
+        <span class="tabular-nums">{{ trade.waiting }}</span>
+      </p>
+    </header>
+
+    @if (detailLoading()) {
+      <div data-testid="detail-loading" aria-busy="true" class="flex flex-col gap-4">
+        <p role="status" class="sr-only">Re-reading this trade’s checks and audit trail…</p>
+        <app-skeleton-block height="h-20" />
+        <app-skeleton-block height="h-48" />
+        <app-skeleton-block height="h-32" />
+      </div>
+    } @else if (detailError(); as failure) {
+      <!-- Local to the panel: the queue above is untouched and still usable. -->
+      <app-error-state
+        data-testid="detail-error"
+        [message]="failure"
+        detail="The queue and its filters are unaffected — only this trade’s checks and trail could not be read."
+        cause="load"
+        (retry)="reload()"
+      />
+    } @else {
+      <!-- 6 · the mandatory path, with this trade's position on it -->
+      <app-approval-step-tracker />
+
+      <!-- 7 · the two automated steps' results -->
+      <app-approval-automated-checks />
+
+      <!--
+        8 or 10, never both. A trade still waiting gets the decision; one that
+        has been answered gets the record of what the answer meant.
+      -->
+      @if (decision()) {
+        <app-approval-decision-outcome />
+      } @else {
+        <app-approval-decision-row (decided)="focusHeading()" />
+      }
+
+      <!-- 9 · the checkpointed trail, collapsed, for every trade either way -->
+      <app-approval-audit-trail />
+    }
+  </section>
+} @else {
+  <p
+    data-testid="detail-placeholder"
+    class="rounded-md border border-border border-dashed px-4 py-6 text-sm text-text-secondary"
+  >
+    Select a trade in the queue to see where it stands on the four mandatory steps, what the
+    automated checks returned, and its audit trail.
+  </p>
+}

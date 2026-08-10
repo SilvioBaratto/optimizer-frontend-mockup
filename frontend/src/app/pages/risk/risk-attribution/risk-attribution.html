@@ -1,1 +1,91 @@
-<p>risk-attribution works!</p>
+<!--
+  Regions follow `docs/19 Risk Attribution.md` in order:
+  Toolbar → KeyMetricsRow → DataTable → ChartPanel → FactorRiskImpactPanel →
+  DetailPanel. The shell renders the <h1>, so headings here start at <h2>.
+-->
+
+<!-- Straight past eight toolbar controls to the decomposition itself. -->
+<a href="#risk-attribution-content" class="skip-link">Skip to the risk attribution</a>
+
+<!-- 1 · Toolbar — sticky under the breadcrumb, wraps below 768px. -->
+<app-page-context-bar heading="Risk attribution parameters" compact>
+  <app-attribution-toolbar />
+</app-page-context-bar>
+
+<section
+  #content
+  id="risk-attribution-content"
+  tabindex="-1"
+  aria-label="Risk attribution"
+  class="flex flex-col gap-6"
+>
+  @switch (state()) {
+    @case ('error') {
+      <!--
+        The failure follows a parameter the reader just changed, so it is
+        announced assertively. The toolbar above stays editable: the recovery is
+        usually a different snapshot or a different estimator, not the same
+        request again.
+      -->
+      @if (error(); as failure) {
+        <app-error-state
+          [message]="failure.message"
+          [detail]="failure.detail"
+          cause="action"
+          (retry)="retry()"
+        />
+      }
+    }
+
+    @case ('empty') {
+      <app-empty-state [title]="emptyTitle()" [detail]="emptyDetail()">
+        <div class="flex flex-col items-center gap-3">
+          <div class="flex flex-col items-start gap-1">
+            <label for="attribution-portfolio" class="text-xs text-text-secondary">Portfolio</label>
+            <select id="attribution-portfolio" appSelect (change)="onPortfolio($event)">
+              <option value="" [selected]="portfolioId() === null">No portfolio selected</option>
+              @for (portfolio of portfolios; track portfolio.id) {
+                <option [value]="portfolio.id" [selected]="portfolioId() === portfolio.id">
+                  {{ portfolio.name }}
+                </option>
+              }
+            </select>
+          </div>
+          <app-cross-page-link label="Open Risk Monitoring" route="/risk/risk-monitoring" />
+        </div>
+      </app-empty-state>
+    }
+
+    @default {
+      <!--
+        Loading and ready share this branch: each region draws its own
+        SkeletonBlock at the height of its finished content, so a recompute
+        never moves the page under the reader.
+      -->
+
+      <!-- 2 · KeyMetricsRow — EC, coverage, DI and the allocation principle. -->
+      <app-attribution-summary />
+
+      <!-- 3 · DataTable — the decomposition, with the TOTAL row on every page. -->
+      <app-contribution-table />
+
+      <!-- 4 · ChartPanel — the same contributions ranked, with the two references. -->
+      <app-contribution-chart />
+
+      <!-- 5 · FactorRiskImpactPanel — independent of the toolbar's Group by. -->
+      <app-factor-risk-impact />
+    }
+  }
+</section>
+
+<!-- Exits: a high contribution is read next to the limits it lives under. -->
+<app-action-button-row>
+  <app-cross-page-link label="Open Risk Monitoring" route="/risk/risk-monitoring" />
+  <app-cross-page-link
+    label="Open Guardrail &amp; Kill-Switch"
+    route="/approvals/guardrail-killswitch"
+  />
+</app-action-button-row>
+
+<!-- 6 · DetailPanel — opened from a table row or a chart bar, read-only. -->
+<app-component-detail-panel />

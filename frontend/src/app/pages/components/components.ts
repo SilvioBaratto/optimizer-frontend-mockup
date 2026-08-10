@@ -5,6 +5,7 @@ import { FormsSectionComponent } from './sections/forms-section';
 import { NavigationSectionComponent } from './sections/navigation-section';
 import { OverlaysSectionComponent } from './sections/overlays-section';
 import { DataDisplaySectionComponent } from './sections/data-display-section';
+import { RegionSectionComponent } from './sections/region-section';
 
 import { ModalComponent } from '../../shared/ui/modal/modal';
 import { SlideOverComponent } from '../../shared/ui/slide-over/slide-over';
@@ -21,6 +22,7 @@ import { ButtonComponent } from '../../shared/ui/button/button';
     NavigationSectionComponent,
     OverlaysSectionComponent,
     DataDisplaySectionComponent,
+    RegionSectionComponent,
     ModalComponent,
     SlideOverComponent,
     DrawerComponent,
