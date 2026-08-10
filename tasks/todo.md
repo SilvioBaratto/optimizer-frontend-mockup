@@ -64,24 +64,24 @@ Per-task definition of done: model → service → sub-components → page templ
 
 ## Phase 4 — Approvals
 
-- [ ] **T4.1 · doc 17 · Guardrail & Kill-Switch** — `models/guardrail.model.ts`, `services/guardrail.service.ts`, `pages/approvals/guardrail-killswitch/`
-  - [ ] **Fix the spec's blocking finding (`docs/17:13-18`)**: on a failed kill-switch write the dialog stays open, shows a blocking error, keeps the reason, offers Retry; the hero card does not update until confirmed
-  - [ ] Toggle first in tab order; `role="alertdialog"`; focus opens on the reason field; reason required; `aria-live="assertive"` on state change
-  - [ ] Step [4] reads the broker posture from `execution.service`; pipeline counts derive from the shared order array
-  - [ ] DI figures read `risk-attribution.service`
-  - [ ] Disabling a kill-switch-scoped limit demands the same reason-and-confirm flow
-  - [ ] Limit save runs the same validators; rejection shows the original error in full
-  - [ ] Per-region error does not take down its neighbours
-  - [ ] Test: forced write failure leaves the dialog open and the state unchanged
-- [ ] **T4.2 · doc 16 · Human Approval Gate** — extend `models/approval.model.ts`, `services/approval-gate.service.ts`, `pages/approvals/approval-gate/`
-  - [ ] Queue is a projection of `execution.service`'s orders; each trade on exactly one step
-  - [ ] Test: with no broker configured, no trade can sit at step Broker Adapter
-  - [ ] Decision sentence derived from the posture signal, never written twice
-  - [ ] Approve/Reject enabled only at Human Gate; otherwise `aria-disabled` + reason, decision row absent
-  - [ ] Confirm dialog summarises routed-vs-manual; initial focus Cancel; on confirm the panel swaps to the historical-outcome card
-  - [ ] Missing rule-validation result ⟹ "result pending"
-  - [ ] `role="grid"` queue, ↑/↓ + Enter
-  - [ ] Refresh preserves filters and selection
+- [x] **T4.1 · doc 17 · Guardrail & Kill-Switch** — `models/guardrail.model.ts`, `services/guardrail.service.ts`, `pages/approvals/guardrail-killswitch/`
+  - [x] **Fix the spec's blocking finding (`docs/17:13-18`)**: on a failed kill-switch write the dialog stays open, shows a blocking error, keeps the reason, offers Retry; the hero card does not update until confirmed
+  - [x] Toggle first in tab order; `role="alertdialog"`; focus opens on the reason field; reason required; `aria-live="assertive"` on state change
+  - [x] Step [4] reads the broker posture from `execution.service`; pipeline counts derive from the shared order array
+  - [x] DI figures read `risk-attribution.service`
+  - [x] Disabling a kill-switch-scoped limit demands the same reason-and-confirm flow
+  - [x] Limit save runs the same validators; rejection shows the original error in full
+  - [x] Per-region error does not take down its neighbours
+  - [x] Test: forced write failure leaves the dialog open and the state unchanged
+- [x] **T4.2 · doc 16 · Human Approval Gate** — extend `models/approval.model.ts`, `services/approval-gate.service.ts`, `pages/approvals/approval-gate/`
+  - [x] Queue is a projection of `execution.service`'s orders; each trade on exactly one step
+  - [x] Test: with no broker configured, no trade can sit at step Broker Adapter
+  - [x] Decision sentence derived from the posture signal, never written twice
+  - [x] Approve/Reject enabled only at Human Gate; otherwise `aria-disabled` + reason, decision row absent
+  - [x] Confirm dialog summarises routed-vs-manual; initial focus Cancel; on confirm the panel swaps to the historical-outcome card
+  - [x] Missing rule-validation result ⟹ "result pending"
+  - [x] `role="grid"` queue, ↑/↓ + Enter
+  - [x] Refresh preserves filters and selection
 
 > **CHECKPOINT D** — approve a trade in 16; confirm 17's counters/audit and 15's order stage all moved.
 
