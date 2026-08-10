@@ -1,6 +1,6 @@
 <section class="flex flex-col gap-3">
   @if (label()) {
-    <h2 class="eyebrow">
+    <h2 class="eyebrow" [class.normal-case]="preserveCase()">
       {{ label() }}
     </h2>
   }

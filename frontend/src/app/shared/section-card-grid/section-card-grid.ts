@@ -24,6 +24,18 @@ export class SectionCardGrid {
   /** Ordered when the cards are sequential steps, e.g. a process stepper. */
   readonly ordered = input(false);
 
+  /**
+   * Keeps the label's own capitalisation instead of upper-casing it.
+   *
+   * The uppercase treatment is the template's `SectionLabel` and is right for
+   * almost every group heading. It is wrong when the label carries a proper
+   * noun whose case is part of the name: doc 14's `Risk metrics · 95% ·
+   * RiskMetrics` names the RiskMetrics Group's parametric method, and
+   * `text-transform` flattened it to `RISKMETRICS`, which is a different word.
+   * Off by default, so no existing heading changes.
+   */
+  readonly preserveCase = input(false);
+
   protected readonly gridClass = computed(() => {
     const map: Record<number, string> = {
       1: 'grid-cols-1',

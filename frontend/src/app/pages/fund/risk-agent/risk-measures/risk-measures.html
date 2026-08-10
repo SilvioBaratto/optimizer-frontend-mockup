@@ -1,7 +1,13 @@
 <div class="flex flex-col gap-3">
+  <!--
+    preserveCase: the label ends in the method name, and "RiskMetrics" is the
+    RiskMetrics Group's parametric approach. Upper-casing it gives RISKMETRICS,
+    which reads as a different word than the one the Method control offers.
+  -->
   <app-section-card-grid
     [label]="measuresLabel()"
     [columns]="3"
+    [preserveCase]="true"
     [attr.aria-busy]="running() ? 'true' : null"
   >
     @for (view of views(); track view.id) {
