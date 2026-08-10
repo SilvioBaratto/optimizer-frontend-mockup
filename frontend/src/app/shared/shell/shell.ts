@@ -122,9 +122,19 @@ export class Shell {
 
   private setScrollLock(locked: boolean): void {
     if (typeof document === 'undefined') return;
-    // iOS Safari only honours the lock on the root element, not on `body`.
+    // The root element only, never `body` as well.
+    //
+    // iOS Safari honours the lock here and not on `body`, so the root is the
+    // one that has to carry it. Adding `body` on top used to look like free
+    // insurance; with the topbar pinned it is not. `overflow` propagates from
+    // `body` to the viewport only while the root is `visible`, so locking the
+    // root stops the propagation and a locked `body` becomes a scroll
+    // container in its own right — at scroll offset 0, while the document's
+    // real offset stays on the root. Every sticky descendant then resolves
+    // against that fresh scrollport and detaches. Measured at 390x844 on
+    // /risk/risk-attribution, scrolled 1114px with the drawer open: with both
+    // locked the topbar sat at top -1114, with either one alone at top 0.
     document.documentElement.style.overflow = locked ? 'hidden' : '';
-    document.body.style.overflow = locked ? 'hidden' : '';
   }
 
   private focusMainOnNavigate(): void {

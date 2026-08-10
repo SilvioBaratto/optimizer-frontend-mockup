@@ -5,7 +5,22 @@
   [attr.inert]="isMobile() && !isOpen() ? '' : null"
 >
   <div class="flex h-14 shrink-0 items-center border-b border-border px-4">
-    <a routerLink="/" class="text-sm font-semibold tracking-tight text-text"> Optimizer </a>
+    <!--
+      The brand is a navigation link like any other row and has to report
+      itself as one. It was the only link in here that did not: measured at
+      390x844, tapping it took the router to /dashboard while the drawer
+      stayed open over it, the backdrop stayed up, and the scroll lock stayed
+      on the root — a reader who tapped the brand landed on a page they could
+      neither see nor scroll, with no indication that anything but the menu
+      had changed.
+    -->
+    <a
+      routerLink="/"
+      class="text-sm font-semibold tracking-tight text-text"
+      (click)="navigate.emit()"
+    >
+      Optimizer
+    </a>
   </div>
 
   <nav aria-label="Primary" class="flex-1 overflow-y-auto px-2 py-3">

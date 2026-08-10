@@ -34,7 +34,14 @@ const LABEL: Record<CriterionStatus, string> = {
   selector: 'app-validation-section',
   imports: [SkeletonBlock, StatusBadge],
   templateUrl: './validation-section.html',
-  host: { class: 'block scroll-mt-32' },
+  // No `scroll-mt-*` here. It read as the jump allowance for a year and was
+  // never applied to anything: the jump targets `#{sectionId}`, which is the
+  // `<section>` inside this template, and a scroll margin only counts on the
+  // element actually being scrolled to. The allowance is written on that
+  // `<section>` by `backtest-validation`'s `goToSection`, from the pinned
+  // summary's measured height — 312px at 1440, 493px at 768, where the class
+  // said 128px at both.
+  host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ValidationSection {

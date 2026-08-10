@@ -1,6 +1,14 @@
 <section class="surface-card">
+  <!--
+    `sm:flex-wrap` is load-bearing. The action slot below is `shrink-0`, so on
+    one line it is sized to its content and cannot give any width back. On
+    Dashboard at exactly 768px the two hero cards are in a grid column 214px
+    wide while "Risk measure" plus its select measure 207px, and the row ran
+    21px past the viewport — the page's only horizontal scroll at that width.
+    Wrapping costs nothing when the row fits, which is every other case.
+  -->
   <header
-    class="flex flex-col gap-2 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+    class="flex flex-col gap-2 border-b border-border px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
   >
     <div class="flex flex-col gap-0.5">
       @if (eyebrow()) {

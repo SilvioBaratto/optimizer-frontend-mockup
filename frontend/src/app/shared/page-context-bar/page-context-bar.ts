@@ -37,7 +37,14 @@ export type ContextBarLayout = 'stack' | 'row';
   // hundred pixels for the panels the bar exists to describe. A bar that eats
   // the content is not context. `backtest-validation` and doc 25's snapshot bar
   // both reached this independently before it was centralised here.
-  host: { class: 'block md:sticky md:top-0 md:z-20' },
+  //
+  // It rests at `top-14`, not `top-0`: the shell topbar is pinned to the top of
+  // the same scroll container and is `h-14` (56px), so a bar stuck at 0 would
+  // slide underneath it and read as gone. `md:z-10` puts it one layer below
+  // that topbar's `z-20` for the same reason — where the two overlap, the
+  // topbar is the one that has to stay legible. Below `md` nothing here is
+  // pinned, so no offset is needed at those widths.
+  host: { class: 'block md:sticky md:top-14 md:z-10' },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PageContextBar {

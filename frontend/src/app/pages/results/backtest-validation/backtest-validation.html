@@ -27,8 +27,20 @@
     Sticky only from md up. Six criteria plus a verdict is a lot of chrome to
     pin to a phone screen, and below that width the page is short enough on
     content per screen that pinning it costs more than it gives.
+
+    `md:top-14` and `z-10` are the same two numbers `app-page-context-bar`
+    carries, and for the same reason: the shell topbar is pinned at `top-0`,
+    is `h-14`, and paints at `z-20`, so a bar resting at 0 would slide under
+    it and a bar at `z-20` would draw over it.
   -->
-  <div class="z-20 -mx-4 bg-surface px-4 pt-1 pb-3 md:sticky md:top-0 md:-mx-8 md:px-8">
+  <!--
+    The id is a measuring hook, not a link target: `goToSection` reads this
+    box's height to work out how far a jump has to clear it.
+  -->
+  <div
+    id="validation-summary"
+    class="z-10 -mx-4 bg-surface px-4 pt-1 pb-3 md:sticky md:top-14 md:-mx-8 md:px-8"
+  >
     <app-hero-stat-card title="Validation summary" eyebrow="Backtest">
       <div hero-action class="relative">
         <button

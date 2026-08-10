@@ -140,16 +140,29 @@ export class TurbulenceSystemic {
   });
 
   /**
-   * How far the pinned as-of bar reaches down the viewport, in pixels.
+   * How tall the pinned as-of bar is, in pixels.
+   *
+   * The topbar above it is not counted here: `styles.css` gives the scrollport
+   * a `scroll-padding-top` of the topbar's own height, and scroll padding and
+   * scroll margin are additive, so counting it again would land every jump 56px
+   * lower than asked. This is only the extra reach the bar itself adds.
    *
    * Zero unless the bar is actually stuck — below `md` it is in normal flow and
-   * a jump needs no allowance at all. Measured rather than written as a
-   * `scroll-mt-*` class because the bar is 112px at 1440, 156px at 1024 and
-   * 242px at 768: any single class is wrong at two of the three, and the one
-   * that was there put the section heading underneath the bar.
+   * a jump needs no allowance beyond the topbar's. Measured rather than written
+   * as a `scroll-mt-*` class because the bar is 111px at 1440, 155px at 1024
+   * and 225px at 768: any single class is wrong at two of the three.
+   *
+   * The element probed has to be the one that carries the sticky. This used to
+   * probe `app-turbulence-snapshot-bar`, which is `display: contents` — it
+   * never generates a box, so `position` reads `static` and the height is 0,
+   * and the guard below rejected it at every width. The 16px allowance that
+   * left behind put the heading 151px behind the bar at 1440, 195px at 1024 and
+   * 265px at 768. The unit test passed throughout, because it mocked the
+   * snapshot bar into being sticky and 242px tall — a shape that element has
+   * never had in a browser.
    */
   private stickyBarOffset(): number {
-    const bar = this.host.nativeElement.querySelector('app-turbulence-snapshot-bar');
+    const bar = this.host.nativeElement.querySelector('app-page-context-bar');
     if (!(bar instanceof HTMLElement)) return 0;
     if (globalThis.getComputedStyle?.(bar).position !== 'sticky') return 0;
     return bar.getBoundingClientRect().height;
@@ -160,8 +173,10 @@ export class TurbulenceSystemic {
    *
    * The scroll clears the pinned bar: `scrollIntoView` honours
    * `scroll-margin-top`, so the allowance is written there from the bar's
-   * measured height. Without it the jump lands the heading *behind* the bar,
-   * which is the one thing a jump link must not do.
+   * measured height. The topbar above it is the scrollport's
+   * `scroll-padding-top` and is already accounted for. Without this the jump
+   * lands the heading *behind* the bar, which is the one thing a jump link
+   * must not do.
    *
    * The anchor takes a programmatic `tabindex` so it can receive focus without
    * joining the tab order; `styles.css` suppresses the ring on those, so
