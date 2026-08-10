@@ -11,12 +11,22 @@
  * 3. the idempotency records and the position-sync lines are empty *because of
  *    the broker posture*, read from `ExecutionService`, and become non-empty
  *    the moment an adapter is registered;
- * 4. every row names a run and, where it drafted one, a trade that the fund
- *    services actually hold — so the panel's Related links are not dead ends.
+ * 4. the log and `ExecutionService` agree about *when* each trade was drafted.
+ *    That service holds one snapshot — the current run's `proposed_orders` —
+ *    while this log retains three runs, so the two can only overlap on the
+ *    newest. The current run's trade ids resolve there; a superseded run's do
+ *    not, because the next run re-proposed, and a trade id dated twice would be
+ *    the audit surface contradicting the record it audits.
+ *
+ * The fourth is checked in both directions on purpose. A test that only
+ * followed the current run's ids into `ExecutionService` would pass just as
+ * happily on data where every id resolved — which is exactly the state this
+ * file exists to keep the seed out of.
  */
 
 import { TestBed } from '@angular/core/testing';
 
+import { RETAINED_RUN_IDS } from '../models/fund-state.model';
 import type { ProposedOrder } from '../models/order.model';
 import { DECISION_TYPE_AGENT } from '../models/report-audit.model';
 import { ExecutionService } from './execution.service';
@@ -29,6 +39,29 @@ function setup(): { service: ReportAuditService; execution: ExecutionService } {
     service: TestBed.inject(ReportAuditService),
     execution: TestBed.inject(ExecutionService),
   };
+}
+
+/**
+ * The date of the newest run in the log — the only one `ExecutionService`'s
+ * snapshot can still be holding orders for.
+ *
+ * Read off the log rather than written down, so these checks keep meaning what
+ * they mean the day a fourth run is appended and the third falls out.
+ */
+function currentRunDate(service: ReportAuditService): string {
+  return service.decisions().reduce((latest, d) => (d.date > latest ? d.date : latest), '');
+}
+
+/** Every trade id the log names, mapped to the days it is dated under. */
+function tradeDates(service: ReportAuditService): Map<string, Set<string>> {
+  const dates = new Map<string, Set<string>>();
+  for (const decision of service.decisions()) {
+    if (decision.tradeId === null) continue;
+    const days = dates.get(decision.tradeId) ?? new Set<string>();
+    days.add(decision.date);
+    dates.set(decision.tradeId, days);
+  }
+  return dates;
 }
 
 // ===========================================================================
@@ -89,22 +122,181 @@ describe('ReportAuditService — cross-page vocabulary', () => {
   it('when a decision names a run, it is one of the runs the fund still holds', () => {
     const { service } = setup();
 
-    // The three runs `RiskAgentService` retains, newest first.
-    const retained = ['1247', '1246', '1245'];
+    // The retained set as the fund pages hold it, not a third copy of the list:
+    // `deliberation.spec.ts` pins the same constant against `RiskAgentService`,
+    // so a run appended there and not here fails one of the two.
     for (const decision of service.decisions()) {
-      expect(retained).toContain(decision.runId);
+      expect([...RETAINED_RUN_IDS]).toContain(decision.runId);
     }
   });
 
-  it('when a decision drafted a trade, the execution agent holds that trade', () => {
+  it('when the current run drafted a trade, the execution agent still holds that trade', () => {
     const { service, execution } = setup();
 
+    // Read from the real service, never restated here: a literal list of ids
+    // would make this a check on this file rather than a check across the two.
     const known = new Set(execution.orders().map((o: ProposedOrder) => o.id));
-    const drafted = service.decisions().filter((d) => d.tradeId !== null);
+    const today = currentRunDate(service);
+    const drafted = service
+      .decisions()
+      .filter((d) => d.tradeId !== null && d.date === today);
 
     expect(drafted.length).toBeGreaterThan(0);
     for (const decision of drafted) {
-      expect(known.has(decision.tradeId as string)).toBe(true);
+      expect([decision.id, known.has(decision.tradeId as string)]).toEqual([decision.id, true]);
+    }
+  });
+
+  it('when a superseded run drafted a trade, the current snapshot does not hold it', () => {
+    const { service, execution } = setup();
+
+    const known = new Set(execution.orders().map((o: ProposedOrder) => o.id));
+    const today = currentRunDate(service);
+    const superseded = service.decisions().filter((d) => d.tradeId !== null && d.date < today);
+
+    // The point of retaining three runs against one snapshot. #1246 proposed a
+    // schedule; #1247 re-solved it the next morning and proposed its own. Those
+    // earlier orders were never queued, so an id of theirs that resolved would
+    // put one trade under two dates — drafted on 2026-07-31 in the log, queued
+    // on 2026-08-01 in the execution agent — and leave the reader to guess.
+    expect(superseded.length).toBeGreaterThan(0);
+    for (const decision of superseded) {
+      expect([decision.id, known.has(decision.tradeId as string)]).toEqual([decision.id, false]);
+    }
+  });
+
+  /*
+    Why a superseded id is allowed not to resolve, stated as data rather than
+    as prose: the next run re-proposed the same instrument under a new id. The
+    decision panel tells the reader exactly that in place of the gate link, so
+    it has to be true of every superseded intent, not just the ones spot-read.
+  */
+  it('when a superseded run drafted a trade, the snapshot holds that instrument under a new id', () => {
+    const { service, execution } = setup();
+
+    const symbols = new Set(execution.orders().map((o: ProposedOrder) => o.symbol));
+    const today = currentRunDate(service);
+    const superseded = service.decisions().filter((d) => d.tradeId !== null && d.date < today);
+
+    expect(superseded.length).toBeGreaterThan(0);
+    for (const decision of superseded) {
+      const named = /Order intent \S+: (?:buy|sell) [\d,]+ ([A-Z]+),/.exec(decision.output[0]);
+      expect([decision.id, named?.[1] ?? null]).not.toEqual([decision.id, null]);
+      expect([decision.id, symbols.has(named?.[1] ?? '')]).toEqual([decision.id, true]);
+    }
+  });
+
+  it('when a trade is named in the log, it is dated under exactly one day', () => {
+    const { service } = setup();
+
+    const dates = tradeDates(service);
+
+    // Written as one string per trade so a drift names the trade and both days
+    // it was found under, rather than reporting "expected 2 to be 1".
+    expect(dates.size).toBeGreaterThan(0);
+    for (const [tradeId, days] of dates) {
+      expect(`${tradeId} dated ${[...days].join(' and ')}`).toBe(`${tradeId} dated ${[...days][0]}`);
+    }
+  });
+
+  it('when the current run drafted a trade, the log restates the snapshot’s own figures', () => {
+    const { service, execution } = setup();
+
+    const today = currentRunDate(service);
+    const orders = new Map(execution.orders().map((o: ProposedOrder) => [o.id, o]));
+    const drafted = service.decisions().filter((d) => d.tradeId !== null && d.date === today);
+
+    expect(drafted.length).toBeGreaterThan(0);
+    for (const decision of drafted) {
+      const order = orders.get(decision.tradeId as string);
+      expect(order).toBeDefined();
+      if (!order) continue;
+
+      // Quantity, notional, interval count, shortfall and timing risk, checked
+      // against the service that owns them rather than against a copy: this is
+      // the sentence a reader carries from the audit log to the order table.
+      const quantity = Math.abs(order.targetQuantityDelta).toLocaleString('en-US');
+      const notional = order.notionalValue.toLocaleString('en-US');
+      const prose = decision.output.join(' ');
+
+      expect(prose).toContain(
+        `Order intent ${order.id}: ${order.side} ${quantity} ${order.symbol}, notional EUR ${notional}.`,
+      );
+      expect(prose).toContain(
+        `Scheduled over ${order.trajectory.length} intervals, front-loaded; estimated implementation ` +
+          `shortfall ${order.estimatedShortfallBps} bps against ${order.estimatedRiskBps} bps of timing risk.`,
+      );
+    }
+  });
+
+  it('when a record carries an idempotency key, its date and its trade both resolve', () => {
+    const { service, execution } = setup();
+    execution.setBroker({ posture: 'connected', adapter: 'Trading 212', detail: null });
+
+    // The run date read off `ExecutionService` — the snapshot a POST would be
+    // made from — and cross-checked against the newest run in the log, so the
+    // two services have to still be talking about the same day.
+    const runDate = execution.lastRun().slice(0, 10);
+    expect(runDate).toBe(currentRunDate(service));
+
+    const orders = new Map(execution.orders().map((o: ProposedOrder) => [o.id, o]));
+    const records = service.idempotencyRecords();
+    expect(records.length).toBeGreaterThan(0);
+
+    for (const record of records) {
+      const order = orders.get(record.tradeId);
+
+      // A POST is only ever made for an order the live snapshot still holds.
+      expect([record.id, order?.symbol ?? null]).toEqual([record.id, record.symbol]);
+
+      // The key restated from its two parts, neither of them decorative.
+      expect(record.idempotencyKey).toBe(`ik_${runDate}_${record.tradeId}`);
+    }
+  });
+
+  /*
+    The rule the whole four-stage pipeline exists to enforce, checked from the
+    audit surface: the human gate is stage three and the broker adapter is
+    stage four, so a record claiming a send is a claim that somebody signed for
+    it first. A record naming an order `ExecutionService` still holds as
+    pending would have this page reporting a POST for a trade the gate says is
+    undecided — and the timestamps would be free to run backwards with it.
+  */
+  it('when a record says an intent was sent, the snapshot says a human approved it first', () => {
+    const { service, execution } = setup();
+    execution.setBroker({ posture: 'connected', adapter: 'Trading 212', detail: null });
+
+    const orders = new Map(execution.orders().map((o: ProposedOrder) => [o.id, o]));
+    const sent = service.idempotencyRecords().filter((r) => r.postedAt !== null);
+
+    expect(sent.length).toBeGreaterThan(0);
+    for (const record of sent) {
+      const order = orders.get(record.tradeId);
+      expect([record.id, order?.status ?? null]).toEqual([record.id, 'approved']);
+      expect([record.id, order?.decidedBy ?? null]).not.toEqual([record.id, null]);
+
+      // Queued, then decided, then POSTed — in that order, on the same clock.
+      const queuedAt = order?.queuedAt ?? '';
+      const decidedAt = order?.decidedAt ?? '';
+      expect([record.id, queuedAt < decidedAt]).toEqual([record.id, true]);
+      expect([record.id, decidedAt < (record.postedAt as string)]).toEqual([record.id, true]);
+    }
+  });
+
+  it('when a duplicate is suppressed, it carries the key of the send it duplicated', () => {
+    const { service, execution } = setup();
+    execution.setBroker({ posture: 'connected', adapter: 'Trading 212', detail: null });
+
+    const records = service.idempotencyRecords();
+    const suppressed = records.filter((r) => r.dedup === 'duplicate-suppressed');
+
+    expect(suppressed.length).toBeGreaterThan(0);
+    for (const duplicate of suppressed) {
+      const original = records.find(
+        (r) => r.dedup === 'unique' && r.idempotencyKey === duplicate.idempotencyKey,
+      );
+      expect(original?.tradeId).toBe(duplicate.tradeId);
+      expect(original?.symbol).toBe(duplicate.symbol);
     }
   });
 

@@ -99,11 +99,12 @@ interface OrderIntentSeed {
 /**
  * One order-intent decision.
  *
- * The figures are the ones `ExecutionService` holds for the same `TRD-…`, so a
- * reader who follows the trade id out of this log lands on a page that says the
- * same thing. Written as a template because these decisions really are one
- * step repeated per instrument; the six of them spelled out longhand would be
- * six places for those figures to drift.
+ * For the current run the figures are the ones `ExecutionService` holds for the
+ * same `TRD-…`, so a reader who follows the trade id out of this log lands on a
+ * page that says the same thing. For a superseded run they are that run's own
+ * sizing, which is what the next run replaced. Written as a template because
+ * these decisions really are one step repeated per instrument; the eleven of
+ * them spelled out longhand would be eleven places for those figures to drift.
  */
 function orderIntent(seed: OrderIntentSeed): AuditDecision {
   const verb = seed.side === 'buy' ? 'Buy' : 'Sell';
@@ -135,8 +136,28 @@ function orderIntent(seed: OrderIntentSeed): AuditDecision {
  * Three deliberation runs — #1247, #1246 and #1245, the three the fund pages
  * still hold — each walking the four agents in the order they write the state:
  * macro, allocation, risk, execution. Every row's run id resolves to a run that
- * exists elsewhere in the app and every `TRD-…` to an order `ExecutionService`
- * holds, so the panel's Related links go somewhere.
+ * exists elsewhere in the app.
+ *
+ * **Which `TRD-…` resolve, and which deliberately do not.** `ExecutionService`
+ * holds one snapshot: `proposed_orders` as the *current* run wrote them, every
+ * order queued on that run's date. This log retains three runs. So the two
+ * collections can only agree on one of them:
+ *
+ * - a trade id drafted by the **current** run (#1247, 2026-08-01) is in that
+ *   snapshot, and its quantity, notional, interval count, shortfall and timing
+ *   risk are the figures `ExecutionService` holds for the same id. A reader who
+ *   follows the Related link lands on a page that says the same thing;
+ * - a trade id drafted by a **superseded** run (#1246, #1245) is *not* in that
+ *   snapshot and must never be, because the next run re-solved the schedule and
+ *   re-proposed. Those ids sit in a lower range — `TRD-19xx`, below every id in
+ *   the seed — so the collision cannot happen by accident. A superseded id that
+ *   resolved would date the same trade twice: drafted on 2026-07-31 here,
+ *   queued at 09:14 on 2026-08-01 there, on two pages a reader is expected to
+ *   reconcile.
+ *
+ * The unresolvable ids are the record working, not a gap in it. Both directions
+ * are pinned in `report-audit.service.spec.ts`, because a check that only
+ * followed the current run's ids would pass on data where every id resolved.
  *
  * Only the order-intent rows carry a prompt hash. That is the point the page
  * exists to make legible: logging model, params and full output does not
@@ -452,13 +473,13 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     id: 'dcn_5c47e1',
     time: '17:41:52',
     runId: '1246',
-    tradeId: 'TRD-2028',
+    tradeId: 'TRD-1987',
     symbol: 'TLT',
     side: 'sell',
-    quantity: 8_100,
-    notional: '726,000',
+    quantity: 7_800,
+    notional: '699,000',
     intervals: 5,
-    shortfallBps: 11,
+    shortfallBps: 12,
     riskBps: 4,
     promptHash: '5c47e1',
     note: null,
@@ -467,14 +488,14 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     id: 'dcn_e83b2f',
     time: '17:41:55',
     runId: '1246',
-    tradeId: 'TRD-2025',
+    tradeId: 'TRD-1990',
     symbol: 'EFA',
     side: 'buy',
-    quantity: 9_200,
-    notional: '816,000',
+    quantity: 8_600,
+    notional: '763,000',
     intervals: 6,
-    shortfallBps: 19,
-    riskBps: 8,
+    shortfallBps: 18,
+    riskBps: 7,
     promptHash: 'e83b2f',
     note: null,
   }),
@@ -482,14 +503,14 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     id: 'dcn_41d0aa',
     time: '17:41:58',
     runId: '1246',
-    tradeId: 'TRD-2022',
+    tradeId: 'TRD-1993',
     symbol: 'ARKK',
     side: 'sell',
-    quantity: 1_500,
-    notional: '92,000',
+    quantity: 1_900,
+    notional: '117,000',
     intervals: 6,
-    shortfallBps: 21,
-    riskBps: 11,
+    shortfallBps: 23,
+    riskBps: 12,
     promptHash: '41d0aa',
     note: null,
   }),
@@ -600,13 +621,13 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     id: 'dcn_68fa03',
     time: '18:06:58',
     runId: '1245',
-    tradeId: 'TRD-2032',
+    tradeId: 'TRD-1976',
     symbol: 'LQD',
     side: 'buy',
-    quantity: 7_400,
-    notional: '794,000',
+    quantity: 7_000,
+    notional: '751,000',
     intervals: 6,
-    shortfallBps: 13,
+    shortfallBps: 14,
     riskBps: 5,
     promptHash: '68fa03',
     note: null,
@@ -615,13 +636,13 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     id: 'dcn_b7c412',
     time: '18:07:03',
     runId: '1245',
-    tradeId: 'TRD-2038',
+    tradeId: 'TRD-1979',
     symbol: 'IEF',
     side: 'buy',
-    quantity: 6_750,
-    notional: '656,000',
+    quantity: 6_300,
+    notional: '612,000',
     intervals: 5,
-    shortfallBps: 8,
+    shortfallBps: 9,
     riskBps: 3,
     promptHash: 'b7c412',
     note: null,
@@ -637,14 +658,46 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
  * is documented now — client-side key, pre-POST deduplication, post-send
  * reconciliation — and a tab that cannot render the requirement it documents is
  * not a record of it.
+ *
+ * **Which orders can appear here at all.** A record is the trace of a POST, and
+ * in this system nothing is POSTed that a human has not signed for: the human
+ * gate is the third of the four stages and the broker adapter is the fourth.
+ * So a record may only ever name an order `ExecutionService` holds as
+ * `approved`, with a `decidedAt` earlier than the POST it is claiming. The two
+ * approved orders in the snapshot are TRD-2028 and TRD-2025 — the same two the
+ * gate's own audit trail records as signed for manual placement — and they are
+ * the two named here. Naming a `pending` order instead would have the audit
+ * surface reporting a send for an order the gate says is still waiting to be
+ * decided, which contradicts the one rule the whole pipeline exists to enforce.
+ *
+ * The key is `ik_<run date>_<trade>`, generated client-side from the run the
+ * order belongs to and the order's own id — both parts checkable against
+ * something else in the app rather than decorative:
+ *
+ * - the date is the **current** run's, the one `ExecutionService` stamps on the
+ *   snapshot, because a POST can only ever be made for an order in it. A
+ *   superseded run's intent was re-proposed before anything could be sent, so
+ *   it never acquires a key;
+ * - the trade resolves in `ExecutionService`, with the symbol and the approval
+ *   that snapshot holds for it.
+ *
+ * Nothing else is folded in. A suffix taken from a decision's prompt hash would
+ * tie the key to the log rather than to the order, and only six of the current
+ * run's fourteen orders have an order-intent decision retained here — the two
+ * that were actually approved are not among them, so such a key could only ever
+ * be minted for an order that was never sent.
+ *
+ * A retry reuses the whole key, so the deduplicated pair below is two rows with
+ * one key naming one trade. Pinned field by field in the spec.
  */
 const SEED_IDEMPOTENCY: readonly OrderIdempotencyRecord[] = [
   {
     id: 'idem-1',
     tradeId: 'TRD-2028',
     symbol: 'TLT',
-    idempotencyKey: 'ik_2026-08-01_TRD-2028_9f31a2',
+    idempotencyKey: 'ik_2026-08-01_TRD-2028',
     dedup: 'unique',
+    // Approved at 09:44:39 in `ExecutionService`, POSTed twenty-three seconds later.
     postedAt: '09:45:02',
     reconciliation: 'reconciled',
     reconciliationNote: 'Venue state matches the recorded intent at the third poll.',
@@ -653,8 +706,9 @@ const SEED_IDEMPOTENCY: readonly OrderIdempotencyRecord[] = [
     id: 'idem-2',
     tradeId: 'TRD-2025',
     symbol: 'EFA',
-    idempotencyKey: 'ik_2026-08-01_TRD-2025_4c07e8',
+    idempotencyKey: 'ik_2026-08-01_TRD-2025',
     dedup: 'unique',
+    // Approved at 09:35:00, POSTed at 09:36:11 and still in flight.
     postedAt: '09:36:11',
     reconciliation: 'pending',
     reconciliationNote:
@@ -664,7 +718,7 @@ const SEED_IDEMPOTENCY: readonly OrderIdempotencyRecord[] = [
     id: 'idem-3',
     tradeId: 'TRD-2025',
     symbol: 'EFA',
-    idempotencyKey: 'ik_2026-08-01_TRD-2025_4c07e8',
+    idempotencyKey: 'ik_2026-08-01_TRD-2025',
     dedup: 'duplicate-suppressed',
     postedAt: null,
     reconciliation: 'reconciled',
@@ -1083,6 +1137,17 @@ export class ReportAuditService {
   );
 
   // --- orders & idempotency -------------------------------------------------
+
+  /**
+   * The trade ids `ExecutionService` still holds, for the panel's Related row.
+   *
+   * A decision names the trade it drafted whether or not that trade survived:
+   * the log retains three runs and the execution agent holds one snapshot, so a
+   * superseded run's trade was re-proposed and has no queue entry to open. Read
+   * from that service rather than listed here, so the day the snapshot changes
+   * the panel stops offering a link to something that is no longer in it.
+   */
+  readonly snapshotTradeIds = computed(() => new Set(this.execution.orders().map((o) => o.id)));
 
   /**
    * Idempotency records. Empty until an adapter exists to produce them.
