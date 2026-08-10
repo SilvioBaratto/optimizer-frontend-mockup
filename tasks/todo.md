@@ -18,7 +18,7 @@ Per-task definition of done: model → service → sub-components → page templ
 - [x] **T1.4** `shared/collection-stat-bar` — `count · category · scope`, `aria-live="polite"` *(16, 21, 24)*
 - [x] **T1.5** `shared/event-log-panel` — timestamped, collapsible, `(entrySelected)` output *(15, 18)*
 - [x] **T1.6** Sortable-header idiom: `aria-sort` + inner `<button>`; first use lands in T2.2, record it in plan §2
-- [ ] Add all five to the `pages/components/` gallery
+- [x] Add all five to the `pages/components/` gallery
 
 > **CHECKPOINT A** — `npm run typecheck && npm run lint && npm run test:ci`. Review the kit before any page imports it.
 
@@ -148,9 +148,9 @@ Per-task definition of done: model → service → sub-components → page templ
 
 ## Deferred to the final sweep
 
-- [ ] `app-entity-card`'s projected action slot is `flex shrink-0`, so it is sized at max-content and a `flex-wrap` child handed to it can never wrap. Doc 17 hit this as 163px of horizontal scroll at 320px and worked around it by moving actions into an `ActionButtonRow` beneath the card. Fix the shared component so later pages cannot hit it, then check the workaround is still wanted.
-- [ ] `SectionCardGrid`'s label uses `.eyebrow`, which uppercases, so doc 14 renders `RISKMETRICS` where its wireframe writes `RiskMetrics`. Decide whether the label should preserve case.
-- [ ] Add the five Phase 1 shared components to the `pages/components/` gallery.
+- [x] `app-entity-card`'s projected action slot is `flex shrink-0`, so it is sized at max-content and a `flex-wrap` child handed to it can never wrap. Doc 17 hit this as 163px of horizontal scroll at 320px and worked around it by moving actions into an `ActionButtonRow` beneath the card. Fix the shared component so later pages cannot hit it, then check the workaround is still wanted.
+- [x] `SectionCardGrid`'s label uses `.eyebrow`, which uppercases, so doc 14 renders `RISKMETRICS` where its wireframe writes `RiskMetrics`. Decide whether the label should preserve case.
+- [x] Add the five Phase 1 shared components to the `pages/components/` gallery.
 
 ## Final sweep (once, over all 25 pages)
 
