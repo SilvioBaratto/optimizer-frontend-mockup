@@ -74,16 +74,20 @@ describe('SnapshotBar', () => {
 
   it('when a refresh is in flight, the control refuses input and says it is busy', async () => {
     const button = host.querySelector('app-refresh-control button') as HTMLButtonElement;
-    expect(button.disabled).toBe(false);
+    expect(button.getAttribute('aria-disabled')).toBeNull();
 
     const run = service.refresh();
     fixture.detectChanges();
-    expect(button.disabled).toBe(true);
+    // aria-disabled rather than disabled, so the reader who pressed this button
+    // keeps their focus while the read is in flight; the component refuses the
+    // second press itself.
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    expect(button.disabled).toBe(false);
     expect(button.getAttribute('aria-busy')).toBe('true');
 
     await run;
     fixture.detectChanges();
-    expect(button.disabled).toBe(false);
+    expect(button.getAttribute('aria-disabled')).toBeNull();
   });
 
   it('when the viewport is narrow, the bar is in flow rather than pinned over the panels', () => {

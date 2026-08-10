@@ -19,4 +19,16 @@ export class RefreshControl {
   readonly label = input('Refresh');
   readonly busy = input(false);
   readonly refresh = output<void>();
+
+  /**
+   * Refuses the second press itself.
+   *
+   * The template marks the button `aria-disabled` rather than `disabled` while
+   * a read is in flight, so the reader who pressed it keeps their focus. That
+   * leaves the button clickable, so the guard has to live here.
+   */
+  protected onClick(): void {
+    if (this.busy()) return;
+    this.refresh.emit();
+  }
 }

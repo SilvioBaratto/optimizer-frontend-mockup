@@ -122,7 +122,10 @@ describe('MonitoringToolbar', () => {
     refresh.click();
     fixture.detectChanges();
 
-    expect(refresh.disabled).toBe(true);
+    // aria-disabled, not disabled: this is the button that started the read, so
+    // disabling it would drop the reader's focus to <body> for the duration.
+    expect(refresh.getAttribute('aria-disabled')).toBe('true');
+    expect(refresh.disabled).toBe(false);
     expect(refresh.getAttribute('aria-busy')).toBe('true');
 
     await new Promise((resolve) => setTimeout(resolve, 800));
