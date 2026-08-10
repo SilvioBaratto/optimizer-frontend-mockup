@@ -1,0 +1,148 @@
+<!--
+  Reading order is the spec's tab order: Impact measure → the radius (field then
+  slider, one value) → Save scenario → Run worst-case search.
+-->
+<app-page-context-bar heading="Stress test parameters" compact>
+  <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
+    <div class="flex flex-col gap-1">
+      <label for="st-impact-measure" class="text-xs text-text-secondary">Impact measure</label>
+      <select appSelect id="st-impact-measure" [disabled]="busy()" (change)="onMeasure($event)">
+        @for (measure of measures; track measure) {
+          <option [value]="measure" [selected]="measure === impactMeasure()">
+            {{ measureLabel[measure] }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <!--
+      One value, two views. The field states a radius exactly; the slider sweeps
+      the severity/plausibility trade-off. Neither holds a copy of `k`.
+    -->
+    <div class="flex flex-col gap-1">
+      <label for="st-k" class="text-xs text-text-secondary">Plausibility radius k</label>
+      <div class="flex flex-wrap items-center gap-3">
+        <input
+          id="st-k"
+          type="number"
+          class="min-h-11 w-24 rounded-md border border-border-control bg-surface-raised px-2 text-sm tabular-nums text-text"
+          [min]="min"
+          [max]="max"
+          [step]="step"
+          [disabled]="busy()"
+          [value]="kText()"
+          (change)="onKField($event)"
+        />
+
+        <label for="st-k-slider" class="sr-only">Plausibility radius k, slider</label>
+        <!--
+          A real range input, so a pointer can drag it and a phone gets the
+          platform control. aria-valuemin/max/now are stated rather than left
+          implicit, and aria-valuetext is what makes the announcement a reading
+          of the admissible domain rather than a bare number.
+        -->
+        <input
+          id="st-k-slider"
+          type="range"
+          class="min-h-11 min-w-40 flex-1 accent-primary"
+          [min]="min"
+          [max]="max"
+          [step]="step"
+          [disabled]="busy()"
+          [value]="k()"
+          [attr.aria-valuemin]="min"
+          [attr.aria-valuemax]="max"
+          [attr.aria-valuenow]="k()"
+          [attr.aria-valuetext]="valueText()"
+          (input)="onKSlider($event)"
+          (keydown)="onKKeydown($event)"
+        />
+
+        <p data-testid="k-readout" class="text-sm font-medium tabular-nums text-text">
+          {{ kText() }}
+        </p>
+      </div>
+    </div>
+
+    <div class="ml-auto flex flex-wrap items-center gap-2">
+      <!--
+        The bar is shared by both tabs, so what it would save is not always what
+        is on screen: run the worst case, switch to Reverse, and an unqualified
+        `Save scenario` writes a worst-case row the reader cannot see. The
+        button names the result it will store instead.
+      -->
+      <button
+        type="button"
+        appButton="secondary"
+        data-testid="save-scenario"
+        [disabled]="!canSave() || busy()"
+        (click)="onSave()"
+      >
+        Save scenario<span class="sr-only"> — the {{ savableLabel() }} result</span>
+      </button>
+
+      <!--
+        `aria-disabled` while a search runs, never `disabled`: this is the
+        button the reader just pressed, and taking it out of the tab order
+        under their finger drops focus to `<body>` for the whole search, so
+        the next Tab restarts at the top of the page. The service refuses a
+        second run on its own, so the control can stay focusable and inert.
+      -->
+      <button
+        type="button"
+        appButton="primary"
+        class="aria-disabled:opacity-50"
+        data-testid="run-worst-case"
+        [attr.aria-disabled]="busy() ? 'true' : null"
+        [attr.aria-busy]="searching() ? 'true' : null"
+        (click)="onRunWorstCase()"
+      >
+        {{ searching() ? 'Searching Ell_k…' : 'Run worst-case search' }}
+      </button>
+    </div>
+  </div>
+
+  <!--
+    The domain the radius defines, printed rather than implied, and the
+    direction the trade-off runs in. Both are read by every region below.
+  -->
+  <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs text-text-secondary">
+    <p data-testid="ellipsoid-definition" class="tabular-nums text-text">
+      {{ ellipsoidLabel() }}
+    </p>
+    <p>{{ kHint }}</p>
+    <p data-testid="measure-unit">
+      Impact read in <span class="text-text">{{ measureUnit() }}</span> —
+      {{ currentMeasureDefinition() }}
+    </p>
+  </div>
+
+  @if (canSave()) {
+    <p data-testid="savable-note" class="text-xs text-text-secondary">
+      Save scenario stores the <span class="text-text">{{ savableLabel() }}</span> result, with the
+      k and the impact measure it was computed under.
+    </p>
+  } @else {
+    <p class="text-xs text-text-secondary">{{ nothingToSaveReason }}</p>
+  }
+
+  @if (busy()) {
+    <p class="text-xs text-text-secondary">{{ busyReason }}</p>
+  }
+
+  <!--
+    The page's central rule, said out loud the moment it bites: a parameter
+    moved, nothing was recomputed, and every figure below still belongs to the
+    parameters it was computed at until somebody re-runs it.
+  -->
+  @if (anyStale()) {
+    <p
+      data-testid="toolbar-stale-note"
+      role="status"
+      class="flex items-start gap-2 rounded-md border border-border bg-surface-inset px-3 py-1.5 text-xs text-text"
+    >
+      <span aria-hidden="true">!</span>
+      <span>{{ staleNote }}</span>
+    </p>
+  }
+</app-page-context-bar>

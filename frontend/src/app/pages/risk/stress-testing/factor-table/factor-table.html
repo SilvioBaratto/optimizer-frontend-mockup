@@ -1,0 +1,151 @@
+<section aria-labelledby="st-factors-heading" class="flex flex-col gap-3">
+  <h2 id="st-factors-heading" class="text-base font-medium text-text">
+    Systematic risk factors
+  </h2>
+
+  <div class="surface-card">
+    <!-- Scrolls inside its own box so the page never scrolls sideways. -->
+    <div class="table-scroll">
+      <table class="w-full min-w-2xl text-sm">
+        <caption class="sr-only">
+          The systematic risk factors of the book. Ticking Fix pins a factor and enables its
+          scenario value field; a factor that is not pinned is held at its conditional expected
+          value given the pinned ones and its value is not editable. Last obs is the last realised
+          reading — a return for the equity and FX factors, a level for the two rates.
+        </caption>
+
+        <thead>
+          <tr class="table-head-row">
+            <th scope="col" class="px-4 py-2 text-left font-medium">Fix</th>
+            <th scope="col" class="px-2 py-2 text-left font-medium">Factor</th>
+            <th scope="col" class="px-2 py-2 text-right font-medium">Last obs</th>
+            <th scope="col" class="px-4 py-2 text-right font-medium">Scenario value</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (row of factors(); track row.id) {
+            <tr class="table-row" [attr.data-factor]="row.id">
+              <td class="px-4 py-1.5">
+                <label
+                  [for]="'st-fix-' + row.id"
+                  class="inline-flex min-h-11 min-w-11 items-center justify-center"
+                >
+                  <input
+                    type="checkbox"
+                    class="size-4 accent-primary"
+                    [id]="'st-fix-' + row.id"
+                    [attr.data-fix]="row.id"
+                    [checked]="row.fixed"
+                    [disabled]="busy()"
+                    (change)="onFix(row, $event)"
+                  />
+                  <span class="sr-only">Fix {{ row.name }}</span>
+                </label>
+              </td>
+
+              <th scope="row" class="px-2 py-1.5 text-left font-normal">
+                <span class="font-medium text-text">{{ row.name }}</span>
+                <span class="sr-only"> — {{ row.description }}</span>
+              </th>
+
+              <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">
+                {{ observation(row) }}
+              </td>
+
+              <td class="px-4 py-1.5 text-right">
+                @if (row.editable) {
+                  <span class="inline-flex items-center justify-end gap-1">
+                    <input
+                      type="number"
+                      class="min-h-11 w-28 rounded-md border border-border-control bg-surface-raised px-2 text-right text-sm tabular-nums text-text"
+                      [id]="'st-value-' + row.id"
+                      [attr.data-value]="row.id"
+                      [attr.aria-label]="fieldLabel(row)"
+                      [step]="stepFor(row)"
+                      [placeholder]="placeholderFor(row)"
+                      [disabled]="busy()"
+                      [value]="valueOf(row)"
+                      (change)="onValue(row, $event)"
+                    />
+                    <span aria-hidden="true" class="text-xs text-text-secondary">{{
+                      row.unit
+                    }}</span>
+                  </span>
+                } @else {
+                  <!--
+                    Not blank and not zero: the treatment is stated, the value it
+                    resolves to is printed, and "not editable" is a word rather
+                    than a greyed border.
+                  -->
+                  <span [attr.data-conditional]="row.id" class="inline-flex flex-col items-end">
+                    <span class="tabular-nums text-text-secondary">
+                      {{ conditionalLabel }} {{ shock(row.conditionalValue, row.unit) }}
+                    </span>
+                    <span class="text-xs text-text-secondary">({{ notEditableNote }})</span>
+                    <span class="sr-only">
+                      {{ row.name }} is held at its conditional expected value,
+                      {{ shock(row.conditionalValue, row.unit) }}, and is not editable.
+                    </span>
+                  </span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <p data-testid="unfixed-note" class="text-sm text-text">{{ unfixedNote }}</p>
+  <p class="max-w-prose text-xs text-text-secondary">{{ unfixedDetail }}</p>
+
+  @if (anyFixed()) {
+    <p data-testid="fixed-plausibility" class="text-xs text-text-secondary">
+      The pinned factors alone cost
+      <span class="tabular-nums text-text">Maha(r_C) = {{ fixedMahaText() }}</span> against a radius
+      of <span class="tabular-nums text-text">k = {{ kText() }}</span
+      >.
+      @if (!feasible()) {
+        <span data-testid="infeasible-warning" class="text-danger">
+          <span aria-hidden="true">!</span> They already sit outside Ell_k, so a worst-case search
+          constrained by them has no admissible scenario to return. Release a factor, soften a
+          shock, or raise the radius.
+        </span>
+      }
+    </p>
+  }
+
+  <!--
+    `disabled` for the precondition — nothing pinned is a standing state and the
+    reader is never focused here when it changes — but `aria-disabled` while the
+    evaluation runs: this is the button they just pressed, and disabling it takes
+    it out of the tab order and drops focus to `<body>` for the whole run.
+  -->
+  <app-action-button-row align="end">
+    <button
+      type="button"
+      appButton="secondary"
+      class="aria-disabled:opacity-50"
+      data-testid="evaluate-manual"
+      [disabled]="!canEvaluate()"
+      [attr.aria-disabled]="busy() ? 'true' : null"
+      [attr.aria-busy]="evaluating() ? 'true' : null"
+      (click)="onEvaluate()"
+    >
+      {{ evaluating() ? 'Evaluating…' : 'Evaluate manual scenario' }}
+    </button>
+  </app-action-button-row>
+
+  @if (!canEvaluate()) {
+    <p class="text-xs text-text-secondary">{{ nothingFixedReason }}</p>
+  }
+
+  <!--
+    Enabling a field two columns away is easy to miss and must not be carried by
+    the field's border alone, so it is announced politely as well.
+  -->
+  <p data-testid="fix-announcement" role="status" aria-live="polite" class="sr-only">
+    {{ announcement() }}
+  </p>
+</section>

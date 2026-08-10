@@ -1,0 +1,123 @@
+<app-section-card-grid label="Scenario summary" [columns]="3">
+  <!--
+    The reading every loss on the page is measured against. It is a result like
+    the other two and goes stale like them: it is `CEP(μ)` under one impact
+    measure, and another measure is another number rather than another label.
+  -->
+  <app-info-card title="Expected (μ)">
+    <dl class="flex flex-col gap-2 text-sm">
+      <div class="flex items-baseline justify-between gap-3">
+        <dt class="text-text-secondary">CEP(μ)</dt>
+        <dd data-testid="expected-cep" class="font-medium tabular-nums text-text">
+          {{ cep(expected().cep, expected().unit) }}
+        </dd>
+      </div>
+    </dl>
+
+    @if (expected().stale) {
+      <p data-testid="expected-stale" class="mt-3">
+        <app-status-badge [label]="staleBadge" tone="warn" />
+      </p>
+    }
+  </app-info-card>
+
+  <!-- The hand-picked scenario: whatever the reader pinned, completed by the method. -->
+  <app-info-card [title]="manualTitle()">
+    @if (evaluating()) {
+      <div data-testid="manual-skeleton" aria-busy="true" class="flex flex-col gap-2">
+        <app-skeleton-block height="h-5" [lines]="3" />
+      </div>
+    } @else if (manual(); as result) {
+      <dl class="flex flex-col gap-2 text-sm">
+        <div class="flex items-baseline justify-between gap-3">
+          <dt class="text-text-secondary">Maha(r)</dt>
+          <dd data-testid="manual-maha" class="tabular-nums text-text">{{ maha(result.maha) }}</dd>
+        </div>
+        <div class="flex items-baseline justify-between gap-3">
+          <dt class="text-text-secondary">CEP(r)</dt>
+          <dd data-testid="manual-cep" class="font-medium tabular-nums text-text">
+            {{ cep(result.cep, result.unit) }}
+          </dd>
+        </div>
+        <div class="flex items-baseline justify-between gap-3">
+          <dt class="text-text-secondary">Loss vs μ</dt>
+          <dd data-testid="manual-loss" class="tabular-nums text-text">{{ loss(result.loss) }}</dd>
+        </div>
+      </dl>
+
+      <p class="mt-2 text-xs text-text-secondary">
+        Computed at k = {{ radius(result.k) }}, in {{ result.unit }}, {{ result.computedAt }}.
+      </p>
+
+      @if (!result.withinEllipsoid) {
+        <p data-testid="manual-outside" class="mt-2 text-xs text-text-secondary">
+          <span aria-hidden="true">!</span> {{ outsideNote }}
+        </p>
+      }
+
+      @if (result.stale) {
+        <p data-testid="manual-stale" class="mt-3">
+          <app-status-badge [label]="staleBadge" tone="warn" />
+        </p>
+      }
+    } @else {
+      <p data-testid="manual-placeholder" class="text-sm text-text-secondary">
+        {{ manualPlaceholder }}
+      </p>
+    }
+  </app-info-card>
+
+  <!-- The systematic search. Empty until it has been run: the spec's placeholder. -->
+  <app-info-card [title]="worstCaseTitle()">
+    @if (searching()) {
+      <div data-testid="worst-case-skeleton" aria-busy="true" class="flex flex-col gap-2">
+        <app-skeleton-block height="h-5" [lines]="3" />
+      </div>
+    } @else if (worstCase(); as result) {
+      <dl class="flex flex-col gap-2 text-sm">
+        <div class="flex items-baseline justify-between gap-3">
+          <dt class="text-text-secondary">Maha(r_WC)</dt>
+          <dd data-testid="worst-case-maha" class="tabular-nums text-text">
+            {{ maha(result.maha) }}
+            @if (result.onBoundary) {
+              <span class="text-text-secondary">(boundary)</span>
+            }
+          </dd>
+        </div>
+        <div class="flex items-baseline justify-between gap-3">
+          <dt class="text-text-secondary">CEP(r_WC)</dt>
+          <dd data-testid="worst-case-cep" class="font-medium tabular-nums text-text">
+            {{ cep(result.cep, result.unit) }}
+          </dd>
+        </div>
+        <div class="flex items-baseline justify-between gap-3">
+          <dt class="text-text-secondary">Maximum Loss</dt>
+          <dd data-testid="worst-case-loss" class="tabular-nums text-text">
+            {{ loss(result.loss) }}
+          </dd>
+        </div>
+      </dl>
+
+      <p class="mt-2 text-xs text-text-secondary">
+        Computed at k = {{ radius(result.k) }}, in {{ result.unit }}, {{ result.computedAt }}.
+      </p>
+
+      @if (result.onBoundary) {
+        <p data-testid="boundary-note" class="mt-2 text-xs text-text-secondary">
+          {{ boundaryNote }}
+        </p>
+      }
+
+      @if (result.stale) {
+        <p data-testid="worst-case-stale" class="mt-3">
+          <app-status-badge [label]="staleBadge" tone="warn" />
+        </p>
+      }
+    } @else {
+      <p data-testid="worst-case-placeholder" class="text-sm text-text-secondary">
+        {{ worstCasePlaceholder }}
+      </p>
+      <p class="mt-1 text-xs text-text-secondary">{{ emptyDetail }}</p>
+    }
+  </app-info-card>
+</app-section-card-grid>

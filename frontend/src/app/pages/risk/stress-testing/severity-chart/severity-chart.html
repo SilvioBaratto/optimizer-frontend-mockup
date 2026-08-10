@@ -1,0 +1,43 @@
+@if (loading()) {
+  <div
+    data-testid="severity-skeleton"
+    aria-busy="true"
+    class="surface-card flex flex-col gap-2 px-4 py-4"
+  >
+    <app-skeleton-block height="h-6" [lines]="3" />
+  </div>
+} @else if (hasComparison()) {
+  <app-bar-chart
+    title="Severity comparison"
+    [subtitle]="subtitle()"
+    [ariaLabel]="ariaLabel()"
+    [categories]="categories()"
+    [series]="series()"
+    [valueFormatter]="valueFormatter()"
+    categoryAxisName="Scenario"
+    valueAxisName="CEP"
+    [height]="height"
+    [showLegend]="false"
+  >
+    <div class="flex flex-col gap-2 border-t border-border px-4 py-3 text-xs text-text-secondary">
+      @if (annotated(); as worst) {
+        <p data-testid="severity-annotation">
+          <span class="font-medium text-text">{{ worst.annotation }}</span> — the worst case is the
+          lowest CEP anywhere in Ell_k at this radius, so nothing more damaging is admitted at this
+          level of plausibility.
+        </p>
+      }
+
+      @if (staleBars().length > 0) {
+        <div data-testid="severity-stale" class="flex flex-wrap items-center gap-2">
+          <app-status-badge [label]="staleBadge" tone="warn" />
+          <span>{{ staleNames() }} — {{ staleNote }}</span>
+        </div>
+      }
+    </div>
+  </app-bar-chart>
+} @else {
+  <div class="surface-card">
+    <app-empty-state [title]="emptyMessage" [detail]="emptyDetail" />
+  </div>
+}
