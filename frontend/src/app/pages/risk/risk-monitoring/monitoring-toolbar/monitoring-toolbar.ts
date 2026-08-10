@@ -53,7 +53,14 @@ const BUSY_REASON = 'Unavailable while the risk measures are being recomputed.';
   selector: 'app-risk-monitoring-toolbar',
   imports: [PageContextBar, RefreshControl, SegmentedControl, SelectDirective],
   templateUrl: './monitoring-toolbar.html',
-  host: { class: 'block' },
+  // `contents`, not `block`: this component's only child is an
+  // app-page-context-bar, which sticks to the top of the scroll column. A
+  // sticky box is constrained by its containing block, so a wrapper with a box
+  // of its own — exactly as tall as the bar — leaves it nowhere to slide and
+  // the stickiness silently does nothing. Measured with `block`: scrolling
+  // 800px took the bar to top -620. With `contents` the wrapper generates no
+  // box and the bar sticks at 0.
+  host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MonitoringToolbar {

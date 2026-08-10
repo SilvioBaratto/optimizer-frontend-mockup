@@ -20,6 +20,15 @@ export type ContextBarLayout = 'stack' | 'row';
   selector: 'app-page-context-bar',
   templateUrl: './page-context-bar.html',
   styleUrl: './page-context-bar.css',
+  // The stickiness lives on the HOST, not on the inner div, and that placement
+  // is load-bearing. A sticky element is constrained by its containing block,
+  // which for the inner div is this host's box — exactly as tall as the bar
+  // itself, so there is no room to slide and `position: sticky` does nothing.
+  // Measured before this moved: scrolling 700px took the bar from top 180 to
+  // top -520 on every page that uses it. The host also needs an explicit
+  // display, since a custom element defaults to `inline` and an inline box
+  // cannot be positioned at all.
+  host: { class: 'sticky top-0 z-20 block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PageContextBar {
@@ -40,7 +49,7 @@ export class PageContextBar {
 
   protected readonly classes = computed(() =>
     [
-      'sticky top-0 z-20 -mx-4 border-b border-border bg-surface px-4 py-3 md:-mx-8 md:px-8',
+      '-mx-4 border-b border-border bg-surface px-4 py-3 md:-mx-8 md:px-8',
       this.layout() === 'row' ? 'flex flex-wrap items-center justify-between' : 'flex flex-col',
       this.compact() ? 'gap-2' : 'gap-3',
     ].join(' '),
