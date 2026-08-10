@@ -107,28 +107,28 @@ Per-task definition of done: model → service → sub-components → page templ
 
 ## Phase 6 — Advanced signals
 
-- [ ] **T6.1 · doc 22 · Market Regimes** — `models/market-regimes.model.ts` (imports `RegimeState` from `macro-regime.model.ts`), `services/market-regimes.service.ts`, `pages/advanced-signals/market-regimes/`
-  - [ ] Three state vocabularies stay separate: 4-state VAR, 2-state value Markov, momentum UP/DOWN — no shared colours or aligned rows
-  - [ ] ContextBridgeCard direction is `computed()` from the dominant state, never settable
-  - [ ] Size Premium `Recovery` uses `CategorySeries.pattern`, not 0
-  - [ ] Hamilton model ⟹ hero / path / statistics drop to two states; premium panels keep their own
-  - [ ] Missing series ⟹ `n/d` in those correlation cells
-  - [ ] "Stale vintage" badge; low filter confidence disables Preview/Send
-- [ ] **T6.2 · doc 23 · Factor Timing & Rotation** — `models/factor-timing.model.ts`, `services/factor-timing.service.ts`, `pages/advanced-signals/factor-timing-rotation/`
-  - [ ] Regime card reads T6.1's service; cross-link to `/advanced-signals/market-regimes`
-  - [ ] Market timing = dotted "not measured" marker, not a zero bar; expected-utility gain in a visually separate box
-  - [ ] No variant flagged "recommended"
-  - [ ] Insufficient history ⟹ excluded from the composite and labelled
-  - [ ] Trend-vs-valuation conflict marks its row and feeds the callout by reference
-  - [ ] Guardrail banner dismisses for the session only
-  - [ ] "Stale" badge when signals outrun the rebalancing interval
-- [ ] **T6.3 · doc 21 · Alternative Data & Sentiment** — `models/alt-data-sentiment.model.ts`, `services/alt-data-sentiment.service.ts`, `pages/advanced-signals/alternative-data-sentiment/`
-  - [ ] Three tabs; the two non-default tabs swap the content area while ScopeSwitcher / TabBar / footer stay put
-  - [ ] Enter drives the detail card, Space toggles include — two different things; `role="option"` + `aria-selected`
-  - [ ] Failed feed ⟹ error badge with last-good time, card still selectable
-  - [ ] Per-card method controls update the detail immediately, no save step
-  - [ ] Footer CTA disabled at zero; navigates to `/build/views-builder` with candidates preloaded
-  - [ ] Partial-coverage and staleness badges
+- [x] **T6.1 · doc 22 · Market Regimes** — `models/market-regimes.model.ts` (imports `RegimeState` from `macro-regime.model.ts`), `services/market-regimes.service.ts`, `pages/advanced-signals/market-regimes/`
+  - [x] Three state vocabularies stay separate: 4-state VAR, 2-state value Markov, momentum UP/DOWN — no shared colours or aligned rows
+  - [x] ContextBridgeCard direction is `computed()` from the dominant state, never settable
+  - [x] Size Premium `Recovery` uses `CategorySeries.pattern`, not 0
+  - [x] Hamilton model ⟹ hero / path / statistics drop to two states; premium panels keep their own
+  - [x] Missing series ⟹ `n/d` in those correlation cells
+  - [x] "Stale vintage" badge; low filter confidence disables Preview/Send
+- [x] **T6.2 · doc 23 · Factor Timing & Rotation** — `models/factor-timing.model.ts`, `services/factor-timing.service.ts`, `pages/advanced-signals/factor-timing-rotation/`
+  - [x] Regime card reads T6.1's service; cross-link to `/advanced-signals/market-regimes`
+  - [x] Market timing = dotted "not measured" marker, not a zero bar; expected-utility gain in a visually separate box
+  - [x] No variant flagged "recommended"
+  - [x] Insufficient history ⟹ excluded from the composite and labelled
+  - [x] Trend-vs-valuation conflict marks its row and feeds the callout by reference
+  - [x] Guardrail banner dismisses for the session only
+  - [x] "Stale" badge when signals outrun the rebalancing interval
+- [x] **T6.3 · doc 21 · Alternative Data & Sentiment** — `models/alt-data-sentiment.model.ts`, `services/alt-data-sentiment.service.ts`, `pages/advanced-signals/alternative-data-sentiment/`
+  - [x] Three tabs; the two non-default tabs swap the content area while ScopeSwitcher / TabBar / footer stay put
+  - [x] Enter drives the detail card, Space toggles include — two different things; `role="option"` + `aria-selected`
+  - [x] Failed feed ⟹ error badge with last-good time, card still selectable
+  - [x] Per-card method controls update the detail immediately, no save step
+  - [x] Footer CTA disabled at zero; navigates to `/build/views-builder` with candidates preloaded
+  - [x] Partial-coverage and staleness badges
 
 > **CHECKPOINT F** — 22 and 23 share one regime reading; both "send to Views Builder" paths land cleanly.
 
