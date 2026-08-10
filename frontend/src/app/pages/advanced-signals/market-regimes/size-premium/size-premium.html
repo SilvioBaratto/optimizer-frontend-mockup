@@ -1,0 +1,38 @@
+<section class="flex flex-col gap-2" aria-labelledby="mr-size-heading">
+  <h2 id="mr-size-heading" class="text-sm font-semibold text-text">
+    Size premium by regime — 4-state VAR
+  </h2>
+
+  <app-bar-chart
+    title="Small minus Large, monthly"
+    [subtitle]="modelNote()"
+    [ariaLabel]="ariaLabel()"
+    [categories]="categories()"
+    [series]="series()"
+    [valueFormatter]="barLabel"
+    [valueMax]="axisMax"
+    categoryAxisName="Regime"
+    valueAxisName="bp / month"
+    unavailableLabel="—"
+    [height]="height"
+  >
+    <div class="flex flex-col gap-1 border-t border-border px-4 py-3 text-xs text-text-secondary">
+      <p data-testid="mr-size-spread" class="text-text">
+        Max-minus-min spread across the regimes that have an estimate:
+        <span class="font-medium tabular-nums">{{ spreadLabel() }}</span>
+      </p>
+
+      <!--
+        Said in words as well as drawn: the hatch means "not measured", which is
+        a different statement from a bar of length zero, and the difference has
+        to survive for a reader who sees neither fill.
+      -->
+      @for (row of unmeasured(); track row.state) {
+        <p [attr.data-unmeasured]="row.state">
+          <span class="text-text">{{ row.state }}</span> — {{ notSpecified }}. The hatched bar marks
+          an absent estimate; it is not a premium of zero.
+        </p>
+      }
+    </div>
+  </app-bar-chart>
+</section>

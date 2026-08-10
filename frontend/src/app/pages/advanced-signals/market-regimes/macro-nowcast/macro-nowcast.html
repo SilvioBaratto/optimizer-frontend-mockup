@@ -1,0 +1,101 @@
+<section class="flex flex-col gap-2" aria-labelledby="mr-nowcast-heading">
+  <h2 id="mr-nowcast-heading" class="text-sm font-semibold text-text">
+    Macro nowcast — dynamic factor model
+  </h2>
+
+  <div class="surface-card flex flex-col gap-4 px-4 py-3">
+    <!--
+      The reading, its vintage, and the revision that vintage brought. The
+      badge beside it is a word, never a tint: a stale vintage is a fact about
+      an input, and the reader has to be able to see it in greyscale.
+    -->
+    <div class="flex flex-col gap-1">
+      <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <p class="text-lg font-semibold tabular-nums text-text">
+          GDP nowcast <span data-testid="mr-nowcast-gdp">{{ gdpLabel() }}</span>
+        </p>
+        @if (nowcast().staleVintage) {
+          <app-status-badge
+            data-testid="mr-stale-vintage"
+            [label]="staleBadge"
+            tone="warn"
+          />
+        }
+      </div>
+
+      <p class="text-xs tabular-nums text-text-secondary">
+        vintage {{ nowcast().vintage }} · {{ deltaLabel() }}
+      </p>
+
+      @if (nowcast().staleVintage) {
+        <p data-testid="mr-stale-detail" role="status" class="text-xs text-warning">
+          {{ staleDetail() }}
+        </p>
+      }
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <span class="text-xs text-text-secondary">Factors</span>
+      <app-segmented-control
+        [options]="factorOptions()"
+        [value]="factorValue()"
+        label="Number of factors"
+        (valueChange)="onFactorCount($event)"
+      />
+    </div>
+
+    <!--
+      Which variable blocks each band of factors loads on. Where the substance
+      identifies none, the band says so instead of carrying invented labels.
+    -->
+    <dl data-testid="mr-loadings" class="flex flex-col gap-1 text-xs">
+      @for (block of nowcast().loadings; track block.range) {
+        <div class="flex min-w-0 flex-wrap gap-x-2">
+          <dt class="font-medium text-text">Loadings, {{ block.range }}</dt>
+          <dd class="min-w-0 flex-1 text-text-secondary">
+            @if (block.note) {
+              {{ block.note }}
+            } @else {
+              {{ block.blocks.join(' · ') }}
+            }
+          </dd>
+        </div>
+      }
+    </dl>
+
+    <app-bullet-chart
+      title="Projection uncertainty"
+      subtitle="Share of the projection variance, common against idiosyncratic"
+      [ariaLabel]="ariaLabel()"
+      [rows]="uncertaintyRows()"
+      [domainMin]="0"
+      [domainMax]="1"
+      [valueFormatter]="share"
+      valueAxisName="Share"
+      [height]="height"
+    />
+
+    <!--
+      Every publication moves the projection by a stated amount — NEWS[i, v] is
+      the revision it caused, not the release's own value — so the sign is the
+      point and is always printed.
+    -->
+    <div class="flex flex-col gap-1">
+      <h3 class="text-sm font-medium text-text">Latest releases</h3>
+      <ul data-testid="mr-releases" class="flex flex-col gap-1 text-xs text-text-secondary">
+        @for (release of nowcast().releases; track release.id) {
+          <li class="flex min-w-0 flex-wrap gap-x-2" [attr.data-release]="release.id">
+            <span class="text-text">{{ release.series }}</span>
+            <span class="tabular-nums text-text">{{ news(release.newsPp) }}</span>
+            <span class="tabular-nums">{{ release.at }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <p class="text-xs text-text-secondary">
+      Runs beside the returns filter and never replaces it: nothing in this panel moves with the
+      Regime model or the Universe selected above.
+    </p>
+  </div>
+</section>

@@ -1,0 +1,97 @@
+@if (dominant(); as reading) {
+  <app-hero-stat-card [title]="title()" [eyebrow]="eyebrow()">
+    <div class="flex flex-col gap-4">
+      <p data-testid="mr-dominant-meta" class="text-sm tabular-nums text-text-secondary">
+        {{ meta() }}
+      </p>
+      <p class="text-sm text-text-secondary">{{ reading.description }}</p>
+
+      @if (smootherNote(); as note) {
+        <p data-testid="mr-smoother-note" class="text-xs text-text-secondary">{{ note }}</p>
+      }
+
+      <!--
+        One row per state of the selected model — four under the VAR, two under
+        Hamilton, because the list is the model's own state list and not a fixed
+        set of four slots.
+
+        The track is `aria-hidden`: the percentage to its right is the value, so
+        the bar is decoration and a screen reader hearing both would hear the
+        same number twice with no way to tell which was which.
+      -->
+      <ul data-testid="mr-probability-bars" class="flex flex-col gap-2">
+        @for (bar of bars(); track bar.state) {
+          <li
+            class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1"
+            [attr.data-state]="bar.state"
+            [attr.aria-current]="bar.modal ? 'true' : null"
+          >
+            <span class="w-28 shrink-0 text-sm text-text">{{ bar.state }}</span>
+
+            <span
+              aria-hidden="true"
+              class="h-2 min-w-24 flex-1 overflow-hidden rounded-full bg-surface-inset"
+            >
+              <span class="block h-2 rounded-full" [class]="bar.barClass" [style.width.%]="bar.probability"></span>
+            </span>
+
+            <span class="w-12 shrink-0 text-right text-sm tabular-nums text-text">
+              {{ bar.label }}
+            </span>
+
+            <!-- The word, not only the highlight: the modal state is a claim. -->
+            @if (bar.modal) {
+              <span data-testid="mr-modal-flag" class="text-xs font-medium text-primary">
+                most likely
+              </span>
+            }
+          </li>
+        }
+      </ul>
+    </div>
+  </app-hero-stat-card>
+} @else {
+  <!--
+    Nothing to estimate on. The card stays where it is rather than collapsing,
+    so the toolbar above still reads as describing something.
+  -->
+  <div class="surface-card">
+    <app-empty-state
+      data-testid="mr-dominant-empty"
+      [title]="emptyTitle"
+      [detail]="emptyDetail() ?? ''"
+    >
+      <!--
+        Both ways out of the spec's empty state, and neither of them a no-op:
+        the window button appears only when the window is not already the whole
+        axis, and the universe button actually switches to one with history
+        rather than describing the control that would.
+      -->
+      <div class="flex flex-col items-center gap-2">
+        <div class="flex flex-wrap items-center justify-center gap-2">
+          @if (canWidenWindow()) {
+            <button
+              type="button"
+              appButton="secondary"
+              data-testid="mr-reset-window"
+              (click)="resetSampleWindow()"
+            >
+              Reset the sample window
+            </button>
+          }
+          <button
+            type="button"
+            appButton="secondary"
+            data-testid="mr-switch-universe"
+            (click)="switchUniverse()"
+          >
+            Switch to {{ longestUniverse().label }}
+          </button>
+        </div>
+        <p class="text-xs text-text-secondary">
+          Or pick another universe with the Universe control in the toolbar above.
+        </p>
+      </div>
+    </app-empty-state>
+  </div>
+}

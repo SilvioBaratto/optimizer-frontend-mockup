@@ -1,0 +1,100 @@
+<section class="flex flex-col gap-2" aria-labelledby="mr-momentum-heading">
+  <h2 id="mr-momentum-heading" class="text-sm font-semibold text-text">Momentum state</h2>
+
+  <div class="surface-card flex flex-col gap-4 px-4 py-3">
+    <!--
+      A third taxonomy, said out loud. It shares no member and no colour with
+      the regime model above or with the value premium below, and a reader who
+      arrives at this panel after the other two has to be told that.
+    -->
+    <p data-testid="mr-momentum-vocabulary" class="text-xs text-text-secondary">
+      A separate state vocabulary: UP and DOWN are defined by the sign of the market's cumulative
+      return over the lookback, and are not the regime model's states.
+    </p>
+
+    <div class="flex flex-col gap-1">
+      <span class="text-xs text-text-secondary">Lookback</span>
+      <app-segmented-control
+        [options]="lookbackOptions()"
+        [value]="lookbackValue()"
+        label="Market-state lookback window"
+        (valueChange)="onLookback($event)"
+      />
+    </div>
+
+    <p class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <span class="text-sm text-text-secondary">Market state</span>
+      <span data-testid="mr-momentum-state" class="text-lg font-semibold text-text">
+        <span aria-hidden="true">{{ stateIcon() }}</span> {{ stateLabel() }}
+      </span>
+      <span class="text-xs tabular-nums text-text-secondary">{{ stateReading() }}</span>
+    </p>
+
+    <app-bar-chart
+      title="Conditional WML profit, per month"
+      subtitle="Winner-minus-loser profit conditioned on the market state that preceded it"
+      [ariaLabel]="profitAriaLabel()"
+      [categories]="profitCategories()"
+      [series]="profitSeries()"
+      [valueFormatter]="profitFormatter"
+      categoryAxisName="Holding window"
+      valueAxisName="% per month"
+      unavailableLabel="not fixed by the domain substance"
+      [height]="profitHeight"
+    />
+
+    @if (reversalNote(); as note) {
+      <p data-testid="mr-momentum-reversal" class="text-xs text-text-secondary">{{ note }}</p>
+    }
+
+    <!--
+      The crash indicator. A flag with two named conditions, never a number:
+      a continuous score would invite reading a half-armed condition as half a
+      warning, and half of this condition is not a warning at all.
+    -->
+    <div class="flex flex-col gap-2 rounded-md border border-border bg-surface-inset px-3 py-2">
+      <p class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span class="text-sm text-text-secondary">Momentum crash risk</span>
+        <span data-testid="mr-crash-risk" class="text-sm font-semibold text-text">
+          <span aria-hidden="true">{{ crashIcon() }}</span> {{ crashLabel() }}
+        </span>
+      </p>
+
+      <p data-testid="mr-crash-reason" class="text-xs text-text-secondary">
+        {{ crashRisk().reason }}
+      </p>
+
+      <ul data-testid="mr-crash-conditions" class="flex flex-col gap-1 text-xs">
+        @for (condition of crashConditions(); track condition.id) {
+          <li class="flex min-w-0 flex-wrap gap-x-2" [attr.data-condition]="condition.id">
+            <span class="text-text">
+              <span aria-hidden="true">{{ condition.holds ? '✓' : '○' }}</span>
+              {{ condition.name }}
+            </span>
+            <span class="font-medium text-text">{{ condition.holds ? 'holds' : 'does not hold' }}</span>
+            <span class="min-w-0 flex-1 tabular-nums text-text-secondary">
+              — {{ condition.reading }}
+            </span>
+          </li>
+        }
+      </ul>
+
+      <p class="text-xs text-text-secondary">
+        Armed only when both conditions hold together. Either one alone leaves it off.
+      </p>
+    </div>
+
+    <app-bar-chart
+      title="WML Sharpe by weighting"
+      subtitle="Constant weight, volatility-scaled, and the full dynamic rule"
+      [ariaLabel]="sharpeAriaLabel()"
+      [categories]="sharpeCategories()"
+      [series]="sharpeSeries()"
+      [valueFormatter]="sharpeFormatter"
+      categoryAxisName="Weighting"
+      valueAxisName="Sharpe"
+      [height]="sharpeHeight"
+      [showLegend]="false"
+    />
+  </div>
+</section>

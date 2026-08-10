@@ -1,0 +1,92 @@
+<section class="flex flex-col gap-2" aria-labelledby="mr-statistics-heading">
+  <h2 id="mr-statistics-heading" class="text-sm font-semibold text-text">{{ heading() }}</h2>
+
+  <div class="surface-card">
+    @if (rows().length > 0) {
+      <!-- Scrolls inside its own box so the page never scrolls sideways. -->
+      <div class="table-scroll">
+        <table class="w-full min-w-3xl text-sm">
+          <caption class="sr-only">
+            One row per state of the selected model. The stationary probability and the average
+            duration come from the fitted transition matrix; the mean return and the volatility are
+            monthly readings on the selected universe conditional on the state. The two correlation
+            columns print only the values the domain substance fixes — a dash where it fixes none
+            for that regime, and n/d where the selected universe has no such pair.
+          </caption>
+
+          <thead>
+            <tr class="table-head-row">
+              <th scope="col" class="px-4 py-2 text-left font-medium">Regime</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">Stat. prob.</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">Avg. dur.</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">Mean return</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">Volatility</th>
+              <th scope="col" class="px-2 py-2 text-right font-medium">Large–Small ρ</th>
+              <th scope="col" class="px-4 py-2 text-right font-medium">Equity–Bond ρ</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (row of rows(); track row.state) {
+              <tr class="table-row" [attr.data-regime]="row.state">
+                <th scope="row" class="px-4 py-1.5 text-left font-normal text-text">
+                  {{ row.state }}
+                </th>
+                <td class="px-2 py-1.5 text-right tabular-nums text-text">
+                  {{ probability(row.stationaryProbability) }}
+                </td>
+                <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">
+                  {{ duration(row.averageDurationMonths) }}
+                </td>
+                <td class="px-2 py-1.5 text-right tabular-nums text-text">
+                  {{ moment(row.meanReturn) }}
+                </td>
+                <td class="px-2 py-1.5 text-right tabular-nums text-text">
+                  {{ moment(row.volatility) }}
+                </td>
+                <td
+                  class="px-2 py-1.5 text-right tabular-nums text-text"
+                  [attr.data-large-small]="row.state"
+                >
+                  {{ cell(row.largeSmall) }}
+                </td>
+                <td
+                  class="px-4 py-1.5 text-right tabular-nums text-text"
+                  [attr.data-equity-bond]="row.state"
+                >
+                  {{ cell(row.equityBond) }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!--
+        A key to the correlation columns, once, out of the cells. `<dl>` rather
+        than a paragraph: it is a key to a symbol, and the pairing survives into
+        the accessibility tree.
+      -->
+      <dl
+        data-testid="mr-correlation-legend"
+        class="flex flex-col gap-1 border-t border-border px-4 py-2 text-xs text-text-secondary"
+      >
+        @for (note of noteLegend(); track note.label) {
+          <div class="flex min-w-0 flex-wrap gap-x-2">
+            <dt class="font-medium text-text">{{ note.label }}</dt>
+            <dd class="min-w-0 flex-1">{{ note.detail }}</dd>
+          </div>
+        }
+      </dl>
+    } @else {
+      <!--
+        The dependent table stays where it is and carries the same contextual
+        message as the hero card above, rather than disappearing and taking a
+        column layout with it.
+      -->
+      <p data-testid="mr-statistics-empty" role="status" class="px-4 py-6 text-sm text-text-secondary">
+        {{ emptyDetail() }}
+      </p>
+    }
+  </div>
+</section>

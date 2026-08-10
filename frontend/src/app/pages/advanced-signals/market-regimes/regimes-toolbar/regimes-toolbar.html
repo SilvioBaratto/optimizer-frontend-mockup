@@ -1,0 +1,143 @@
+<!--
+  Reading order left to right, top to bottom, and also the order of what each
+  control costs: the two that re-fit the filter, then the window it is fitted
+  over, then the basis it is read on, then the stamp and the re-run.
+-->
+<app-page-context-bar heading="Market regime controls" compact>
+  <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
+    <!--
+      `aria-disabled`, never `disabled`, on all four selects. A run is queued by
+      the control the reader has just operated, and the `disabled` attribute
+      takes that control out of the tab order mid-interaction: measured at 320
+      and at 1280, focus went from the select to `<body>` and never came back,
+      so a keyboard reader lost their place on every model, universe or window
+      change. The handler refuses the change and puts the visible value back
+      instead — the same idiom `attribution-toolbar` uses.
+    -->
+    <div class="flex min-w-0 flex-col gap-1">
+      <label for="mr-model" class="text-xs text-text-secondary">Regime model</label>
+      <select
+        appSelect
+        id="mr-model"
+        class="max-w-64 min-w-0 aria-disabled:opacity-50"
+        aria-describedby="mr-model-definition"
+        [attr.aria-disabled]="busy() ? 'true' : null"
+        [attr.aria-busy]="busy() ? 'true' : null"
+        (change)="onModel($event)"
+      >
+        @for (option of models; track option) {
+          <option [value]="option" [selected]="option === model()">{{ modelLabel[option] }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="flex min-w-0 flex-col gap-1">
+      <label for="mr-universe" class="text-xs text-text-secondary">Universe</label>
+      <select
+        appSelect
+        id="mr-universe"
+        class="max-w-64 min-w-0 aria-disabled:opacity-50"
+        aria-describedby="mr-universe-detail"
+        [attr.aria-disabled]="busy() ? 'true' : null"
+        [attr.aria-busy]="busy() ? 'true' : null"
+        (change)="onUniverse($event)"
+      >
+        @for (option of universes; track option.id) {
+          <option [value]="option.id" [selected]="option.id === universeId()">
+            {{ option.label }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <span class="text-xs text-text-secondary">Probability</span>
+      <app-segmented-control
+        [options]="basisOptions()"
+        [value]="basisValue()"
+        label="Probability basis"
+        (valueChange)="onBasis($event)"
+      />
+    </div>
+
+    <!--
+      Two month selects rather than a free text range: `da` must precede `a`,
+      and the whole of both axes is enumerable, so there is nothing to parse
+      and nothing to mistype.
+    -->
+    <div class="flex min-w-0 flex-col gap-1">
+      <label for="mr-sample-from" class="text-xs text-text-secondary">Sample from</label>
+      <select
+        appSelect
+        id="mr-sample-from"
+        class="min-w-0 aria-disabled:opacity-50"
+        [attr.aria-disabled]="busy() ? 'true' : null"
+        [attr.aria-busy]="busy() ? 'true' : null"
+        [attr.aria-invalid]="windowError() ? 'true' : null"
+        [attr.aria-describedby]="windowError() ? 'mr-sample-error' : 'mr-sample-note'"
+        (change)="onSampleFrom($event)"
+      >
+        @for (month of months; track month) {
+          <option [value]="month" [selected]="month === sampleFrom()">{{ month }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="flex min-w-0 flex-col gap-1">
+      <label for="mr-sample-to" class="text-xs text-text-secondary">Sample to</label>
+      <select
+        appSelect
+        id="mr-sample-to"
+        class="min-w-0 aria-disabled:opacity-50"
+        [attr.aria-disabled]="busy() ? 'true' : null"
+        [attr.aria-busy]="busy() ? 'true' : null"
+        [attr.aria-invalid]="windowError() ? 'true' : null"
+        [attr.aria-describedby]="windowError() ? 'mr-sample-error' : 'mr-sample-note'"
+        (change)="onSampleTo($event)"
+      >
+        @for (month of months; track month) {
+          <option [value]="month" [selected]="month === sampleTo()">{{ month }}</option>
+        }
+      </select>
+    </div>
+
+    <!--
+      The stamp is read-only and says so: it is the moment the estimate below
+      was computed, and nothing on this page can set it but a completed run.
+    -->
+    <div class="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+      <p data-testid="mr-updated" class="text-xs text-text-secondary">
+        Updated <span class="tabular-nums text-text">{{ lastUpdated() }}</span>
+      </p>
+      <app-refresh-control [busy]="busy()" (refresh)="onRefresh()" />
+    </div>
+  </div>
+
+  <!--
+    The three secondary lines. Each one describes the control above it rather
+    than repeating its label, and each is pointed at by `aria-describedby` so a
+    screen reader hears the definition with the control and not after it.
+  -->
+  <div class="flex flex-col gap-1 text-xs text-text-secondary">
+    <p id="mr-model-definition" data-testid="mr-model-definition">
+      {{ modelDefinition[model()] }}
+    </p>
+    <p id="mr-universe-detail" data-testid="mr-universe-detail">
+      {{ universe().label }} — {{ universe().detail }}
+    </p>
+    <p data-testid="mr-basis-definition">{{ basisDefinition[basisValue()] }}</p>
+
+    @if (windowError(); as error) {
+      <!--
+        An out-of-order window is refused before it can queue a run, so this is
+        an announcement about input the reader just gave — assertive, and the
+        page below lands on its empty state rather than on a failed estimate.
+      -->
+      <p id="mr-sample-error" data-testid="mr-sample-error" role="alert" class="text-danger">
+        <span aria-hidden="true">!</span> {{ error }}
+      </p>
+    } @else {
+      <p id="mr-sample-note" data-testid="mr-sample-note">{{ sampleNote() }}</p>
+    }
+  </div>
+</app-page-context-bar>

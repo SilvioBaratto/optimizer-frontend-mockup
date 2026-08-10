@@ -1,0 +1,27 @@
+<section class="flex flex-col gap-2" aria-labelledby="mr-value-heading">
+  <h2 id="mr-value-heading" class="text-sm font-semibold text-text">
+    Value premium by volatility state — 2-state Markov
+  </h2>
+
+  <app-bar-chart
+    title="Value minus growth, annualised"
+    [subtitle]="modelNote"
+    [ariaLabel]="ariaLabel()"
+    [categories]="categories()"
+    [series]="series()"
+    [valueFormatter]="formatter"
+    categoryAxisName="Volatility state"
+    valueAxisName="% per year"
+    [height]="height"
+    [showLegend]="false"
+  >
+    <p
+      data-testid="mr-value-vocabulary"
+      class="border-t border-border px-4 py-3 text-xs text-text-secondary"
+    >
+      Its own state vocabulary, estimated on book-to-market portfolios: neither row here corresponds
+      to a regime of the Size Premium panel above, and the toolbar's Regime model does not change
+      this panel.
+    </p>
+  </app-bar-chart>
+</section>
