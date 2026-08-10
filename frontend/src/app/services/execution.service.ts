@@ -62,6 +62,19 @@ function schedule(total: number, intervals: number, decay: number): readonly num
  * was solved and no cost or risk was published for them. They stay at the
  * pre-trade check with `—` in both estimate columns rather than a made-up
  * number, and the service pins them there.
+ *
+ * **`queuedAt` is not the run clock.** It is when the trade entered the
+ * *pipeline* — `ApprovalGateService` renders it as the first checkpoint of the
+ * trade's audit trail, "Queued at Pre-trade check" — and it spans 07:37:42 to
+ * 09:52:57, far wider than the 09:10:41 → 09:14:20 window run #1247's decisions
+ * sit in. That is not a contradiction: a run re-solves the standing pipeline,
+ * and a re-proposal that leaves a trade's sizing alone does not re-queue it or
+ * reset the waiting time a person has been accruing against it. So a trade can
+ * carry a `queuedAt` earlier than the order intent that drafted it — five of
+ * the fourteen below do — and `GuardrailService` already records TRD-2019
+ * passing the pre-trade check at 08:41, over half an hour before the run opened
+ * at 09:10:41. The field's own meaning is stated where it is declared, on
+ * `ProposedOrder.queuedAt` in `models/order.model.ts`.
  */
 const SEED_ORDERS: readonly ProposedOrder[] = [
   // --- human gate ----------------------------------------------------------
@@ -113,6 +126,10 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
     stage: 'human-gate',
     status: 'pending',
     statusReason: null,
+    // In the pipeline since before run #1247 opened at 09:10:41, and still
+    // waiting on a person: doc 16 shows it at 02:15:33, the longest wait on the
+    // queue. Run #1247 re-proposed it unchanged, which is why its audit-log
+    // intent is stamped 09:14:13 and its entry here is not.
     queuedAt: '07:37:42',
     waitingSeconds: 8133,
     decidedAt: null,
@@ -170,6 +187,7 @@ const SEED_ORDERS: readonly ProposedOrder[] = [
     status: 'rejected',
     statusReason:
       'Rejected at the gate — the sleeve is being wound down through a separate programme trade this week.',
+    // Also in the pipeline before the run, and re-proposed unchanged by it.
     queuedAt: '08:52:31',
     waitingSeconds: 1649,
     decidedAt: '09:20:00',

@@ -80,6 +80,21 @@ const RUN_DATE: Record<string, string> = {
   '1245': '2026-07-30',
 };
 
+/**
+ * The solved trajectory behind an intent — all three figures or none of them.
+ *
+ * Grouped rather than three optional fields because in `ExecutionService` they
+ * stand or fall together: an order with no priced trajectory has `trajectory:
+ * []`, `estimatedShortfallBps: null` and `estimatedRiskBps: null`, and no order
+ * has one without the others. Three independently-nullable numbers would let
+ * this log state an interval count for a schedule that was never solved.
+ */
+interface OrderIntentSchedule {
+  readonly intervals: number;
+  readonly shortfallBps: number;
+  readonly riskBps: number;
+}
+
 interface OrderIntentSeed {
   readonly id: string;
   readonly time: string;
@@ -89,9 +104,14 @@ interface OrderIntentSeed {
   readonly side: 'buy' | 'sell';
   readonly quantity: number;
   readonly notional: string;
-  readonly intervals: number;
-  readonly shortfallBps: number;
-  readonly riskBps: number;
+  /**
+   * The schedule the agent solved, or `null` when it could not solve one.
+   *
+   * `null` is a value, not a gap: HYG and SLV came back without an intraday
+   * volume profile, so run #1247 published no cost and no risk for either. The
+   * intent says that in words instead of carrying a figure nothing produced.
+   */
+  readonly schedule: OrderIntentSchedule | null;
   readonly promptHash: string;
   readonly note: string | null;
 }
@@ -101,17 +121,22 @@ interface OrderIntentSeed {
  *
  * For the current run the figures are the ones `ExecutionService` holds for the
  * same `TRD-…`, so a reader who follows the trade id out of this log lands on a
- * page that says the same thing. For a superseded run they are that run's own
- * sizing, which is what the next run replaced. Written as a template because
- * these decisions really are one step repeated per instrument; the eleven of
- * them spelled out longhand would be eleven places for those figures to drift.
+ * page that says the same thing — including the two orders for which the figure
+ * it holds is `null`. For a superseded run they are that run's own sizing, which
+ * is what the next run replaced. Written as a template because these decisions
+ * really are one step repeated per instrument; the nineteen of them spelled out
+ * longhand would be nineteen places for those figures to drift.
  */
 function orderIntent(seed: OrderIntentSeed): AuditDecision {
-  const verb = seed.side === 'buy' ? 'Buy' : 'Sell';
+  const { schedule } = seed;
   const output = [
-    `Order intent ${seed.tradeId}: ${verb.toLowerCase()} ${seed.quantity.toLocaleString('en-US')} ${seed.symbol}, notional EUR ${seed.notional}.`,
-    `Scheduled over ${seed.intervals} intervals, front-loaded; estimated implementation shortfall ${seed.shortfallBps} bps against ${seed.riskBps} bps of timing risk.`,
-    'No broker adapter is configured, so the intent stops at the human gate and nothing is sent.',
+    `Order intent ${seed.tradeId}: ${seed.side} ${seed.quantity.toLocaleString('en-US')} ${seed.symbol}, notional EUR ${seed.notional}.`,
+    schedule
+      ? `Scheduled over ${schedule.intervals} intervals, front-loaded; estimated implementation shortfall ${schedule.shortfallBps} bps against ${schedule.riskBps} bps of timing risk.`
+      : 'Scheduling incomplete — the intraday volume profile came back short, so no trajectory was solved and neither an implementation shortfall nor a timing risk is published for this order.',
+    schedule
+      ? 'No broker adapter is configured, so the intent stops at the human gate and nothing is sent.'
+      : 'With nothing priced to approve the order is pinned to the deterministic pre-trade check, so it never reaches the human gate and nothing is sent.',
   ];
   if (seed.note) output.splice(2, 0, seed.note);
 
@@ -139,14 +164,16 @@ function orderIntent(seed: OrderIntentSeed): AuditDecision {
  * exists elsewhere in the app.
  *
  * **Which `TRD-…` resolve, and which deliberately do not.** `ExecutionService`
- * holds one snapshot: `proposed_orders` as the *current* run wrote them, every
- * order queued on that run's date. This log retains three runs. So the two
- * collections can only agree on one of them:
+ * holds one snapshot: `proposed_orders` as the *current* run wrote them, all
+ * fourteen of them stamped on that run's date. This log retains three runs. So
+ * the two collections can only agree on one of them:
  *
  * - a trade id drafted by the **current** run (#1247, 2026-08-01) is in that
  *   snapshot, and its quantity, notional, interval count, shortfall and timing
  *   risk are the figures `ExecutionService` holds for the same id. A reader who
- *   follows the Related link lands on a page that says the same thing;
+ *   follows the Related link lands on a page that says the same thing. All
+ *   fourteen are here: an order in the snapshot with no decision that drafted it
+ *   is a hole in the record, not a shorter list;
  * - a trade id drafted by a **superseded** run (#1246, #1245) is *not* in that
  *   snapshot and must never be, because the next run re-solved the schedule and
  *   re-proposed. Those ids sit in a lower range — `TRD-19xx`, below every id in
@@ -159,10 +186,28 @@ function orderIntent(seed: OrderIntentSeed): AuditDecision {
  * are pinned in `report-audit.service.spec.ts`, because a check that only
  * followed the current run's ids would pass on data where every id resolved.
  *
+ * **Why five intents are timestamped after their trade was already queued.**
+ * Run #1247's decisions run 09:10:52 → 09:14:20: they open just after the
+ * 09:10:41 at which `DeliberationService` starts the run and close past its last
+ * checkpoint at 09:14:07, as `ExecutionService.TOOL_CALLS` already does with a
+ * `propose_orders` call at 09:14:12. `ExecutionService.queuedAt` spans
+ * 07:37:42 → 09:52:57, which is a far wider window and not the same clock.
+ * Neither is wrong: `queuedAt` is when a trade entered the *pipeline*, which
+ * `ApprovalGateService` renders as the first checkpoint of its audit trail
+ * ("Queued at Pre-trade check"), and a re-proposal that leaves a trade's sizing
+ * alone does not re-queue it and does not reset the waiting time a person has
+ * been accruing against it. TRD-2019 and TRD-2022 were in the pipeline before
+ * the run opened, and their own entries say so: TRD-2019 queued at 07:37:42 and
+ * recorded by `GuardrailService` passing the pre-trade check at 08:41, TRD-2022
+ * queued at 08:52:31. Their intents say so in words too. The alternative,
+ * back-dating execution decisions out of the run's own window, would put an
+ * order intent before the `schedule-solve` that produced it and before the macro
+ * view it was sized against.
+ *
  * Only the order-intent rows carry a prompt hash. That is the point the page
  * exists to make legible: logging model, params and full output does not
  * require reproducibility, and the absence of a hash on eighteen of these
- * twenty-nine rows is the expected state of the system, not a gap in it.
+ * thirty-seven rows is the expected state of the system, not a gap in it.
  */
 const SEED_DECISIONS: readonly AuditDecision[] = [
   // --- run #1247 · 2026-08-01 ----------------------------------------------
@@ -282,9 +327,7 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     side: 'buy',
     quantity: 12_400,
     notional: '2,460,000',
-    intervals: 5,
-    shortfallBps: 18,
-    riskBps: 6,
+    schedule: { intervals: 5, shortfallBps: 18, riskBps: 6 },
     promptHash: 'a1f9c3',
     note: null,
   }),
@@ -297,9 +340,7 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     side: 'sell',
     quantity: 4_900,
     notional: '1,980,000',
-    intervals: 5,
-    shortfallBps: 14,
-    riskBps: 5,
+    schedule: { intervals: 5, shortfallBps: 14, riskBps: 5 },
     promptHash: '7d20b8',
     note: null,
   }),
@@ -312,9 +353,7 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     side: 'buy',
     quantity: 5_600,
     notional: '231,000',
-    intervals: 6,
-    shortfallBps: 24,
-    riskBps: 9,
+    schedule: { intervals: 6, shortfallBps: 24, riskBps: 9 },
     promptHash: '3e91da',
     note: 'Flagged by the rules engine: the single-name concentration limit stops this one at rule validation.',
   }),
@@ -327,9 +366,7 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     side: 'sell',
     quantity: 900,
     notional: '484,000',
-    intervals: 4,
-    shortfallBps: 5,
-    riskBps: 2,
+    schedule: { intervals: 4, shortfallBps: 5, riskBps: 2 },
     promptHash: 'c05b47',
     note: null,
   }),
@@ -342,9 +379,7 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     side: 'buy',
     quantity: 1_800,
     notional: '383,000',
-    intervals: 5,
-    shortfallBps: 7,
-    riskBps: 3,
+    schedule: { intervals: 5, shortfallBps: 7, riskBps: 3 },
     promptHash: '9b16fe',
     note: null,
   }),
@@ -357,10 +392,119 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     side: 'sell',
     quantity: 2_150,
     notional: '187,000',
-    intervals: 6,
-    shortfallBps: 16,
-    riskBps: 7,
+    schedule: { intervals: 6, shortfallBps: 16, riskBps: 7 },
     promptHash: '2ad7c9',
+    note: null,
+  }),
+  orderIntent({
+    id: 'dcn_0a4e17',
+    time: '09:14:13',
+    runId: '1247',
+    tradeId: 'TRD-2019',
+    symbol: 'QQQ',
+    side: 'sell',
+    quantity: 5_000,
+    notional: '1,900,000',
+    schedule: { intervals: 4, shortfallBps: 9, riskBps: 4 },
+    promptHash: '0a4e17',
+    note:
+      'Re-proposed unchanged. This trade was already in the pipeline when the run started, so it keeps the ' +
+      'entry stamp and the waiting time already accrued against it rather than being queued afresh.',
+  }),
+  orderIntent({
+    id: 'dcn_6f13c8',
+    time: '09:14:14',
+    runId: '1247',
+    tradeId: 'TRD-2028',
+    symbol: 'TLT',
+    side: 'sell',
+    quantity: 8_100,
+    notional: '726,000',
+    schedule: { intervals: 5, shortfallBps: 11, riskBps: 4 },
+    promptHash: '6f13c8',
+    note: null,
+  }),
+  orderIntent({
+    id: 'dcn_d2079b',
+    time: '09:14:15',
+    runId: '1247',
+    tradeId: 'TRD-2025',
+    symbol: 'EFA',
+    side: 'buy',
+    quantity: 9_200,
+    notional: '816,000',
+    schedule: { intervals: 6, shortfallBps: 19, riskBps: 8 },
+    promptHash: 'd2079b',
+    note: null,
+  }),
+  orderIntent({
+    id: 'dcn_8c5a34',
+    time: '09:14:16',
+    runId: '1247',
+    tradeId: 'TRD-2022',
+    symbol: 'ARKK',
+    side: 'sell',
+    quantity: 1_500,
+    notional: '92,000',
+    schedule: { intervals: 6, shortfallBps: 21, riskBps: 11 },
+    promptHash: '8c5a34',
+    note:
+      'Re-proposed unchanged. This trade was already in the pipeline when the run started, so it keeps the ' +
+      'entry stamp and the waiting time already accrued against it rather than being queued afresh.',
+  }),
+  orderIntent({
+    id: 'dcn_b40e6d',
+    time: '09:14:17',
+    runId: '1247',
+    tradeId: 'TRD-2032',
+    symbol: 'LQD',
+    side: 'buy',
+    quantity: 7_400,
+    notional: '794,000',
+    schedule: { intervals: 6, shortfallBps: 13, riskBps: 5 },
+    promptHash: 'b40e6d',
+    note: null,
+  }),
+  orderIntent({
+    id: 'dcn_e57c21',
+    time: '09:14:18',
+    runId: '1247',
+    tradeId: 'TRD-2038',
+    symbol: 'IEF',
+    side: 'buy',
+    quantity: 6_750,
+    notional: '656,000',
+    schedule: { intervals: 5, shortfallBps: 8, riskBps: 3 },
+    promptHash: 'e57c21',
+    note: null,
+  }),
+  // The two the volume profile defeated. `schedule: null` is the whole point:
+  // the run published no cost and no risk for either, and the `schedule-solve`
+  // row three decisions above says so in the same words.
+  orderIntent({
+    id: 'dcn_1fd93e',
+    time: '09:14:19',
+    runId: '1247',
+    tradeId: 'TRD-2036',
+    symbol: 'HYG',
+    side: 'sell',
+    quantity: 3_200,
+    notional: '251,000',
+    schedule: null,
+    promptHash: '1fd93e',
+    note: null,
+  }),
+  orderIntent({
+    id: 'dcn_a86b05',
+    time: '09:14:20',
+    runId: '1247',
+    tradeId: 'TRD-2037',
+    symbol: 'SLV',
+    side: 'buy',
+    quantity: 14_500,
+    notional: '412,000',
+    schedule: null,
+    promptHash: 'a86b05',
     note: null,
   }),
 
@@ -478,9 +622,7 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     side: 'sell',
     quantity: 7_800,
     notional: '699,000',
-    intervals: 5,
-    shortfallBps: 12,
-    riskBps: 4,
+    schedule: { intervals: 5, shortfallBps: 12, riskBps: 4 },
     promptHash: '5c47e1',
     note: null,
   }),
@@ -493,9 +635,7 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     side: 'buy',
     quantity: 8_600,
     notional: '763,000',
-    intervals: 6,
-    shortfallBps: 18,
-    riskBps: 7,
+    schedule: { intervals: 6, shortfallBps: 18, riskBps: 7 },
     promptHash: 'e83b2f',
     note: null,
   }),
@@ -508,9 +648,7 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     side: 'sell',
     quantity: 1_900,
     notional: '117,000',
-    intervals: 6,
-    shortfallBps: 23,
-    riskBps: 12,
+    schedule: { intervals: 6, shortfallBps: 23, riskBps: 12 },
     promptHash: '41d0aa',
     note: null,
   }),
@@ -626,9 +764,7 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     side: 'buy',
     quantity: 7_000,
     notional: '751,000',
-    intervals: 6,
-    shortfallBps: 14,
-    riskBps: 5,
+    schedule: { intervals: 6, shortfallBps: 14, riskBps: 5 },
     promptHash: '68fa03',
     note: null,
   }),
@@ -641,9 +777,7 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
     side: 'buy',
     quantity: 6_300,
     notional: '612,000',
-    intervals: 5,
-    shortfallBps: 9,
-    riskBps: 3,
+    schedule: { intervals: 5, shortfallBps: 9, riskBps: 3 },
     promptHash: 'b7c412',
     note: null,
   }),
@@ -670,32 +804,33 @@ const SEED_DECISIONS: readonly AuditDecision[] = [
  * surface reporting a send for an order the gate says is still waiting to be
  * decided, which contradicts the one rule the whole pipeline exists to enforce.
  *
- * The key is `ik_<run date>_<trade>`, generated client-side from the run the
- * order belongs to and the order's own id — both parts checkable against
- * something else in the app rather than decorative:
+ * The key is `ik_<run date>_<trade>_<prompt hash>`, generated client-side from
+ * the run the order belongs to, the order's own id and the intent that drafted
+ * it — all three parts checkable against something else in the app rather than
+ * decorative:
  *
  * - the date is the **current** run's, the one `ExecutionService` stamps on the
  *   snapshot, because a POST can only ever be made for an order in it. A
  *   superseded run's intent was re-proposed before anything could be sent, so
  *   it never acquires a key;
  * - the trade resolves in `ExecutionService`, with the symbol and the approval
- *   that snapshot holds for it.
- *
- * Nothing else is folded in. A suffix taken from a decision's prompt hash would
- * tie the key to the log rather than to the order, and only six of the current
- * run's fourteen orders have an order-intent decision retained here — the two
- * that were actually approved are not among them, so such a key could only ever
- * be minted for an order that was never sent.
+ *   that snapshot holds for it;
+ * - the hash is the one on that order's order-intent decision above. It is what
+ *   makes the key name a *wording* and not only a trade: the intent is the text
+ *   copied onto the ticket, so a re-drafted intent is a different POST. Every
+ *   order in the current snapshot now has such a decision, TRD-2028 and TRD-2025
+ *   included, so the suffix is always available to check.
  *
  * A retry reuses the whole key, so the deduplicated pair below is two rows with
- * one key naming one trade. Pinned field by field in the spec.
+ * one key naming one trade. Pinned field by field in the spec, where the hash is
+ * looked up in the log rather than restated.
  */
 const SEED_IDEMPOTENCY: readonly OrderIdempotencyRecord[] = [
   {
     id: 'idem-1',
     tradeId: 'TRD-2028',
     symbol: 'TLT',
-    idempotencyKey: 'ik_2026-08-01_TRD-2028',
+    idempotencyKey: 'ik_2026-08-01_TRD-2028_6f13c8',
     dedup: 'unique',
     // Approved at 09:44:39 in `ExecutionService`, POSTed twenty-three seconds later.
     postedAt: '09:45:02',
@@ -706,7 +841,7 @@ const SEED_IDEMPOTENCY: readonly OrderIdempotencyRecord[] = [
     id: 'idem-2',
     tradeId: 'TRD-2025',
     symbol: 'EFA',
-    idempotencyKey: 'ik_2026-08-01_TRD-2025',
+    idempotencyKey: 'ik_2026-08-01_TRD-2025_d2079b',
     dedup: 'unique',
     // Approved at 09:35:00, POSTed at 09:36:11 and still in flight.
     postedAt: '09:36:11',
@@ -718,7 +853,7 @@ const SEED_IDEMPOTENCY: readonly OrderIdempotencyRecord[] = [
     id: 'idem-3',
     tradeId: 'TRD-2025',
     symbol: 'EFA',
-    idempotencyKey: 'ik_2026-08-01_TRD-2025',
+    idempotencyKey: 'ik_2026-08-01_TRD-2025_d2079b',
     dedup: 'duplicate-suppressed',
     postedAt: null,
     reconciliation: 'reconciled',
@@ -1296,7 +1431,7 @@ export class ReportAuditService {
   /**
    * The last export's receipt, and only while it is still true.
    *
-   * It names a count, a view and a format — "Exported 29 decisions from
+   * It names a count, a view and a format — "Exported 37 decisions from
    * Decision Log as CSV" — so it is a claim about the set on screen, not a
    * transient toast. Every setter that moves the query or the tab calls
    * `clearExportNotice()`, because the moment the reader narrows to six rows

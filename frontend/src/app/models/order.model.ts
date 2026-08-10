@@ -174,7 +174,20 @@ export interface ProposedOrder {
    * `approved` (which reading of "approved" applies under the current posture).
    */
   readonly statusReason: string | null;
-  /** When the order entered the queue, `HH:MM:SS` against `lastRun`'s date. */
+  /**
+   * When the trade entered the **pipeline**, `HH:MM:SS` against `lastRun`'s date.
+   *
+   * Not the run clock, and not necessarily later than the order-intent decision
+   * that drafted the trade. A deliberation run re-solves a pipeline that was
+   * already standing, and a re-proposal which leaves a trade's sizing alone does
+   * not re-queue it or reset the waiting time a person has been accruing against
+   * it — so a trade can carry an entry stamp older than the run that last
+   * proposed it. `ApprovalGateService` renders this as the first checkpoint of
+   * the trade's audit trail, "Queued at Pre-trade check", and the order-intent
+   * rows in `ReportAuditService` are dated against their run rather than against
+   * this. Reading it as "when the run drafted the order" is what makes those two
+   * surfaces look like they disagree when they do not.
+   */
   readonly queuedAt: string;
   /**
    * Seconds spent waiting at the current stage. Frozen at the decision for an

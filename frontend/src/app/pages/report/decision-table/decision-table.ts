@@ -27,8 +27,12 @@ const SKELETON_ROWS = [0, 1, 2, 3, 4, 5, 6, 7];
  * hash prints `—` with `not logged` as its accessible name, in ordinary body
  * type: it is neither an error nor a blank. The models this fund runs do not
  * guarantee reproducibility, so a decision with no hash is the expected case —
- * eighteen of the twenty-nine rows in the seed — and styling it as a warning
- * would tell the reader to go and fix something that is working as designed.
+ * most of the rows in the log — and styling it as a warning would tell the
+ * reader to go and fix something that is working as designed.
+ *
+ * The count is deliberately not restated here. `ReportAuditService` states it
+ * once and `report-audit.service.spec.ts` pins it; a second copy in a comment
+ * beside a table that renders the real figure is how it goes stale.
  *
  * Two empty states, and only one of them offers a reset. "No decisions match
  * these filters" has filters to clear; "No decisions logged yet" does not, and

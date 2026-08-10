@@ -160,7 +160,7 @@ describe('Report page', () => {
 
     await pending;
     fixture.detectChanges();
-    expect(host.querySelector('app-collection-stat-bar')!.textContent).toContain('29 decisions');
+    expect(host.querySelector('app-collection-stat-bar')!.textContent).toContain('37 decisions');
   });
 
   it('when the log is being read, the placeholder region is marked busy', async () => {

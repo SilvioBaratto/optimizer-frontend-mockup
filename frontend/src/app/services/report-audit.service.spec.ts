@@ -1,7 +1,7 @@
 /**
  * The audit log's own invariants.
  *
- * Four of them are the reason doc 24 exists at all and none of them is visible
+ * Five of them are the reason doc 24 exists at all and none of them is visible
  * from a screenshot, so they are pinned here rather than left to the page:
  *
  * 1. every decision carries a model, its parameters and a non-empty full
@@ -16,12 +16,19 @@
  *    while this log retains three runs, so the two can only overlap on the
  *    newest. The current run's trade ids resolve there; a superseded run's do
  *    not, because the next run re-proposed, and a trade id dated twice would be
- *    the audit surface contradicting the record it audits.
+ *    the audit surface contradicting the record it audits;
+ * 5. the overlap is *total*, not partial. Every order the snapshot holds has
+ *    exactly one order-intent decision in the current run and no current-run
+ *    intent names a trade the snapshot does not hold. A log that covers eight
+ *    of fourteen orders answers "what did the agents decide?" with a shorter
+ *    list than the one the execution page shows, and says nothing about the
+ *    missing six — including, at one point, an order a human had approved.
  *
- * The fourth is checked in both directions on purpose. A test that only
- * followed the current run's ids into `ExecutionService` would pass just as
- * happily on data where every id resolved — which is exactly the state this
- * file exists to keep the seed out of.
+ * The fourth and fifth are checked in both directions on purpose. A test that
+ * only followed the current run's ids into `ExecutionService` would pass just as
+ * happily on data where every id resolved, or on data where the log drafted a
+ * third of the queue — which is exactly the state this file exists to keep the
+ * seed out of.
  */
 
 import { TestBed } from '@angular/core/testing';
@@ -199,6 +206,38 @@ describe('ReportAuditService — cross-page vocabulary', () => {
     }
   });
 
+  /*
+    The invariant the log exists to satisfy, in both directions at once.
+
+    An audit log whose subject is "every decision the agents made" is not
+    allowed to hold a drafting decision for some of the queue: a reader
+    auditing an order that a person has already approved has to find the
+    reasoning that produced it. And the converse — an intent for a trade the
+    snapshot never held — would be the log inventing a trade the execution
+    page cannot show.
+
+    Both sides are read live out of `ExecutionService`. A literal list of ids
+    here would turn a check across the two services into a check on this file,
+    and would go on passing the day a fifteenth order is queued.
+  */
+  it('when the current run is read against the snapshot, every order has exactly one order-intent and every intent an order', () => {
+    const { service, execution } = setup();
+
+    const today = currentRunDate(service);
+    const drafted = service
+      .decisions()
+      .filter((d) => d.type === 'order-intent' && d.date === today)
+      .map((d) => d.tradeId as string);
+    const queued = execution.orders().map((o: ProposedOrder) => o.id);
+
+    expect(queued.length).toBeGreaterThan(0);
+
+    // Sorted multisets: a missing intent shortens the left side, a duplicate or
+    // an intent for a trade that was never queued lengthens it, and the failure
+    // names the trades rather than reporting "expected 6 to be 14".
+    expect([...drafted].sort()).toEqual([...queued].sort());
+  });
+
   it('when the current run drafted a trade, the log restates the snapshot’s own figures', () => {
     const { service, execution } = setup();
 
@@ -206,7 +245,8 @@ describe('ReportAuditService — cross-page vocabulary', () => {
     const orders = new Map(execution.orders().map((o: ProposedOrder) => [o.id, o]));
     const drafted = service.decisions().filter((d) => d.tradeId !== null && d.date === today);
 
-    expect(drafted.length).toBeGreaterThan(0);
+    // Every order in the snapshot, not a hand-picked subset of it.
+    expect(drafted.length).toBe(orders.size);
     for (const decision of drafted) {
       const order = orders.get(decision.tradeId as string);
       expect(order).toBeDefined();
@@ -222,6 +262,18 @@ describe('ReportAuditService — cross-page vocabulary', () => {
       expect(prose).toContain(
         `Order intent ${order.id}: ${order.side} ${quantity} ${order.symbol}, notional EUR ${notional}.`,
       );
+
+      // An order the agent could not price has no figure to restate, so the
+      // intent has to say so and must not have invented one to fill the
+      // sentence. "n bps" is the only shape a cost or a risk takes in this log.
+      if (order.estimatedShortfallBps === null || order.estimatedRiskBps === null) {
+        expect([order.id, order.trajectory.length]).toEqual([order.id, 0]);
+        expect(prose).toContain('Scheduling incomplete');
+        expect([order.id, /\d+ bps/.test(prose)]).toEqual([order.id, false]);
+        expect([order.id, /\bnull\b/.test(prose)]).toEqual([order.id, false]);
+        continue;
+      }
+
       expect(prose).toContain(
         `Scheduled over ${order.trajectory.length} intervals, front-loaded; estimated implementation ` +
           `shortfall ${order.estimatedShortfallBps} bps against ${order.estimatedRiskBps} bps of timing risk.`,
@@ -229,7 +281,7 @@ describe('ReportAuditService — cross-page vocabulary', () => {
     }
   });
 
-  it('when a record carries an idempotency key, its date and its trade both resolve', () => {
+  it('when a record carries an idempotency key, its date, its trade and its intent all resolve', () => {
     const { service, execution } = setup();
     execution.setBroker({ posture: 'connected', adapter: 'Trading 212', detail: null });
 
@@ -249,8 +301,20 @@ describe('ReportAuditService — cross-page vocabulary', () => {
       // A POST is only ever made for an order the live snapshot still holds.
       expect([record.id, order?.symbol ?? null]).toEqual([record.id, record.symbol]);
 
-      // The key restated from its two parts, neither of them decorative.
-      expect(record.idempotencyKey).toBe(`ik_${runDate}_${record.tradeId}`);
+      // The third part of the key is the prompt hash of the intent that drafted
+      // this trade, looked up in the log rather than restated here: the key
+      // names a wording, so a re-drafted intent is a different POST.
+      const intent = service
+        .decisions()
+        .find(
+          (d) => d.type === 'order-intent' && d.date === runDate && d.tradeId === record.tradeId,
+        );
+      expect([record.id, intent?.promptHash ?? null]).not.toEqual([record.id, null]);
+
+      // The key restated from its three parts, none of them decorative.
+      expect(record.idempotencyKey).toBe(
+        `ik_${runDate}_${record.tradeId}_${intent?.promptHash ?? ''}`,
+      );
     }
   });
 
@@ -631,8 +695,8 @@ describe('ReportAuditService — summary, export and lifecycle', () => {
 
     service.setAgentFilter('macro');
 
-    // "Exported 29 decisions from Decision Log" is a claim about the set on
-    // screen; six rows later it is no longer one.
+    // "Exported 37 decisions from Decision Log" is a claim about the set on
+    // screen; nine rows later it is no longer one.
     expect(service.exportNotice()).toBeNull();
   });
 
@@ -651,7 +715,7 @@ describe('ReportAuditService — summary, export and lifecycle', () => {
     const total = service.decisions().length;
     const unhashed = service.decisions().filter((d) => d.promptHash === null).length;
 
-    expect(total).toBe(29);
+    expect(total).toBe(37);
     expect(unhashed).toBe(18);
   });
 
