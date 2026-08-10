@@ -35,7 +35,7 @@ describe('PageContextBar', () => {
 
   // --- stickiness ---
   //
-  // These four assertions exist because the bar shipped for months with
+  // These assertions exist because the bar shipped for months with
   // `position: sticky` on its inner div, where it did nothing: a sticky box is
   // constrained by its containing block, and the inner div's containing block
   // is the host, which is exactly as tall as the bar. Measured on a real page,
@@ -44,7 +44,7 @@ describe('PageContextBar', () => {
   // are asserted, because either one alone is inert.
 
   it('when rendered, the host itself carries the sticky position', () => {
-    expect(bar().classList.contains('sticky')).toBe(true);
+    expect(bar().classList.contains('md:sticky')).toBe(true);
   });
 
   it('when rendered, the host has an explicit block display so it can be positioned', () => {
@@ -54,7 +54,16 @@ describe('PageContextBar', () => {
   });
 
   it('when rendered, the host is offset to the top of the scroll container', () => {
-    expect(bar().classList.contains('top-0')).toBe(true);
+    expect(bar().classList.contains('md:top-0')).toBe(true);
+  });
+
+  it('when the viewport is narrow, the bar is in flow rather than pinned over the content', () => {
+    // Below `md` these bars collapse to one column and get tall: measured at
+    // 320x800, 403px on Risk Monitoring, 473px on Stress Testing and 699px on
+    // Risk Attribution — 87% of the viewport. Pinned, they leave about a
+    // hundred pixels for the content they exist to describe.
+    expect(bar().className).not.toMatch(/(^|\s)sticky(\s|$)/);
+    expect(bar().className).not.toMatch(/(^|\s)top-0(\s|$)/);
   });
 
   it('when rendered, the inner surface does not also claim sticky', () => {

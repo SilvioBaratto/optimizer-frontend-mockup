@@ -1,8 +1,10 @@
-<app-key-metrics-row [metrics]="metrics()">
-  <!--
-    The refresh re-runs every indicator on the page, so it is disabled while
-    that run is in flight rather than removed — a control that vanishes takes
-    the reader's place in the tab order with it.
-  -->
-  <app-refresh-control label="Refresh" [busy]="busy()" (refresh)="onRefresh()" />
-</app-key-metrics-row>
+<app-page-context-bar heading="Snapshot the indicators were computed on">
+  <app-key-metrics-row [metrics]="metrics()" [flush]="true">
+    <!--
+      The refresh re-runs every indicator on the page, so it is disabled while
+      that run is in flight rather than removed — a control that vanishes takes
+      the reader's place in the tab order with it.
+    -->
+    <app-refresh-control label="Refresh" [busy]="busy()" (refresh)="onRefresh()" />
+  </app-key-metrics-row>
+</app-page-context-bar>

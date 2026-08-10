@@ -90,14 +90,33 @@ describe('SnapshotBar', () => {
     expect(button.getAttribute('aria-disabled')).toBeNull();
   });
 
+  it('when the bar renders, it is the same context bar every other page uses', () => {
+    // It used to stick from its own host with the metrics row drawing its own
+    // card. That stuck, but a card is sized to the content column while a
+    // context bar bleeds past the page gutter — measured at 1440, 803/1200
+    // against the bar's 771/1264, so the panels scrolled visibly through the
+    // 32px strip on each side as they passed underneath.
+    const contextBar = host.querySelector('app-page-context-bar');
+    expect(contextBar).not.toBeNull();
+    expect(contextBar!.querySelector('app-key-metrics-row')).not.toBeNull();
+  });
+
+  it('when the bar renders, the metrics row draws no card of its own', () => {
+    // The context bar around it already owns a surface; a second one would
+    // paint a white panel on the page surface and nest `.surface-card`'s
+    // below-`sm` bleed inside the bar's.
+    const surface = host.querySelector('app-key-metrics-row > div');
+    expect(surface!.className).not.toContain('surface-card');
+  });
+
   it('when the viewport is narrow, the bar is in flow rather than pinned over the panels', () => {
     // Four metrics collapse to one column below `sm` and the bar measures 410px
     // at 320px wide — pinned, it would hold half an 800px viewport and most of
-    // a 320x568 phone. It sticks from `md`, where it is 112-242px.
-    expect(host.className).toContain('block');
-    expect(host.className).not.toMatch(/(^|\s)sticky(\s|$)/);
-    expect(host.className).toContain('md:sticky');
-    expect(host.className).toContain('md:top-0');
+    // a 320x568 phone. That judgement now lives on PageContextBar, so every
+    // page shares it rather than this one differing.
+    const contextBar = host.querySelector('app-page-context-bar')!;
+    expect(contextBar.className).toContain('md:sticky');
+    expect(contextBar.className).not.toMatch(/(^|\s)sticky(\s|$)/);
   });
 
   it('when a refresh completes, the stamp moves forward and the age resets', async () => {

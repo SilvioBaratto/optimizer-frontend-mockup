@@ -1,6 +1,4 @@
-<div
-  class="surface-card flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
->
+<div [class]="surfaceClass()">
   <dl [class]="listClass()">
     @for (metric of metrics(); track $index) {
       <!--

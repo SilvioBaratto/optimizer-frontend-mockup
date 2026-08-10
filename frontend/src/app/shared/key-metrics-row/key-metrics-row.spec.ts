@@ -302,6 +302,25 @@ describe('KeyMetricsRow — single surface and column count', () => {
     expect(cards[0].contains(list(f))).toBe(true);
   });
 
+  it('when flush is set, no card surface is drawn', async () => {
+    // Doc 25 puts this region inside `app-page-context-bar`, which already owns
+    // a surface, a bottom border and the bleed past the page gutter. A card
+    // inside that bar paints a white panel on the page surface and nests
+    // `.surface-card`'s own below-`sm` negative margin inside the bar's.
+    const f = await setup(FOUR_METRICS);
+    f.componentRef.setInput('flush', true);
+    f.detectChanges();
+
+    expect(root(f).querySelectorAll('.surface-card').length).toBe(0);
+    // The layout it is responsible for survives; only the chrome goes.
+    expect(list(f)).not.toBeNull();
+  });
+
+  it('when flush is not set, the card is drawn, so the two content callers are unchanged', async () => {
+    const f = await setup(FOUR_METRICS);
+    expect(root(f).querySelectorAll('.surface-card').length).toBe(1);
+  });
+
   it('when 4 metrics are supplied, the list is 1 column, 2 at sm and 4 from lg', async () => {
     const f = await setup(FOUR_METRICS);
     const cls = list(f).className;

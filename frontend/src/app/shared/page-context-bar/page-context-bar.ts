@@ -20,15 +20,24 @@ export type ContextBarLayout = 'stack' | 'row';
   selector: 'app-page-context-bar',
   templateUrl: './page-context-bar.html',
   styleUrl: './page-context-bar.css',
-  // The stickiness lives on the HOST, not on the inner div, and that placement
-  // is load-bearing. A sticky element is constrained by its containing block,
-  // which for the inner div is this host's box — exactly as tall as the bar
-  // itself, so there is no room to slide and `position: sticky` does nothing.
-  // Measured before this moved: scrolling 700px took the bar from top 180 to
-  // top -520 on every page that uses it. The host also needs an explicit
-  // display, since a custom element defaults to `inline` and an inline box
-  // cannot be positioned at all.
-  host: { class: 'sticky top-0 z-20 block' },
+  // Two things are load-bearing here.
+  //
+  // The stickiness lives on the HOST, not on the inner div. A sticky element is
+  // constrained by its containing block, which for the inner div is this host's
+  // box — exactly as tall as the bar itself, so there is no room to slide and
+  // `position: sticky` does nothing. Measured before this moved: scrolling
+  // 700px took the bar from top 180 to top -520 on every page using it. The
+  // host also needs an explicit display, since a custom element defaults to
+  // `inline` and an inline box cannot be positioned at all.
+  //
+  // It sticks from `md` up, not at every width. These bars carry a page's whole
+  // parameter set, and below `md` their controls collapse to one column: at
+  // 320x800 the bar measures 403px on Risk Monitoring, 473px on Stress Testing
+  // and 699px on Risk Attribution — 87% of the viewport, leaving about a
+  // hundred pixels for the panels the bar exists to describe. A bar that eats
+  // the content is not context. `backtest-validation` and doc 25's snapshot bar
+  // both reached this independently before it was centralised here.
+  host: { class: 'block md:sticky md:top-0 md:z-20' },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PageContextBar {

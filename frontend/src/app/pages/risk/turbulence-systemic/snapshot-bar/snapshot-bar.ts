@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 
 import { TurbulenceService } from '../../../../services/turbulence.service';
 import { KeyMetricsRow, type KeyMetric } from '../../../../shared/key-metrics-row/key-metrics-row';
+import { PageContextBar } from '../../../../shared/page-context-bar/page-context-bar';
 import { RefreshControl } from '../../../../shared/refresh-control/refresh-control';
 
 /**
@@ -19,24 +20,29 @@ import { RefreshControl } from '../../../../shared/refresh-control/refresh-contr
  * takes a badge as well, so a dated reading is a word and a glyph rather than a
  * shade of the same sentence.
  *
- * Sticky at the top of the content area, per the region note — but only from
- * `md` up, which is the same call `pages/results/backtest-validation` makes for
- * the same reason. Four metrics collapse to one column below `sm`, and measured
- * at 320px the bar is 410px tall: pinned, it would hold 51% of an 800px viewport
- * and 72% of a 320x568 phone, leaving a third of a screen for the panels the
- * bar exists to describe. A bar that eats the content is not context. From `md`
- * the row is two or four columns and 112-242px, which is what "sticky in cima
- * all'area contenuto" was drawn as.
+ * Sticky at the top of the content area, per the region note — through
+ * `app-page-context-bar`, the same region every other page's toolbar uses.
  *
- * The host carries the `sticky` utility rather than a wrapper:
- * `app-key-metrics-row` is already a block for exactly this reason, and a
- * wrapper would put the card's mobile bleed inside a second box.
+ * It used to carry `md:sticky` on this host with the metrics row rendering its
+ * own card. That stuck, but it was not the same object as the other pages' bars
+ * and it showed: the card is sized to the content column, while a context bar
+ * bleeds past the page gutter. Measured at 1440, the card sat at left 803 width
+ * 1200 against the bar's 771/1264 — so the 32px gutter on each side was
+ * uncovered and the panels scrolled visibly through those two strips as they
+ * passed underneath. It also painted a white card surface where the rest of the
+ * app paints the page surface with a bottom border.
+ *
+ * The `md`-only stickiness was the right call and is not lost: it moved onto
+ * `PageContextBar` itself, so every page behaves this way now rather than this
+ * one differing. `[flush]` drops the metrics row's card surface, since the bar
+ * around it already owns one — two surfaces would also nest `.surface-card`'s
+ * below-`sm` bleed inside the bar's.
  */
 @Component({
   selector: 'app-turbulence-snapshot-bar',
-  imports: [KeyMetricsRow, RefreshControl],
+  imports: [KeyMetricsRow, PageContextBar, RefreshControl],
   templateUrl: './snapshot-bar.html',
-  host: { class: 'block md:sticky md:top-0 md:z-20' },
+  host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SnapshotBar {

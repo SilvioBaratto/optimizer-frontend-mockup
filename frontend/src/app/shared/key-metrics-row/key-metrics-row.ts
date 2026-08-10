@@ -71,6 +71,27 @@ export class KeyMetricsRow {
   readonly metrics = input.required<readonly KeyMetric[]>();
 
   /**
+   * Drops the card surface, for a caller whose wrapper already owns one.
+   *
+   * Docs 18 and 19 use this region as content: a card among cards, which is
+   * what it should look like. Doc 25 uses it as the page's context bar, where
+   * `app-page-context-bar` supplies the surface, the bottom border and the
+   * bleed past the page gutter. Rendering the card inside that bar would paint
+   * a white panel on the page surface and nest `.surface-card`'s own below-`sm`
+   * negative margin inside the bar's, which is two bleeds where the layout
+   * wants one.
+   *
+   * Off by default, so the two content callers are unchanged.
+   */
+  readonly flush = input(false);
+
+  protected readonly surfaceClass = computed(() =>
+    this.flush()
+      ? 'flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'
+      : 'surface-card flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start sm:justify-between',
+  );
+
+  /**
    * One column at 320px, two from `sm`, then one column per metric from `lg`.
    * Capped at four: a fifth figure on one row stops being readable before it
    * stops fitting.
