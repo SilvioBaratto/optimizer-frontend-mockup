@@ -1,0 +1,89 @@
+<section aria-labelledby="ft-cycles-heading" class="flex flex-col gap-2">
+  <h2 id="ft-cycles-heading" class="text-sm font-semibold text-text">
+    {{ windowYears }}Y rolling factor excess return vs market
+  </h2>
+
+  <app-line-chart
+    title="Rolling excess return"
+    [subtitle]="subtitle()"
+    [ariaLabel]="ariaLabel()"
+    [x]="years()"
+    [series]="series()"
+    [valueFormatter]="formatter"
+    xAxisName="Year"
+    yAxisName="% a year"
+    [showLegend]="false"
+    [height]="height"
+  >
+    <div class="flex flex-col gap-2 border-t border-border px-4 py-3">
+      <!--
+        The legend, as buttons.
+
+        The chart's own legend lives inside a canvas: no focus, no Tab, nothing
+        announced. These carry `aria-pressed`, so the shown/hidden state of each
+        line is spoken, and each has a second control that isolates it in one
+        press rather than making the reader clear five others by hand.
+      -->
+      <div role="group" aria-label="Lines in view" class="flex flex-wrap items-center gap-2">
+        @for (chip of chips(); track chip.factor) {
+          <span class="inline-flex items-center rounded-md border border-border">
+            <button
+              type="button"
+              class="inline-flex min-h-11 items-center gap-2 rounded-l-md px-3 text-sm font-medium transition-colors hover:bg-surface-inset"
+              [class.text-text]="chip.shown"
+              [class.text-text-tertiary]="!chip.shown"
+              [attr.aria-pressed]="chip.shown"
+              [attr.aria-disabled]="chip.locked ? 'true' : null"
+              [attr.title]="chip.locked ? singleLineHint : null"
+              [attr.data-legend-chip]="chip.factor"
+              (click)="toggle(chip.factor)"
+            >
+              <!--
+                Glyph first, swatch second: the filled/hollow ring says shown or
+                hidden without colour, and the swatch says *which line* — the
+                chart's own legend is off, so without this nothing on screen
+                maps a colour back to a factor.
+              -->
+              <span aria-hidden="true">{{ chip.shown ? '●' : '○' }}</span>
+              <span
+                aria-hidden="true"
+                class="h-0.5 w-4 rounded-full"
+                [style.background-color]="chip.shown ? chip.colour : 'transparent'"
+                [style.outline]="chip.shown ? 'none' : '1px dashed currentColor'"
+                [attr.data-legend-swatch]="chip.factor"
+              ></span>
+              {{ chip.label }}
+            </button>
+            <button
+              type="button"
+              class="inline-flex min-h-11 items-center rounded-r-md border-l border-border px-2 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-inset hover:text-text"
+              [attr.data-legend-isolate]="chip.factor"
+              (click)="isolate(chip.factor)"
+            >
+              Only
+            </button>
+          </span>
+        }
+
+        <button
+          type="button"
+          class="min-h-11 rounded-md px-3 text-sm font-medium text-primary underline underline-offset-2 transition-colors hover:bg-primary-light"
+          data-testid="ft-legend-show-all"
+          (click)="showAll()"
+        >
+          Show all
+        </button>
+      </div>
+
+      @if (onlyOneLine()) {
+        <!--
+          Not an error state: one line draws perfectly well. It is simply not a
+          comparison, and the panel says which thing is missing.
+        -->
+        <p data-testid="ft-single-line-hint" role="status" class="text-xs text-text-secondary">
+          {{ singleLineHint }}
+        </p>
+      }
+    </div>
+  </app-line-chart>
+</section>

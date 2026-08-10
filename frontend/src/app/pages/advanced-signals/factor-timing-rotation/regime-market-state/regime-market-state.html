@@ -1,0 +1,107 @@
+<section aria-labelledby="ft-regime-heading" class="flex flex-col gap-2">
+  <h2 id="ft-regime-heading" class="text-sm font-semibold text-text">Regime &amp; market state</h2>
+
+  <app-info-card>
+    <h3 appCardTitle>{{ sharedNote }}</h3>
+
+    @if (failed()) {
+      <!--
+        A local failure, not a page one. The signals below this card are the
+        last set that did compute and stay on screen marked stale; only the
+        regime reading is missing, and only it is retried from here.
+      -->
+      <app-error-state
+        data-testid="ft-regime-error"
+        [message]="errorMessage"
+        [detail]="errorDetail"
+        cause="load"
+        (retry)="retry()"
+      />
+    } @else {
+      <div class="flex flex-col gap-3 text-sm">
+        <!-- 1 · The market trend state, over the toolbar's window. -->
+        <dl class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <dt class="min-w-0 text-text-secondary">Market trend state, {{ trend().window }}</dt>
+          <dd data-testid="ft-trend-state" class="flex min-w-0 flex-wrap items-center gap-2">
+            <app-status-badge [label]="trend().state" [tone]="trend().tone" />
+            <span class="text-text">
+              <span aria-hidden="true">{{ trend().icon }}</span>
+              {{ flags().bear }}, {{ flags().volatility }}
+            </span>
+          </dd>
+        </dl>
+        <p data-testid="ft-crash-reason" class="text-xs text-text-secondary">
+          <span aria-hidden="true">{{ flags().icon }}</span>
+          Momentum crash indicator {{ flags().reason }}. Realised volatility (126d)
+          {{ flags().realised }} against a {{ flags().threshold }} threshold.
+        </p>
+
+        @if (unavailable()) {
+          <!--
+            No estimate at all. A placeholder in words rather than a row of
+            zeros: a zero probability is a claim, and the filter made none.
+          -->
+          <p data-testid="ft-regime-empty" class="text-text-secondary">{{ emptyNote }}</p>
+        } @else {
+          <!-- 2 · The value chain's two volatility states. -->
+          <dl class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <dt class="min-w-0 text-text-secondary">Value regime, 2-state Markov</dt>
+            <dd class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
+              @for (row of valueRegimeRows(); track row.state) {
+                <span
+                  class="tabular-nums text-text"
+                  [attr.data-value-regime]="row.state"
+                  [title]="row.label"
+                >
+                  {{ row.label }} <span class="font-medium">{{ row.probability }}</span>
+                  <span class="text-text-secondary">· premium {{ row.premium }}</span>
+                </span>
+              }
+            </dd>
+          </dl>
+          <p data-testid="ft-value-regime-source" class="text-xs text-text-secondary">
+            {{ sourceNote }}
+          </p>
+
+          <!-- 3 · The multi-asset regime, state by state. -->
+          <dl class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <dt class="min-w-0 text-text-secondary">
+              Multi-asset, Hamilton filter — {{ modelLabel() }}
+            </dt>
+            <dd
+              data-testid="ft-regime-states"
+              class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1"
+            >
+              @for (row of regimeStates(); track row.state) {
+                <span class="tabular-nums text-text" [attr.data-regime-state]="row.state">
+                  {{ row.state }} <span class="font-medium">{{ row.probability }}</span>
+                </span>
+              }
+            </dd>
+          </dl>
+
+          @if (uncertain()) {
+            <!--
+              The badge carries a word and the line beside it carries the
+              reason. A tint alone would leave the reader to guess which of the
+              readings above is the one not to lean on.
+            -->
+            <p data-testid="ft-regime-uncertain" class="flex flex-wrap items-center gap-2">
+              <app-status-badge [label]="uncertainLabel" tone="warn" />
+              <span class="text-xs text-text-secondary">{{ uncertainDetail }}</span>
+            </p>
+          }
+        }
+      </div>
+    }
+
+    <!--
+      The exit that makes the sharing checkable: the same estimate, on the page
+      that owns it.
+    -->
+    <p class="mt-3 flex flex-wrap items-center gap-2 text-xs text-text-secondary">
+      <span>This reading is the shared regime filter, not a second one.</span>
+      <app-cross-page-link label="Open in Market Regimes" [route]="marketRegimesRoute" />
+    </p>
+  </app-info-card>
+</section>

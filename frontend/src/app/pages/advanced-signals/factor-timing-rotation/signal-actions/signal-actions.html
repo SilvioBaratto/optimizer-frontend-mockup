@@ -1,0 +1,72 @@
+<!--
+  The cross-reference the doc asks for in the line above the actions: the regime
+  state here is one shared estimate, and both pages that own a view of it are
+  one press away.
+-->
+<p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-text-secondary">
+  <span data-testid="ft-shared-regime-note">{{ sharedNote }}</span>
+  @for (page of relatedPages; track page.route) {
+    <app-cross-page-link [label]="'Open in ' + page.label" [route]="page.route" />
+  }
+</p>
+
+@if (applyFailed()) {
+  <!--
+    A failed hand-off is something the reader just did, so it is announced
+    assertively — and it clears nothing: the tilts are still on screen and the
+    button is still there to press again.
+  -->
+  <div
+    role="alert"
+    data-testid="ft-apply-error"
+    class="flex flex-col gap-1 rounded-md border border-danger bg-primary-light px-4 py-3 text-sm"
+  >
+    <p class="font-medium text-danger">{{ failureMessage }}</p>
+    <p class="text-text-secondary">{{ failureDetail }}</p>
+  </div>
+}
+
+@if (appliedSummary(); as summary) {
+  <p role="status" data-testid="ft-apply-success" class="text-sm text-text">
+    <span aria-hidden="true">&#10003;</span> {{ summary }}
+  </p>
+}
+
+<p role="status" data-testid="ft-export-notice" class="text-sm text-text-secondary">
+  {{ exportNotice() }}
+</p>
+
+<app-action-button-row align="end">
+  <button
+    type="button"
+    appButton="secondary"
+    data-testid="ft-export"
+    (click)="exportSnapshot()"
+  >
+    {{ exportLabel }}
+  </button>
+
+  <!--
+    `aria-disabled`, never the `disabled` attribute: `disabled` on the control
+    the reader just pressed moves focus to <body>, and the confirmation below is
+    then announced with nothing focused. The handler refuses the press instead.
+  -->
+  <button
+    type="button"
+    appButton="primary"
+    data-testid="ft-apply"
+    [attr.aria-disabled]="canApply() ? null : 'true'"
+    [attr.aria-busy]="applying() ? 'true' : null"
+    [attr.aria-describedby]="blockedReason() ? 'ft-apply-blocked' : null"
+    (click)="apply()"
+  >
+    {{ applying() ? 'Applying…' : applyLabel }}
+    <span aria-hidden="true">&rarr;</span>
+  </button>
+</app-action-button-row>
+
+@if (blockedReason(); as reason) {
+  <p id="ft-apply-blocked" data-testid="ft-apply-blocked" class="text-right text-xs text-text-secondary">
+    {{ reason }}
+  </p>
+}

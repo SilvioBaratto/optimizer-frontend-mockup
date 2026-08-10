@@ -1,1 +1,143 @@
-<p>factor-timing-rotation works!</p>
+<!--
+  Regions follow `docs/23 Factor Timing & Rotation.md` in order:
+  Toolbar → InfoCard (Regime & Market State) → InfoCard (Value Spread) →
+  ChartPanel (3Y rolling excess return) → DataTable (factor signals) →
+  TimingComparisonPanel → StatusBanner (guardrails) → ActionButtonRow.
+
+  That is also the focus order the doc's accessibility section names, and it is
+  the DOM order here — nothing is reordered visually.
+
+  The shell renders the <h1> and the breadcrumb from the route, so headings here
+  start at <h2>: each region labels itself, and the chart panels' own titles sit
+  at <h3> beneath those labels.
+-->
+
+<!--
+  Past six toolbar controls to the signals they describe.
+
+  The `href` is kept so the control announces as a link and reads as one, but
+  the click is handled here: `index.html` sets `<base href="/">`, and a bare
+  fragment resolves against the base rather than the document, so following
+  `#ft-content` literally navigates to `/#ft-content` — a full load onto the
+  dashboard. Measured before this handler existed.
+-->
+<a href="#ft-content" class="skip-link" (click)="skipToContent($event)">
+  Skip to the factor signals
+</a>
+
+<!-- 1 · Toolbar — the coordinates every reading below is stated in. -->
+<app-factor-timing-toolbar />
+
+<div #content id="ft-content" tabindex="-1" class="flex flex-col gap-6">
+  @switch (state()) {
+    @case ('loading') {
+      <!--
+        One placeholder per panel, at the height of the panel it stands in for,
+        so nothing jumps when the signals land. The toolbar above stays in place
+        and refuses input rather than disappearing.
+      -->
+      <div data-testid="ft-loading" aria-busy="true" class="flex flex-col gap-6">
+        <p role="status" class="sr-only">Recomputing the factor signals…</p>
+        @for (panel of skeletonPanels; track panel.id) {
+          <app-skeleton-block [height]="panel.height" />
+        }
+      </div>
+    }
+
+    @case ('empty') {
+      <!--
+        Nothing to time. The spec's empty state is specific about which region
+        does what: the EmptyState stands in for the ChartPanel and the DataTable
+        — the two that would have to invent a reading — while the InfoCards and
+        the TimingComparisonPanel stay in place and say in words that they have
+        no values rather than disappearing. A region that vanishes takes its
+        heading and its place in the reading order with it.
+
+        The regime card is the exception that keeps its numbers: it is the
+        shared engine's reading and does not depend on this page's
+        cross-section.
+      -->
+      <app-factor-timing-regime-state />
+
+      <section aria-labelledby="ft-spread-empty-heading" class="flex flex-col gap-2">
+        <h2 id="ft-spread-empty-heading" class="text-sm font-semibold text-text">Value spread</h2>
+        <p
+          data-testid="ft-spread-placeholder"
+          class="surface-card px-4 py-3 text-sm text-text-secondary"
+        >
+          {{ spreadPlaceholder }}
+        </p>
+      </section>
+
+      <app-empty-state
+        data-testid="ft-empty"
+        [title]="emptyTitle"
+        [detail]="emptyDetail() ?? ''"
+      >
+        <app-cross-page-link
+          [label]="emptyActionLabel"
+          [route]="universeRoute"
+          emphasis="filled"
+        />
+      </app-empty-state>
+
+      <section aria-labelledby="ft-comparison-empty-heading" class="flex flex-col gap-2">
+        <h2 id="ft-comparison-empty-heading" class="text-sm font-semibold text-text">
+          Timing comparison — information ratio, out of sample
+        </h2>
+        <p
+          data-testid="ft-comparison-placeholder"
+          class="surface-card px-4 py-3 text-sm text-text-secondary"
+        >
+          {{ comparisonPlaceholder }}
+        </p>
+      </section>
+    }
+
+    @case ('error') {
+      <!--
+        The whole computation failed. Everything under the toolbar is replaced
+        rather than left standing: unlike a regime failure, there is no older
+        signal set here that is still a valid reading.
+      -->
+      <app-error-state
+        data-testid="ft-load-error"
+        [message]="loadFailure() ?? ''"
+        [detail]="loadFailureDetail"
+        cause="load"
+        (retry)="retry()"
+      />
+    }
+
+    @default {
+      <!--
+        `grayscale`, not `opacity`: at 60% the page's secondary text drops under
+        the 4.5:1 this doc's accessibility section asks to be verified, and every
+        note and axis label on the page is that colour. Desaturating on the
+        luminance axis leaves each ratio intact.
+      -->
+      <div class="flex flex-col gap-6" [class.grayscale]="stale()">
+        <!-- 2 · InfoCard — the shared regime engine's reading. -->
+        <app-factor-timing-regime-state />
+
+        <!-- 3 · InfoCard — each factor on its own historical valuation band. -->
+        <app-factor-timing-value-spread />
+
+        <!-- 4 · ChartPanel — the cycles that make timing conceivable. -->
+        <app-factor-timing-excess-return />
+
+        <!-- 5 · DataTable — the cross-section the model acts on. -->
+        <app-factor-timing-signal-table />
+
+        <!-- 6 · TimingComparisonPanel — what timing has actually been shown to earn. -->
+        <app-factor-timing-comparison />
+      </div>
+    }
+  }
+</div>
+
+<!-- 7 · StatusBanner — the constraints the tilt is computed under. -->
+<app-factor-timing-guardrails />
+
+<!-- 8 · ActionButtonRow — the shared-regime reference and the page's exits. -->
+<app-factor-timing-actions />

@@ -1,0 +1,156 @@
+<!--
+  Reading order left to right, top to bottom, and also the order of what each
+  control reaches: the shared market-state window first, then the cadence the
+  tilt is traded on, then how hard it is applied, then which signals count,
+  then how the valuation is measured, and finally which factors are in view.
+
+  `min-w-0` on every column: a flex item without it cannot shrink below the
+  intrinsic width of its label, and five radiogroups that refuse to shrink is
+  how a toolbar pushes a page sideways at 320px.
+-->
+<app-page-context-bar heading="Factor timing controls" compact>
+  <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
+    <div class="flex min-w-0 flex-col gap-1">
+      <span class="text-xs text-text-secondary">Lookback</span>
+      <app-segmented-control
+        [options]="lookbackOptions()"
+        [value]="lookbackValue()"
+        label="Market state lookback"
+        (valueChange)="onLookback($event)"
+      />
+    </div>
+
+    <div class="flex min-w-0 flex-col gap-1">
+      <span class="text-xs text-text-secondary">Rebalancing</span>
+      <app-segmented-control
+        [options]="rebalancingOptions()"
+        [value]="rebalancing()"
+        label="Rebalancing frequency"
+        (valueChange)="onRebalancing($event)"
+      />
+    </div>
+
+    <div class="flex min-w-0 flex-col gap-1">
+      <span class="text-xs text-text-secondary">Weighting</span>
+      <app-segmented-control
+        [options]="weightingOptions()"
+        [value]="weighting()"
+        label="Weighting mode"
+        (valueChange)="onWeighting($event)"
+      />
+    </div>
+
+    <div class="flex min-w-0 flex-col gap-1">
+      <span class="text-xs text-text-secondary">Timing model</span>
+      <app-segmented-control
+        [options]="timingModelOptions()"
+        [value]="timingModel()"
+        label="Timing model"
+        (valueChange)="onTimingModel($event)"
+      />
+    </div>
+
+    <div class="flex min-w-0 flex-col gap-1">
+      <span class="text-xs text-text-secondary">Value spread</span>
+      <app-segmented-control
+        [options]="metricOptions()"
+        [value]="metric()"
+        label="Value spread metric"
+        (valueChange)="onMetric($event)"
+      />
+    </div>
+
+    <!--
+      The stamp is read-only and says so: it is the moment the signals below
+      were estimated, and nothing on this page can set it but a completed run.
+      The Stale badge sits beside it because staleness is a property of that
+      moment, not of any one panel.
+    -->
+    <div class="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+      <p data-testid="ft-last-computed" class="text-xs text-text-secondary">
+        Last computed <span class="tabular-nums text-text">{{ lastComputed() }}</span>
+      </p>
+      @if (stale()) {
+        <span data-testid="ft-stale-badge" [title]="staleDetail()">
+          <app-status-badge [label]="staleBadge" tone="warn" />
+        </span>
+      }
+      <app-refresh-control label="Refresh signals" [busy]="busy()" (refresh)="onRefresh()" />
+    </div>
+  </div>
+
+  <!--
+    Factors in view. A group of checkboxes rather than a second radiogroup:
+    more than one may hold at once, and the live count in the chip bar is what
+    tells a screen-reader user how many survived the last click.
+  -->
+  <app-filter-chip-bar
+    [count]="factorCount()"
+    [total]="factorChips().length"
+    countNoun="factors in view"
+  >
+    <fieldset class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 border-0 p-0">
+      <legend class="sr-only">Factors in view</legend>
+      @for (chip of factorChips(); track chip.id) {
+        <label
+          class="flex min-h-11 items-center gap-2 text-sm"
+          [class.text-text]="!busy()"
+          [class.text-text-tertiary]="busy()"
+          [class.cursor-not-allowed]="busy()"
+          [title]="busy() ? busyReason : chip.detail"
+          [attr.data-factor-chip]="chip.id"
+        >
+          <!--
+            `aria-disabled`, never the `disabled` attribute, and the click is
+            always cancelled. Two reasons, both measured:
+
+            - `disabled` on the box the reader has just pressed drops focus to
+              `<body>`, and every one of these six starts a recompute;
+            - the box must never toggle itself. The service decides, and it
+              refuses to empty the view — a refused click that had already
+              flipped the tick would leave the box unticked while the factor is
+              still in view, because the binding has no change to write back.
+          -->
+          <input
+            type="checkbox"
+            class="h-4 w-4"
+            [checked]="chip.checked"
+            [attr.aria-disabled]="busy() ? 'true' : null"
+            (click)="onFactor($event, chip.id)"
+          />
+          <span>{{ chip.label }}</span>
+        </label>
+      }
+    </fieldset>
+  </app-filter-chip-bar>
+
+  <!--
+    The secondary lines. Each describes the control above it rather than
+    repeating its label, so a reader who has just changed one is told what
+    changed rather than what they clicked.
+  -->
+  <div class="flex flex-col gap-1 text-xs text-text-secondary">
+    <p data-testid="ft-lookback-note">{{ lookbackNote() }}</p>
+    <p data-testid="ft-weighting-definition">{{ weightingDefinition[weighting()] }}</p>
+    <p data-testid="ft-model-definition">{{ modelDefinition[timingModel()] }}</p>
+    <p data-testid="ft-metric-definition">
+      {{ metricDefinition[metric()] }} {{ metricNote }}
+    </p>
+
+    @if (stale()) {
+      <p data-testid="ft-stale-note" class="text-warning">
+        <span aria-hidden="true">!</span> {{ staleDetail() }}
+      </p>
+    }
+
+    @if (selectionError(); as error) {
+      <!--
+        An announcement about input the reader just gave: the click was refused
+        and the chip is still ticked, so it has to be said rather than implied.
+      -->
+      <p data-testid="ft-selection-error" role="alert" class="text-danger">
+        <span aria-hidden="true">!</span> {{ error }}
+      </p>
+    }
+  </div>
+</app-page-context-bar>

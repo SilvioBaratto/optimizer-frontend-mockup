@@ -1,0 +1,103 @@
+<section aria-labelledby="ft-comparison-heading" class="flex flex-col gap-3">
+  <h2 id="ft-comparison-heading" class="text-sm font-semibold text-text">
+    Timing comparison — information ratio, out of sample
+  </h2>
+
+  <app-bar-chart
+    title="Information ratio, out of sample"
+    [subtitle]="missingDetail.baseline"
+    [ariaLabel]="ariaLabel()"
+    [categories]="categories()"
+    [series]="series()"
+    [valueFormatter]="barLabel"
+    [valueMax]="axisMax"
+    categoryAxisName="Variant"
+    valueAxisName="Information ratio"
+    unavailableLabel="—"
+    [optionPatch]="tooltipPatch()"
+    [height]="height"
+  >
+    <div class="flex flex-col gap-2 border-t border-border px-4 py-3 text-xs text-text-secondary">
+      @if (baseline(); as reference) {
+        <p data-testid="ft-baseline-note">
+          <span class="text-text">{{ reference.label }}</span> — {{ missingLabel.baseline }}.
+          {{ missingDetail.baseline }}
+        </p>
+      }
+
+      <!--
+        Said in words as well as drawn: the hatch means "not measured", which is
+        a different statement from a ratio of zero, and the difference has to
+        survive for a reader who sees neither fill.
+      -->
+      @for (row of unmeasured(); track row.variant) {
+        <p [attr.data-unmeasured]="row.variant" class="text-warning">
+          <span class="text-text">{{ row.label }}</span> — {{ missingLabel['not-reported'] }}.
+          {{ missingDetail['not-reported'] }}
+        </p>
+      }
+
+      <ul class="flex flex-col gap-0.5">
+        @for (row of definitions(); track row.variant) {
+          <li [attr.data-variant-definition]="row.variant">
+            <span class="text-text">{{ row.label }}</span> — {{ row.definition }}
+          </li>
+        }
+      </ul>
+
+      <!--
+        No bar is emphasised, ever. The reading of the evidence exists but has
+        to be asked for: an accent-coloured bar is a recommendation whatever the
+        caption underneath it says.
+      -->
+      <p data-testid="ft-no-recommendation">{{ noRecommendation }}</p>
+      <p>
+        <button
+          type="button"
+          class="min-h-11 rounded-md px-2 font-medium text-primary underline underline-offset-2 transition-colors hover:bg-primary-light"
+          data-testid="ft-reading-toggle"
+          [attr.aria-expanded]="readingOpen()"
+          aria-controls="ft-evidence-reading"
+          (click)="toggleReading()"
+        >
+          {{ recommendationPrompt }}
+        </button>
+      </p>
+      @if (readingOpen()) {
+        <p id="ft-evidence-reading" data-testid="ft-evidence-reading" class="max-w-prose">
+          {{ recommendationAnswer }}
+        </p>
+      }
+    </div>
+  </app-bar-chart>
+
+  <!--
+    A different measure, in a box of its own.
+
+    Dashed border, own heading, own scale, no shared axis with the ratios above:
+    1.26 beside 0.60 on one axis would invite a comparison that means nothing.
+  -->
+  <section
+    aria-labelledby="ft-utility-heading"
+    data-testid="ft-utility-box"
+    class="flex flex-col gap-2 rounded-md border border-border-control border-dashed bg-surface-inset px-4 py-3"
+  >
+    <h3 id="ft-utility-heading" class="text-sm font-medium text-text">{{ utilityTitle }}</h3>
+    <p class="text-xs text-text-secondary">{{ utilityNote }}</p>
+
+    <dl class="flex flex-wrap items-baseline gap-x-6 gap-y-1 text-sm">
+      @for (row of gains(); track row.variant) {
+        <div class="flex items-baseline gap-2" [attr.data-utility-gain]="row.variant">
+          <dt class="text-text-secondary">{{ row.label }}</dt>
+          <dd class="font-medium tabular-nums text-text">{{ gainLabel(row.gain) }}</dd>
+        </div>
+      }
+      <div class="flex items-baseline gap-2" data-testid="ft-utility-range">
+        <dt class="text-text-secondary">Full range</dt>
+        <dd class="font-medium tabular-nums text-text">
+          {{ gainRange.from.toFixed(2) }} → {{ gainRange.to.toFixed(2) }}
+        </dd>
+      </div>
+    </dl>
+  </section>
+</section>

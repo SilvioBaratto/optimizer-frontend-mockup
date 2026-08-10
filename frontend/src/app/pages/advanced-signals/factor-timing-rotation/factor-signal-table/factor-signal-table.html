@@ -1,0 +1,282 @@
+<section aria-labelledby="ft-signals-heading" class="flex flex-col gap-2">
+  <h2 id="ft-signals-heading" class="text-sm font-semibold text-text">Factor signals &amp; tilts</h2>
+
+  <div class="surface-card">
+    <div class="table-scroll">
+      <table class="w-full min-w-3xl text-sm">
+        <caption class="sr-only">
+          One row per factor in view: the valuation and trend signals, the direction of the
+          composite tilt, the current weight against the weight the timing model implies, and the
+          difference between them in percentage points. A factor with too little history shows
+          "insufficient history" instead of a score and is excluded from the composite. A row whose
+          trend and valuation disagree without either winning is marked, and that marking is what
+          the Value Spread card's extrapolation callout is generated from. Column headers sort the
+          table; the expand button in each row opens its driver detail.
+        </caption>
+
+        <thead>
+          <tr class="table-head-row">
+            <th scope="col" class="px-2 py-2 text-left font-medium">
+              <span class="sr-only">Expand driver detail</span>
+            </th>
+            <th scope="col" class="px-4 py-2 text-left font-medium" [attr.aria-sort]="ariaSort('factor')">
+              <button
+                type="button"
+                class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 hover:text-text"
+                data-testid="ft-sort-factor"
+                (click)="toggleSort('factor')"
+              >
+                {{ sortLabel.factor }} <span aria-hidden="true">{{ sortGlyph('factor') }}</span>
+              </button>
+            </th>
+            <th scope="col" class="px-2 py-2 text-center font-medium" [attr.aria-sort]="ariaSort('valuation')">
+              <button
+                type="button"
+                class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 hover:text-text"
+                data-testid="ft-sort-valuation"
+                (click)="toggleSort('valuation')"
+              >
+                {{ sortLabel.valuation }} <span aria-hidden="true">{{ sortGlyph('valuation') }}</span>
+              </button>
+            </th>
+            <th scope="col" class="px-2 py-2 text-center font-medium" [attr.aria-sort]="ariaSort('trend')">
+              <button
+                type="button"
+                class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 hover:text-text"
+                data-testid="ft-sort-trend"
+                (click)="toggleSort('trend')"
+              >
+                {{ sortLabel.trend }} <span aria-hidden="true">{{ sortGlyph('trend') }}</span>
+              </button>
+            </th>
+            <th scope="col" class="px-4 py-2 text-left font-medium" [attr.aria-sort]="ariaSort('composite')">
+              <button
+                type="button"
+                class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 hover:text-text"
+                data-testid="ft-sort-composite"
+                (click)="toggleSort('composite')"
+              >
+                {{ sortLabel.composite }} <span aria-hidden="true">{{ sortGlyph('composite') }}</span>
+              </button>
+            </th>
+            <th scope="col" class="px-2 py-2 text-right font-medium" [attr.aria-sort]="ariaSort('current')">
+              <button
+                type="button"
+                class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 hover:text-text"
+                data-testid="ft-sort-current"
+                (click)="toggleSort('current')"
+              >
+                {{ sortLabel.current }} <span aria-hidden="true">{{ sortGlyph('current') }}</span>
+              </button>
+            </th>
+            <th scope="col" class="px-2 py-2 text-right font-medium" [attr.aria-sort]="ariaSort('timing')">
+              <button
+                type="button"
+                class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 hover:text-text"
+                data-testid="ft-sort-timing"
+                (click)="toggleSort('timing')"
+              >
+                {{ sortLabel.timing }} <span aria-hidden="true">{{ sortGlyph('timing') }}</span>
+              </button>
+            </th>
+            <th scope="col" class="px-4 py-2 text-right font-medium" [attr.aria-sort]="ariaSort('delta')">
+              <button
+                type="button"
+                class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 hover:text-text"
+                data-testid="ft-sort-delta"
+                (click)="toggleSort('delta')"
+              >
+                {{ sortLabel.delta }} <span aria-hidden="true">{{ sortGlyph('delta') }}</span>
+              </button>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (entry of rows(); track entry.row.factor) {
+            <tr class="table-row" [attr.data-signal-row]="entry.row.factor">
+              <td class="px-2 py-1.5">
+                <!--
+                  The expand trigger is this button, not the row. A row-wide
+                  click target cannot carry `aria-expanded`, cannot take focus
+                  and cannot be reached by keyboard.
+                -->
+                <button
+                  type="button"
+                  class="inline-flex h-11 w-11 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-inset hover:text-text"
+                  [attr.aria-expanded]="entry.expanded"
+                  [attr.aria-controls]="'ft-drivers-' + entry.row.factor"
+                  [attr.aria-label]="
+                    (entry.expanded ? 'Collapse' : 'Expand') + ' driver detail for ' + entry.row.label
+                  "
+                  [attr.data-expand]="entry.row.factor"
+                  (click)="toggleRow(entry.row.factor)"
+                >
+                  <span aria-hidden="true">{{ entry.expanded ? '▾' : '▸' }}</span>
+                </button>
+              </td>
+
+              <th scope="row" class="px-4 py-1.5 text-left font-normal">
+                <span class="flex flex-wrap items-center gap-2">
+                  <span class="font-medium text-text">{{ entry.row.label }}</span>
+                  <span class="text-xs text-text-secondary">{{ entry.row.portfolio }}</span>
+                </span>
+              </th>
+
+              @if (entry.row.insufficientHistory) {
+                <!--
+                  One cell across the signal columns rather than three dashes:
+                  "no score" is a single statement about the row, and splitting
+                  it into three would read as three separate missing numbers.
+                -->
+                <td colspan="3" class="px-2 py-1.5 text-left text-text-secondary">
+                  <span [attr.data-insufficient]="entry.row.factor" [title]="insufficientDetail">
+                    <span aria-hidden="true">{{ notApplicable }}</span> {{ insufficientLabel }}
+                  </span>
+                </td>
+              } @else {
+                <td class="px-2 py-1.5 text-center">
+                  <span [attr.data-valuation]="entry.row.factor">
+                    <span aria-hidden="true">{{ directionIcon[entry.row.valuation] }}</span>
+                    <span class="sr-only">{{ directionLabel[entry.row.valuation] }}</span>
+                  </span>
+                </td>
+                <td class="px-2 py-1.5 text-center">
+                  <span [attr.data-trend]="entry.row.factor">
+                    <span aria-hidden="true">{{ directionIcon[entry.row.trend] }}</span>
+                    <span class="sr-only">{{ directionLabel[entry.row.trend] }}</span>
+                  </span>
+                </td>
+                <td class="px-4 py-1.5 text-left">
+                  <span class="flex flex-wrap items-center gap-2" [attr.data-tilt]="entry.row.factor">
+                    <span class="text-text">
+                      <span aria-hidden="true">{{ entry.tiltIcon }}</span> {{ entry.tiltLabel }}
+                    </span>
+                    @if (entry.row.conflict) {
+                      <!--
+                        Glyph and word together. This is the row the Value
+                        Spread callout is generated from.
+                      -->
+                      <span
+                        class="text-xs whitespace-nowrap text-warning"
+                        [attr.data-conflict]="entry.row.factor"
+                      >
+                        <span aria-hidden="true">{{ conflictIcon }}</span> {{ conflictLabel }}
+                      </span>
+                    }
+                  </span>
+                </td>
+              }
+
+              <td class="px-2 py-1.5 text-right tabular-nums text-text">
+                {{ entry.row.excluded ? notApplicable : percent(entry.row.currentWeightPct) }}
+              </td>
+              <td class="px-2 py-1.5 text-right tabular-nums text-text">
+                {{
+                  entry.row.timingWeightPct === null
+                    ? notApplicable
+                    : percent(entry.row.timingWeightPct)
+                }}
+              </td>
+              <td class="px-4 py-1.5 text-right tabular-nums text-text">
+                {{ entry.row.deltaPp === null ? notApplicable : points(entry.row.deltaPp) }}
+              </td>
+            </tr>
+
+            @if (entry.expanded) {
+              <tr class="table-row" [attr.data-drivers-row]="entry.row.factor">
+                <td colspan="8" class="px-4 py-3">
+                  <div [id]="'ft-drivers-' + entry.row.factor" class="flex flex-col gap-2 text-xs">
+                    <p class="text-text-secondary">
+                      Driver detail for
+                      <span class="text-text">{{ entry.row.label }}</span>
+                      @if (entry.row.bindingHorizon) {
+                        — binding horizon
+                        <span class="text-text" [attr.data-horizon]="entry.row.factor">
+                          {{ entry.row.bindingHorizon }}
+                        </span>
+                      }
+                    </p>
+
+                    <ul class="flex flex-col gap-1">
+                      @for (driver of entry.drivers; track driver.category) {
+                        <li
+                          class="flex flex-wrap items-baseline gap-x-3 gap-y-0.5"
+                          [attr.data-driver]="entry.row.factor + '-' + driver.category"
+                        >
+                          <span class="min-w-32 text-text">{{ categoryShort[driver.category] }}</span>
+                          <span class="tabular-nums text-text">
+                            <span aria-hidden="true">{{ directionIcon[driver.direction] }}</span>
+                            {{ driver.scoreLabel }}
+                          </span>
+                          <span class="text-text-secondary">horizon {{ driver.horizon }}</span>
+                          <span class="text-text-secondary">{{ categoryExamples[driver.category] }}</span>
+                          @if (!driver.used) {
+                            <!--
+                              Shown rather than dropped: a reader switching the
+                              timing model has to see which categories it stopped
+                              using, not watch three lines disappear.
+                            -->
+                            <span class="text-text-tertiary">not used by this model</span>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+
+        <tfoot>
+          <tr class="table-head-row">
+            <td class="px-2 py-2"></td>
+            <th scope="row" class="px-4 py-2 text-left font-medium">Scored factors</th>
+            <td colspan="3" class="px-2 py-2 text-left text-xs font-normal text-text-secondary">
+              {{ unscoredNote }}
+            </td>
+            <td class="px-2 py-2 text-right font-medium tabular-nums" data-testid="ft-total-current">
+              {{ percent(totals().current) }}
+            </td>
+            <td class="px-2 py-2 text-right font-medium tabular-nums" data-testid="ft-total-timing">
+              {{ percent(totals().timing) }}
+            </td>
+            <td class="px-4 py-2 text-right font-medium tabular-nums" data-testid="ft-total-delta">
+              {{ points(totals().delta) }}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="flex flex-col gap-1 border-t border-border px-4 py-3 text-xs text-text-secondary">
+      @for (row of conflicted(); track row.factor) {
+        <!--
+          The gap after the glyph is inside the span on purpose: Angular drops
+          a whitespace-only text node between two elements, so `! Momentum`
+          rendered as `!Momentum`. Non-breaking, because the marker belongs to
+          the name it introduces.
+        -->
+        <p [attr.data-conflict-note]="row.factor">
+          <span aria-hidden="true">{{ conflictIcon }}&nbsp;</span
+          ><span class="text-text">{{ row.label }}</span> — trend and valuation point opposite ways
+          and neither wins, so the composite lands on no tilt. This is the row the Value Spread
+          card's extrapolation callout is drawn from.
+        </p>
+      }
+      @for (row of rows(); track row.row.factor) {
+        @if (row.row.insufficientHistory) {
+          <p [attr.data-excluded-note]="row.row.factor">
+            <span class="text-text">{{ row.row.label }}</span> is excluded from the composite until
+            its history is long enough. {{ insufficientDetail }}
+          </p>
+        }
+      }
+      <p data-testid="ft-tilt-sum">
+        The tilts reallocate weight and never add any: they sum to
+        <span class="tabular-nums text-text">{{ points(totals().delta) }}</span> percentage points.
+      </p>
+    </div>
+  </div>
+</section>
