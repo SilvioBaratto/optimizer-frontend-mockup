@@ -32,6 +32,9 @@ import { EconomicRationale } from './economic-rationale/economic-rationale';
 import { TrialLog } from './trial-log/trial-log';
 import { ValidationSection } from './validation-section/validation-section';
 
+/** Breathing room between the pinned summary and the heading a jump lands on. */
+const SECTION_GAP_PX = 16;
+
 const BADGE_TONE: Record<CriterionStatus, StatusTone> = {
   pass: 'ok',
   warn: 'warn',
@@ -354,10 +357,39 @@ export class BacktestValidation {
 
   // --- in-page navigation ---------------------------------------------------
 
+  /**
+   * How tall the pinned validation summary is, in pixels.
+   *
+   * The topbar above it is not counted: `styles.css` reserves the topbar's own
+   * height once, as the scrollport's `scroll-padding-top`, and padding and
+   * margin are additive. This is only the extra reach the summary adds.
+   *
+   * Zero unless it is actually stuck — below `md` it is in normal flow, and a
+   * jump there needs nothing beyond what the scrollport already reserves.
+   * Measured rather than written as a `scroll-mt-*` class because six criteria
+   * and a verdict reflow hard: 312px at 1440, 391px at 1024 and 493px at 768.
+   */
+  private stickySummaryOffset(): number {
+    const summary = this.host.nativeElement.querySelector('#validation-summary');
+    if (!(summary instanceof HTMLElement)) return 0;
+    if (globalThis.getComputedStyle?.(summary).position !== 'sticky') return 0;
+    return summary.getBoundingClientRect().height;
+  }
+
+  /**
+   * Jumps to a section and takes the focus with it.
+   *
+   * The allowance is what makes the jump visible. `scrollIntoView` aligns the
+   * target's top edge with the top of the scrollport, and the summary above it
+   * is pinned over exactly that band from `md` up — measured at 1440, every one
+   * of the six links landed its heading 296px behind the summary, and at 768
+   * 477px behind it. The link scrolled; nothing a reader could see changed.
+   */
   protected goToSection(id: SectionId, event?: Event): void {
     event?.preventDefault();
     const target = this.host.nativeElement.querySelector(`#${id}`);
     if (!(target instanceof HTMLElement)) return;
+    target.style.scrollMarginTop = `${Math.round(this.stickySummaryOffset()) + SECTION_GAP_PX}px`;
     target.scrollIntoView({ behavior: this.reducedMotion ? 'auto' : 'smooth', block: 'start' });
     // Focus follows the scroll, or a keyboard user is left where they were.
     target.setAttribute('tabindex', '-1');

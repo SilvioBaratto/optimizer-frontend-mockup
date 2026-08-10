@@ -97,6 +97,29 @@
 
 @layer base {
   html {
+    /*
+      What the pinned topbar permanently covers at the top of the scrollport.
+
+      The topbar is `sticky top-0` and `h-14` at every width, so the first 56px
+      of the viewport are never available to land on. `scroll-padding-top` is
+      the property that says exactly that, and it belongs here because the
+      scrollport is the root element — one declaration reaches every
+      `scrollIntoView`, every `:target` fragment and every focus-driven scroll
+      in the app.
+
+      Five jump paths land targets with `block: 'start'` and none of them can
+      allow for the topbar themselves: `backtest-validation`'s section nav,
+      `risk-monitoring`'s "show me this chart", `factor-timing-rotation`'s skip
+      link, `value-spread`'s guardrail reference, and `turbulence-systemic`'s
+      SectionNav. Measured before this, at 390x844: every one of them put the
+      heading at viewport top 0, i.e. wholly behind the topbar. They read as
+      "the link did nothing".
+
+      Additive with a target's own `scroll-margin-top`, so a page that also
+      pins a bar of its own allows for that bar and only that bar —
+      `turbulence-systemic.css` is the one page that does.
+    */
+    scroll-padding-top: 3.5rem;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     /* Stops iOS/Android inflating text when the device rotates to landscape. */

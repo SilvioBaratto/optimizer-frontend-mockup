@@ -7,10 +7,16 @@
   opened in a new tab or copied out, where the browser resolves the fragment
   itself on load and only CSS is consulted.
 
-  The bar is in normal flow below 48rem — nothing to clear — then measured at
-  242px, 156px and 112px as the four metrics fold from two columns to one row.
-  A fixed `scroll-mt-24` (96px) is under every one of those, which lands the
-  section heading behind the bar.
+  The shell topbar is NOT part of these numbers. It is `sticky top-0` and
+  `h-14` at every width, and `styles.css` declares that 56px once as the
+  scrollport's `scroll-padding-top`. Scroll padding and scroll margin are
+  additive, so adding it again here would land every section 56px lower than
+  asked. What is left for this file is the as-of bar's own reach.
+
+  The bar is pinned from 48rem up, resting under the topbar: measured 241px,
+  155px and 111px tall as the four metrics fold from two columns to one row.
+  Each value below is that height plus a 17px breathing gap. Below 48rem the
+  bar is in normal flow and only the gap is needed.
 */
 .ts-section {
   scroll-margin-top: 1rem;

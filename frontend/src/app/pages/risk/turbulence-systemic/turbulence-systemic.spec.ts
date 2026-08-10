@@ -196,11 +196,16 @@ describe('TurbulenceSystemic page', () => {
   });
 
   it('when a jump lands on a section, its scroll margin clears the bar pinned above it', () => {
-    // The bar is 112px at 1440, 156px at 1024 and 242px at 768, so no single
+    // The bar is 111px at 1440, 155px at 1024 and 225px at 768, so no single
     // `scroll-mt-*` clears it; the page measures. jsdom applies no stylesheet,
-    // so the pinned bar is described here directly — without the measurement
-    // the heading lands underneath it, which is what a jump link must not do.
-    const bar = host.querySelector('app-turbulence-snapshot-bar') as HTMLElement;
+    // so the pinned bar is described here directly.
+    //
+    // The mock has to describe the element that really carries the sticky —
+    // `app-page-context-bar`. `app-turbulence-snapshot-bar` is `display:
+    // contents`: it generates no box, so `position` reads `static` and the
+    // height is 0. Mocking *that* is how this test went on passing while the
+    // measurement returned 0 at every width in a browser.
+    const bar = host.querySelector('app-page-context-bar') as HTMLElement;
     const target = host.querySelector('#section-pc1-growth') as HTMLElement;
     // jsdom ships no `scrollIntoView`, and the page skips the scroll without it.
     target.scrollIntoView = vi.fn();
@@ -209,7 +214,7 @@ describe('TurbulenceSystemic page', () => {
       element === bar
         ? ({ position: 'sticky' } as CSSStyleDeclaration)
         : real(element)) as typeof window.getComputedStyle);
-    vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue({ height: 242 } as DOMRect);
+    vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue({ height: 225 } as DOMRect);
 
     (testId('jump-pc1-growth') as HTMLAnchorElement).dispatchEvent(
       new MouseEvent('click', { bubbles: true, cancelable: true }),
@@ -217,7 +222,24 @@ describe('TurbulenceSystemic page', () => {
     fixture.detectChanges();
 
     expect(target.scrollIntoView).toHaveBeenCalled();
-    expect(Number.parseInt(target.style.scrollMarginTop, 10)).toBeGreaterThanOrEqual(242);
+    expect(Number.parseInt(target.style.scrollMarginTop, 10)).toBeGreaterThan(225);
+  });
+
+  it('when the bar above the section is not pinned, the jump allows only the reading gap', () => {
+    // Below `md` the bar is in normal flow, and the topbar it used to sit
+    // under is the scrollport's `scroll-padding-top` — counted once, there,
+    // never again here. jsdom reports every element `static`, which is that
+    // case: the allowance collapses to the gap rather than double-counting
+    // chrome the scrollport has already reserved.
+    const target = host.querySelector('#section-compactness') as HTMLElement;
+    target.scrollIntoView = vi.fn();
+
+    (testId('jump-compactness') as HTMLAnchorElement).dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true }),
+    );
+    fixture.detectChanges();
+
+    expect(target.style.scrollMarginTop).toBe('16px');
   });
 
   // --- the deferred figures --------------------------------------------------

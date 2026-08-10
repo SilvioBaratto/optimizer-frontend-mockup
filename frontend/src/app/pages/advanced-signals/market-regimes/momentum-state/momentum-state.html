@@ -72,7 +72,16 @@
               {{ condition.name }}
             </span>
             <span class="font-medium text-text">{{ condition.holds ? 'holds' : 'does not hold' }}</span>
-            <span class="min-w-0 flex-1 tabular-nums text-text-secondary">
+            <!--
+              `grow basis-40`, not `flex-1`. `flex-1` is `flex: 1 1 0%`: a
+              zero-basis item always fits on the current line, so the reading
+              stayed beside "does not hold" at 320px with 39px of room and its
+              own words — "annualised", "threshold" — hung 18px past the
+              viewport, which is the whole page's horizontal scroll. A 10rem
+              basis is wider than the space left on that line, so the item
+              wraps to its own full-width line and only then grows.
+            -->
+            <span class="min-w-0 grow basis-40 tabular-nums text-text-secondary">
               — {{ condition.reading }}
             </span>
           </li>

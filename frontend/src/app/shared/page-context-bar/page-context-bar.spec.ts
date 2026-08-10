@@ -53,8 +53,19 @@ describe('PageContextBar', () => {
     expect(bar().classList.contains('block')).toBe(true);
   });
 
-  it('when rendered, the host is offset to the top of the scroll container', () => {
-    expect(bar().classList.contains('md:top-0')).toBe(true);
+  it('when rendered, the host comes to rest below the pinned topbar rather than under it', () => {
+    // The shell topbar is `sticky top-0` and `h-14`. A bar offset to `top-0`
+    // would slide underneath it and read as gone, so the offset is the
+    // topbar's own height.
+    expect(bar().classList.contains('md:top-14')).toBe(true);
+    expect(bar().classList.contains('md:top-0')).toBe(false);
+  });
+
+  it('when rendered, the host sits one layer below the topbar it slides under', () => {
+    // The topbar is `z-20`; the backdrop above both is `z-30`. This bar has to
+    // be the one that goes behind where they overlap.
+    expect(bar().classList.contains('md:z-10')).toBe(true);
+    expect(bar().classList.contains('md:z-20')).toBe(false);
   });
 
   it('when the viewport is narrow, the bar is in flow rather than pinned over the content', () => {
