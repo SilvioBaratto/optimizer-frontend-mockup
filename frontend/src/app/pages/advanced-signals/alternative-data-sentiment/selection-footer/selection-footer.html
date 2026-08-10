@@ -1,0 +1,43 @@
+<!--
+  Region 14 — the count of what is selected, and the hand-over.
+
+  `min-w-0` on the flex item is not decoration: a flex item's default
+  `min-width: auto` floors it at its content's intrinsic width, so without it
+  the count would push the row wider than a 320px screen instead of wrapping.
+-->
+<div class="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+  <app-collection-stat-bar data-testid="ads-selection-count" [parts]="parts()" />
+
+  <div class="flex min-w-0 flex-col items-start gap-1">
+    <!--
+      `aria-disabled`, never the `disabled` attribute. `disabled` takes the
+      button out of the tab order, and a button a screen-reader user cannot
+      reach is a button whose `aria-describedby` reason is never read — the
+      reason is the entire point of refusing the press. The handler refuses it
+      instead, so nothing is sent while the selection is empty.
+    -->
+    <button
+      type="button"
+      appButton="primary"
+      size="md"
+      data-testid="ads-send-to-views"
+      class="aria-disabled:opacity-50"
+      [attr.aria-disabled]="canSend() ? null : 'true'"
+      [attr.aria-describedby]="canSend() ? null : 'ads-send-reason'"
+      (click)="send()"
+    >
+      {{ ctaLabel() }}
+      <span aria-hidden="true" class="ml-1.5">&rarr;</span>
+    </button>
+
+    <!--
+      Mounted whether or not the button is refusing input, so the description
+      `aria-describedby` points at always resolves to an element that exists.
+    -->
+    <p id="ads-send-reason" class="max-w-prose text-xs text-text-secondary">
+      @if (!canSend()) {
+        {{ disabledReason }}
+      }
+    </p>
+  </div>
+</div>

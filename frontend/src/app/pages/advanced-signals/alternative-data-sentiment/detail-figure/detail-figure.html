@@ -1,0 +1,61 @@
+<!--
+  The evidence behind the classification: a bar chart for four of the five
+  signal types, and a causality table for the one whose reading is a p-value per
+  lag rather than a magnitude. The chart carries its own "View as table"
+  alternative, so nothing here duplicates it.
+-->
+@if (causality(); as figure) {
+  <div class="table-scroll">
+    <table class="w-full min-w-lg text-sm">
+      <caption class="sr-only">
+        Granger causality of the {{ figure.dimension }} mood dimension on the index return, by lag
+        in trading days. A model with the mood lags is compared with one carrying the index's own
+        lags alone; a p-value below {{ figure.threshold }} is read as the mood series leading the
+        index at that distance.
+      </caption>
+
+      <thead>
+        <tr class="table-head-row">
+          <th scope="col" class="px-4 py-2 text-left font-medium">Lag, days</th>
+          <th scope="col" class="px-2 py-2 text-right font-medium">p-value</th>
+          <th scope="col" class="px-4 py-2 text-left font-medium">Reading</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        @for (row of figure.rows; track row.lag) {
+          <tr class="table-row" [attr.data-lag]="row.lag">
+            <th scope="row" class="px-4 py-1.5 text-left font-normal tabular-nums text-text">
+              {{ row.lag }}
+            </th>
+            <td class="px-2 py-1.5 text-right tabular-nums text-text">{{ pValue(row.pValue) }}</td>
+            <!-- Word and glyph together: significance never rides on colour. -->
+            <td class="px-4 py-1.5 text-left text-text-secondary">
+              <span aria-hidden="true">{{ row.significant ? '✓' : '·' }}</span>
+              {{ row.significant ? 'leads the index' : 'no lead at this lag' }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+} @else {
+  <app-bar-chart
+    [title]="view().figureTitle"
+    [subtitle]="subtitle()"
+    [ariaLabel]="ariaLabel()"
+    [categories]="categories()"
+    [series]="series()"
+    [orientation]="orientation()"
+    [valueFormatter]="formatter()"
+    [valueAxisName]="valueAxisName()"
+    [categoryAxisName]="categoryAxisName()"
+    [refLines]="refLines()"
+    [unavailableLabel]="unavailableLabel"
+    [height]="320"
+  />
+
+  @if (figureNote(); as note) {
+    <p data-testid="ads-figure-note" class="mt-2 text-xs text-text-secondary">{{ note }}</p>
+  }
+}

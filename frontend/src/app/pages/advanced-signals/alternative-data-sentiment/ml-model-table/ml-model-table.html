@@ -1,0 +1,69 @@
+<!-- Region 12 — the candidate models, their out-of-sample fit and their weight. -->
+<section class="surface-card flex flex-col gap-2">
+  <!-- Scrolls inside its own box so the page never scrolls sideways. -->
+  <div class="table-scroll">
+    <table class="w-full min-w-3xl text-sm">
+      <caption class="sr-only">
+        Candidate models for the aggregated risk-premium forecast. R² out of sample is monthly and
+        measured against zero rather than the historical mean return, so a negative value is worse
+        than forecasting no premium at all. The information coefficient and the weight are absent,
+        not zero, for a model that forecasts nothing. Weight is the model's share of the aggregate
+        score and the column sums to 100%.
+      </caption>
+
+      <thead>
+        <tr class="table-head-row">
+          <th scope="col" class="px-4 py-2 text-left font-medium">Model</th>
+          <th scope="col" class="px-2 py-2 text-right font-medium">R² oos, monthly</th>
+          <th scope="col" class="px-2 py-2 text-right font-medium">IC</th>
+          <th scope="col" class="px-2 py-2 text-right font-medium">Weight</th>
+          <th scope="col" class="px-4 py-2 text-left font-medium">Note</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        @for (row of rows; track row.id) {
+          <tr
+            class="table-row"
+            [attr.data-model]="row.id"
+            [class.bg-surface-inset]="selectedId() === row.id"
+            [attr.aria-current]="selectedId() === row.id ? 'true' : null"
+          >
+            <th scope="row" class="px-4 py-1.5 text-left font-normal">
+              <button
+                type="button"
+                [attr.data-model-row]="row.id"
+                class="inline-flex min-h-11 items-center rounded-md px-1 text-left text-text"
+                (click)="select(row)"
+              >
+                {{ row.name }}
+                <span class="sr-only">— show against the aggregate below</span>
+              </button>
+            </th>
+            <td class="px-2 py-1.5 text-right tabular-nums text-text">{{ r2(row) }}</td>
+            <td class="px-2 py-1.5 text-right tabular-nums text-text-secondary">{{ ic(row) }}</td>
+            <td class="px-2 py-1.5 text-right tabular-nums text-text">{{ weight(row) }}</td>
+            <td class="px-4 py-1.5 text-left text-text-secondary">{{ note(row) }}</td>
+          </tr>
+        }
+      </tbody>
+
+      <tfoot>
+        <tr class="table-head-row">
+          <th scope="row" class="px-4 py-2 text-left font-medium">Total</th>
+          <td class="px-2 py-2 text-right text-text-secondary">{{ notApplicable }}</td>
+          <td class="px-2 py-2 text-right text-text-secondary">{{ notApplicable }}</td>
+          <td data-testid="ads-weight-total" class="px-2 py-2 text-right tabular-nums text-text">
+            {{ totalWeight() }}%
+          </td>
+          <td class="px-4 py-2 text-left text-text-secondary">{{ notApplicable }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="flex flex-col gap-1 px-4 pb-3">
+    <p class="text-xs text-text-secondary">{{ predictorNote }}</p>
+    <p class="text-xs text-text-secondary">{{ r2Note }}</p>
+  </div>
+</section>

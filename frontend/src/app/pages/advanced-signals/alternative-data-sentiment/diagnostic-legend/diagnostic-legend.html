@@ -1,0 +1,29 @@
+<!--
+  Region 3 — the criterion the badges below are the outcome of. Framing only:
+  no threshold of its own lives here.
+-->
+<app-info-card [title]="title">
+  <button
+    card-action
+    type="button"
+    data-testid="ads-criterion-toggle"
+    class="min-h-11 shrink-0 rounded-md px-2 text-xs font-medium text-primary transition-colors hover:bg-primary-light"
+    [attr.aria-expanded]="expanded()"
+    aria-controls="ads-criterion-body"
+    (click)="toggle()"
+  >
+    {{ expanded() ? 'Hide' : 'Show' }}
+  </button>
+
+  <div id="ads-criterion-body" class="flex flex-col gap-2">
+    @if (expanded()) {
+      <p data-testid="ads-criterion-transient" class="text-sm text-text">{{ transient }}</p>
+      <p data-testid="ads-criterion-persistent" class="text-sm text-text">{{ persistent }}</p>
+      <p class="text-xs text-text-secondary">{{ footnote }}</p>
+    } @else {
+      <p class="text-xs text-text-secondary">
+        Collapsed — pressure that reverses is sentiment, impact that stands is information.
+      </p>
+    }
+  </div>
+</app-info-card>
