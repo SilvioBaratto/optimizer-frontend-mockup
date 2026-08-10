@@ -87,21 +87,21 @@ Per-task definition of done: model → service → sub-components → page templ
 
 ## Phase 5 — Stress & systemic
 
-- [ ] **T5.1 · doc 20 · Stress Testing & Scenarios** — `models/stress-testing.model.ts`, `services/stress-testing.service.ts`, `pages/risk/stress-testing/`
-  - [ ] Reverse tab replaces DataTable + SectionCardGrid + both ChartPanels; Toolbar shared
-  - [ ] Unfixed factors held at conditional expected value, not editable
-  - [ ] Changing Impact measure or k marks results **stale with a text badge**, no auto-recompute
-  - [ ] `Σ MLC ≠ 100%` prints the interaction-sign note in text
-  - [ ] Infeasible search ⟹ inline ErrorState + Retry
-  - [ ] Library delete behind `app-confirm-dialog`
-  - [ ] k slider and number input are one value, both `aria-valuetext`-labelled
-- [ ] **T5.2 · doc 25 · Turbulence & Systemic Risk** — `models/turbulence.model.ts`, `services/turbulence.service.ts`, `pages/risk/turbulence-systemic/`
-  - [ ] χ² threshold is a function of the asset count, not a constant
-  - [ ] Correlation surprise pair-only; X ≠ Y enforced; single-asset case stated
-  - [ ] `Partial coverage — N/M assets` badge; stale-snapshot age beside the as-of stamp
-  - [ ] Per-panel error + Retry, neighbours unaffected
-  - [ ] `SectionNav` scroll links keyboard-operable
-  - [ ] `[table]` bound on all 8 ChartPanels; measure render, `@defer` below-fold panels if needed
+- [x] **T5.1 · doc 20 · Stress Testing & Scenarios** — `models/stress-testing.model.ts`, `services/stress-testing.service.ts`, `pages/risk/stress-testing/`
+  - [x] Reverse tab replaces DataTable + SectionCardGrid + both ChartPanels; Toolbar shared
+  - [x] Unfixed factors held at conditional expected value, not editable
+  - [x] Changing Impact measure or k marks results **stale with a text badge**, no auto-recompute
+  - [x] `Σ MLC ≠ 100%` prints the interaction-sign note in text
+  - [x] Infeasible search ⟹ inline ErrorState + Retry
+  - [x] Library delete behind `app-confirm-dialog`
+  - [x] k slider and number input are one value, both `aria-valuetext`-labelled
+- [x] **T5.2 · doc 25 · Turbulence & Systemic Risk** — `models/turbulence.model.ts`, `services/turbulence.service.ts`, `pages/risk/turbulence-systemic/`
+  - [x] χ² threshold is a function of the asset count, not a constant
+  - [x] Correlation surprise pair-only; X ≠ Y enforced; single-asset case stated
+  - [x] `Partial coverage — N/M assets` badge; stale-snapshot age beside the as-of stamp
+  - [x] Per-panel error + Retry, neighbours unaffected
+  - [x] `SectionNav` scroll links keyboard-operable
+  - [x] `[table]` bound on all 8 ChartPanels; measure render, `@defer` below-fold panels if needed
 
 > **CHECKPOINT E** — RISK section complete; cross-navigate 18 → 19 / 20 / 25 with the portfolio scope surviving every hop.
 
