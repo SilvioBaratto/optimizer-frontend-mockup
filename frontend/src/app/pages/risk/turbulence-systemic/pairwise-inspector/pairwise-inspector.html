@@ -1,0 +1,138 @@
+@if (ready()) {
+  <app-bullet-chart
+    title="Correlation surprise — pairwise inspector"
+    [subtitle]="subtitle()"
+    [ariaLabel]="ariaLabel()"
+    [rows]="rows()"
+    mode="marker"
+    [domainMin]="domainMin()"
+    [domainMax]="domainMax()"
+    [valueFormatter]="formatter"
+    valueAxisName="Correlation surprise"
+    [height]="180"
+  >
+    <div class="flex flex-col gap-3 border-t border-border px-4 py-3">
+      <!--
+        The two sides. Each is a filter over a native select, never a bespoke
+        listbox.
+
+        `min-w-0` on the cells and `w-full` on the controls are load-bearing at
+        320px, not tidiness. A grid item's `min-width` is `auto`, and a
+        `<select>`'s min-content width is its *widest option* — here
+        "EQ_US_LARGE — US large cap equity". Without them the single-column
+        track is sized to that string and the whole document scrolls sideways,
+        which is the one thing every breakpoint in the spec forbids.
+        `appSelect` deliberately sets no width ("width is the caller's"), so it
+        has to be set here.
+      -->
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div class="flex min-w-0 flex-col gap-1">
+          <label for="ts-pair-x" class="text-xs text-text-secondary">Asset X</label>
+          <input
+            id="ts-pair-x-search"
+            type="search"
+            data-testid="pair-x-search"
+            class="min-h-11 w-full rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+            placeholder="Search assets…"
+            aria-label="Search the Asset X list"
+            [value]="filterX()"
+            (input)="onFilterX($event)"
+          />
+          <select
+            id="ts-pair-x"
+            appSelect
+            class="w-full"
+            data-testid="pair-x"
+            (change)="onSelectX($event)"
+          >
+            @for (asset of optionsX(); track asset.id) {
+              <option [value]="asset.id" [selected]="asset.id === assetX()">
+                {{ asset.id }} — {{ asset.name }}
+              </option>
+            }
+          </select>
+        </div>
+
+        <div class="flex min-w-0 flex-col gap-1">
+          <label for="ts-pair-y" class="text-xs text-text-secondary">Asset Y</label>
+          <input
+            id="ts-pair-y-search"
+            type="search"
+            data-testid="pair-y-search"
+            class="min-h-11 w-full rounded-md border border-border-control bg-surface-raised px-2 text-sm text-text"
+            placeholder="Search assets…"
+            aria-label="Search the Asset Y list"
+            [value]="filterY()"
+            (input)="onFilterY($event)"
+          />
+          <select
+            id="ts-pair-y"
+            appSelect
+            class="w-full"
+            data-testid="pair-y"
+            (change)="onSelectY($event)"
+          >
+            @for (asset of optionsY(); track asset.id) {
+              <option [value]="asset.id" [selected]="asset.id === assetY()">
+                {{ asset.id }} — {{ asset.name }}
+              </option>
+            }
+          </select>
+        </div>
+      </div>
+
+      @if (pairNote(); as note) {
+        <!--
+          The reader just asked for something the measure cannot express, so
+          this is assertive: it is a refusal of an action, not a background
+          condition.
+        -->
+        <p data-testid="pair-note" role="alert" class="flex gap-2 text-xs text-warning">
+          <span aria-hidden="true">!</span>
+          <span class="min-w-0 flex-1">{{ note }}</span>
+        </p>
+      }
+
+      <!-- The reading, in the terms the formula takes. -->
+      <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-xs sm:grid-cols-4">
+        <div class="flex flex-col">
+          <dt class="text-text-secondary">z_x</dt>
+          <dd data-testid="pair-zx" class="tabular-nums text-text">{{ two(pairwise().zX) }}</dd>
+        </div>
+        <div class="flex flex-col">
+          <dt class="text-text-secondary">z_y</dt>
+          <dd data-testid="pair-zy" class="tabular-nums text-text">{{ two(pairwise().zY) }}</dd>
+        </div>
+        <div class="flex flex-col">
+          <dt class="text-text-secondary">rho, historical</dt>
+          <dd data-testid="pair-rho" class="tabular-nums text-text">
+            {{ two(pairwise().rho) }}
+          </dd>
+        </div>
+        <div class="flex flex-col">
+          <dt class="text-text-secondary">Correlation surprise</dt>
+          <dd data-testid="pair-cs" class="tabular-nums text-text">
+            {{ two(pairwise().correlationSurprise) }}
+            <span class="text-text-secondary"
+              >of {{ two(pairwise().min) }} min → {{ two(pairwise().max) }} max</span
+            >
+          </dd>
+        </div>
+      </dl>
+
+      <p class="text-xs text-text-secondary">{{ pairwise().verdict }}.</p>
+
+      @if (flatRhoNote(); as note) {
+        <p data-testid="flat-rho-note" class="text-xs text-text-secondary">{{ note }}</p>
+      }
+
+      <p data-testid="pair-only-note" class="text-xs text-text-secondary">{{ pairOnlyNote }}</p>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <app-turbulence-coverage-note [coverage]="coverage()" />
+      </div>
+    </div>
+  </app-bullet-chart>
+} @else {
+  <app-turbulence-panel-fallback panel="pairwise" height="h-[708px] sm:h-[527px] lg:h-[446px]" />
+}

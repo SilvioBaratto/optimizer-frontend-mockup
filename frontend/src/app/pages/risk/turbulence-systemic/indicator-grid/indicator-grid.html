@@ -1,0 +1,56 @@
+<!--
+  `CURRENT READING` is the spec's SectionLabel; `app-section-card-grid` renders
+  it as a real <h2>, which is the level the page's outline starts at.
+-->
+<app-section-card-grid label="CURRENT READING" [columns]="3">
+  @if (loading()) {
+    <!-- One placeholder per card, at the height of the card it replaces. -->
+    @for (slot of skeletons; track slot) {
+      <div aria-busy="true" class="rounded-md border border-border bg-surface-raised px-4 py-3">
+        <app-skeleton-block height="h-10" />
+      </div>
+    }
+    <!--
+      The one announcement of a page-wide refresh. `loading()` here *is*
+      "all nine panels are recomputing", so the grid — the first region that
+      empties — speaks for the page, and the nine panel placeholders below stay
+      silent rather than saying the same thing nine times.
+    -->
+    <p role="status" class="sr-only">
+      Recomputing every turbulence and compactness indicator…
+    </p>
+  } @else {
+    @for (view of cards(); track view.card.id) {
+      <app-entity-card [title]="view.card.label" [meta]="view.meta">
+        <!--
+          Capped and right-aligned: an alert badge here is a full sentence
+          naming the quantity that tripped, and an uncapped flex item would size
+          to its longest line and push the card out of its grid track.
+        -->
+        <span class="flex max-w-52 flex-col items-end gap-1 text-right">
+          <span
+            [attr.data-testid]="'indicator-value-' + view.card.id"
+            class="text-lg font-semibold tabular-nums text-text"
+            >{{ view.card.value }}</span
+          >
+
+          @if (view.card.badge; as badge) {
+            <!-- Raised: the badge states the tripped quantity in words. -->
+            <app-status-badge [label]="badge" tone="warn" />
+          } @else {
+            <!--
+              Quiet: the hollow marker and the note, which is what the reading
+              says about itself. The glyph is decorative — the note carries it.
+            -->
+            <span
+              [attr.data-testid]="'indicator-status-' + view.card.id"
+              class="text-xs text-text-secondary"
+            >
+              <span aria-hidden="true">{{ view.card.icon }}</span> {{ view.card.note }}
+            </span>
+          }
+        </span>
+      </app-entity-card>
+    }
+  }
+</app-section-card-grid>

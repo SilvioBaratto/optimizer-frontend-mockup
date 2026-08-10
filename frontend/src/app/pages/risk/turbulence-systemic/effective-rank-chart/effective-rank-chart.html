@@ -1,0 +1,26 @@
+@if (ready()) {
+  <app-line-chart
+    title="Effective rank"
+    [subtitle]="subtitle()"
+    [ariaLabel]="ariaLabel()"
+    [x]="dates()"
+    [series]="series()"
+    [refPoints]="refPoints()"
+    [valueFormatter]="formatter"
+    xAxisName="Date"
+    yAxisName="Directions"
+    [height]="300"
+  >
+    <div class="flex flex-col gap-2 border-t border-border px-4 py-3">
+      <p class="text-xs text-text-secondary">
+        The upper line is the raw rank — one direction per asset. The distance between the two is
+        how much of the universe's nominal dimensionality is not being used.
+      </p>
+      <div class="flex flex-wrap items-center gap-2">
+        <app-turbulence-coverage-note [coverage]="coverage()" />
+      </div>
+    </div>
+  </app-line-chart>
+} @else {
+  <app-turbulence-panel-fallback panel="effective-rank" height="h-[464px] lg:h-[366px]" />
+}

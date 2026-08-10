@@ -1,0 +1,9 @@
+@if (coverage().label; as label) {
+  <span
+    data-testid="partial-coverage"
+    class="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-inset px-2 py-0.5 text-xs font-medium text-warning"
+  >
+    <span aria-hidden="true">{{ icon }}</span>
+    {{ label }}
+  </span>
+}

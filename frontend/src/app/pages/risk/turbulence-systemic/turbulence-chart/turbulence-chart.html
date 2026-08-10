@@ -1,0 +1,70 @@
+@if (ready()) {
+  <app-line-chart
+    title="Turbulence & decomposition"
+    [subtitle]="subtitle()"
+    [ariaLabel]="ariaLabel()"
+    [x]="dates()"
+    [series]="series()"
+    [refLines]="refLines()"
+    [refBands]="refBands()"
+    [refPoints]="refPoints()"
+    [valueFormatter]="formatter"
+    xAxisName="Date"
+    yAxisName="d_t / n"
+    [height]="320"
+  >
+    <div class="flex flex-col gap-2 border-t border-border px-4 py-3">
+      <!--
+        The series group. Multi-select, and the last checked box refuses to
+        clear: an empty chart is not a reading, and the refusal says so instead
+        of leaving the reader to guess how to get a line back.
+      -->
+      <fieldset class="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <legend class="sr-only">Series shown on the turbulence chart</legend>
+        <span class="text-xs text-text-secondary">Series</span>
+        @for (toggle of toggles(); track toggle.id) {
+          <label class="inline-flex min-h-11 items-center gap-2 text-xs text-text">
+            <input
+              type="checkbox"
+              [attr.data-testid]="'series-' + toggle.id"
+              class="size-4 rounded-sm border-border-control"
+              [checked]="toggle.checked"
+              (change)="onToggle(toggle.id, $event)"
+            />
+            {{ toggle.label }}
+          </label>
+        }
+      </fieldset>
+
+      @if (seriesNote(); as note) {
+        <!--
+          The reader just cleared a box and the chart refused: an action the
+          user took failed, so it is assertive — the same call the pair
+          inspector makes for the same kind of refusal. A polite region here
+          would let the box appear to have been unticked with no explanation
+          reaching a screen reader until the next thing was said.
+        -->
+        <p data-testid="series-note" role="alert" class="flex gap-2 text-xs text-warning">
+          <span aria-hidden="true">!</span>
+          <span class="min-w-0 flex-1">{{ note }}</span>
+        </p>
+      }
+
+      <p class="text-xs text-text-secondary">
+        @if (showOverlay()) {
+          Shaded bands mark the outlier periods; the threshold moves with the asset count.
+        } @else {
+          The chi2 threshold and the outlier bands are hidden — the toolbar's toggle brings them
+          back.
+        }
+      </p>
+
+      <!-- Beside the value, never in place of it. -->
+      <div class="flex flex-wrap items-center gap-2">
+        <app-turbulence-coverage-note [coverage]="coverage()" />
+      </div>
+    </div>
+  </app-line-chart>
+} @else {
+  <app-turbulence-panel-fallback panel="turbulence" height="h-[536px] lg:h-[438px]" />
+}

@@ -1,0 +1,36 @@
+@if (ready()) {
+  <app-line-chart
+    title="Participation ratio"
+    [subtitle]="subtitle()"
+    [ariaLabel]="ariaLabel()"
+    [x]="dates()"
+    [series]="series()"
+    [refPoints]="refPoints()"
+    [valueFormatter]="formatter"
+    xAxisName="Date"
+    yAxisName="1/I1"
+    [height]="280"
+  >
+    <div class="flex flex-col gap-2 border-t border-border px-4 py-3">
+      <p class="flex flex-wrap items-center gap-2 text-xs text-text">
+        <span data-testid="participation-state" class="font-medium">
+          <span aria-hidden="true">{{ stateIcon[reading().state] }}</span>
+          {{ stateLabel[reading().state] }}
+        </span>
+        <span class="text-text-secondary">current reading</span>
+      </p>
+
+      <p data-testid="kaiser-count" class="text-xs text-text-secondary">
+        Significant components, Kaiser-Guttman criterion: {{ reading().significantComponents }}
+      </p>
+
+      <p class="text-xs text-text-secondary">{{ scaleNote }}</p>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <app-turbulence-coverage-note [coverage]="coverage()" />
+      </div>
+    </div>
+  </app-line-chart>
+} @else {
+  <app-turbulence-panel-fallback panel="participation" height="h-[476px] lg:h-[394px]" />
+}

@@ -1,0 +1,65 @@
+@if (ready()) {
+  <app-line-chart
+    title="PC1 growth"
+    [subtitle]="subtitle()"
+    [ariaLabel]="ariaLabel()"
+    [x]="months()"
+    [series]="series()"
+    [refPoints]="refPoints()"
+    [valueFormatter]="shareFormatter"
+    xAxisName="Month"
+    yAxisName="Variance share"
+    [height]="300"
+  >
+    <div class="flex flex-col gap-3 border-t border-border px-4 py-3">
+      <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
+        <div class="flex flex-col gap-1">
+          <label for="ts-pc1-lookback" class="text-xs text-text-secondary">Lookback n</label>
+          <select id="ts-pc1-lookback" appSelect data-testid="pc1-lookback" (change)="onLookback($event)">
+            @for (months of lookbacks; track months) {
+              <option [value]="months" [selected]="months === lookback()">{{ months }}mo</option>
+            }
+          </select>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="ts-pc1-horizon" class="text-xs text-text-secondary">Horizon m</label>
+          <select id="ts-pc1-horizon" appSelect data-testid="pc1-horizon" (change)="onHorizon($event)">
+            @for (months of horizons; track months) {
+              <option [value]="months" [selected]="months === horizon()">{{ months }}mo</option>
+            }
+          </select>
+        </div>
+
+        <p class="text-xs text-text-secondary">{{ horizonNote }}</p>
+      </div>
+
+      @if (saturationWarning(); as warning) {
+        <!--
+          Not a styling of a flat line: the rolling window really is capped at
+          the saturation point, and this says which reading the reader is
+          looking at.
+        -->
+        <p data-testid="pc1-saturation" role="status" class="flex gap-2 text-xs text-warning">
+          <span aria-hidden="true">!</span>
+          <span class="min-w-0 flex-1">{{ warning }}</span>
+        </p>
+      }
+    </div>
+  </app-line-chart>
+
+  <app-histogram-chart
+    title="dPC1(t) distribution"
+    [subtitle]="'Horizon m ' + horizon() + 'mo · current reading in decile ' + pc1().decile + ' of 10'"
+    [ariaLabel]="distributionAriaLabel()"
+    [bins]="bins()"
+    orientation="vertical"
+    [valueFormatter]="countFormatter"
+    binAxisName="dPC1 bin"
+    valueAxisName="Months"
+    [annotation]="distributionAnnotation()"
+    [height]="260"
+  />
+} @else {
+  <app-turbulence-panel-fallback panel="pc1-growth" height="h-[878px] lg:h-[798px]" />
+}

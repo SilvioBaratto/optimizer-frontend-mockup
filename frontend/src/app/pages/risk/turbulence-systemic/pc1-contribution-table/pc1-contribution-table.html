@@ -1,0 +1,140 @@
+@if (ready()) {
+  <section class="flex flex-col gap-3" aria-labelledby="ts-pc1-table-heading">
+    <h3 id="ts-pc1-table-heading" class="text-sm font-medium text-text">
+      Asset contribution to PC1
+    </h3>
+
+    <app-filter-chip-bar
+      searchLabel="Filter by asset name"
+      searchPlaceholder="e.g. credit"
+      [searchValue]="filter()"
+      (searchChange)="onSearch($event)"
+      [count]="matches().length"
+      [total]="filteredTotal()"
+      countNoun="assets"
+    >
+      <div class="flex items-center gap-2">
+        <label for="ts-pc1-sort" class="text-xs text-text-secondary">Sort</label>
+        <select id="ts-pc1-sort" appSelect data-testid="pc1-sort" (change)="onSortSelect($event)">
+          @for (option of sorts; track option) {
+            <option [value]="option" [selected]="option === sort()">{{ sortLabel[option] }}</option>
+          }
+        </select>
+      </div>
+
+      <app-turbulence-coverage-note [coverage]="coverage()" />
+    </app-filter-chip-bar>
+
+    <div class="surface-card">
+      @if (noMatches()) {
+        <p role="status" class="px-4 py-10 text-center text-sm text-text-secondary">
+          No asset matches “{{ filter() }}”. The first component still loads all
+          {{ total().length }} assets — clear the filter to see them.
+        </p>
+      } @else {
+        <div class="table-scroll">
+          <table class="w-full min-w-2xl text-sm">
+            <caption class="sr-only">
+              Each asset's loading on the first principal component and the share of the inverse
+              participation ratio I1 it carries. The contribution column sums to 100% over the
+              universe. Column headers sort the table, and the Sort control above does the same. The
+              filter narrows this table only; nothing derived from the eigenvector moves with it.
+            </caption>
+
+            <thead>
+              <tr class="table-head-row">
+                <th
+                  scope="col"
+                  class="px-4 py-2 text-left font-medium"
+                  [attr.aria-sort]="ariaSort('asset')"
+                >
+                  <button
+                    type="button"
+                    data-testid="pc1-sort-asset"
+                    class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 text-left hover:text-text"
+                    (click)="onSortColumn('asset')"
+                  >
+                    Asset <span aria-hidden="true">{{ sortGlyph('asset') }}</span>
+                  </button>
+                </th>
+
+                <th
+                  scope="col"
+                  class="px-2 py-2 text-right font-medium"
+                  [attr.aria-sort]="ariaSort('weight')"
+                >
+                  <button
+                    type="button"
+                    data-testid="pc1-sort-weight"
+                    class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 hover:text-text"
+                    (click)="onSortColumn('weight')"
+                  >
+                    PC1 weight <span aria-hidden="true">{{ sortGlyph('weight') }}</span>
+                  </button>
+                </th>
+
+                <th
+                  scope="col"
+                  class="px-4 py-2 text-right font-medium"
+                  [attr.aria-sort]="ariaSort('contribution')"
+                >
+                  <button
+                    type="button"
+                    data-testid="pc1-sort-contribution"
+                    class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 hover:text-text"
+                    (click)="onSortColumn('contribution')"
+                  >
+                    Contribution to I1
+                    <span aria-hidden="true">{{ sortGlyph('contribution') }}</span>
+                  </button>
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (row of rows(); track row.asset) {
+                <tr class="table-row">
+                  <th scope="row" class="px-4 py-1.5 text-left font-normal">
+                    <span class="flex flex-wrap items-center gap-2">
+                      <span class="font-medium text-text">{{ row.asset }}</span>
+                      <span class="text-xs text-text-secondary">{{ row.name }}</span>
+                    </span>
+                  </th>
+                  <td class="px-2 py-1.5 text-right tabular-nums text-text">
+                    {{ weight(row.weight) }}
+                  </td>
+                  <td class="px-4 py-1.5 text-right tabular-nums text-text">
+                    {{ contribution(row.contributionToI1) }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (hiddenCount() > 0) {
+          <div class="flex items-center justify-between gap-3 border-t border-border px-4 py-2">
+            <p class="text-xs text-text-secondary">
+              @if (expanded()) {
+                All {{ matches().length }} assets shown
+              } @else {
+                … {{ hiddenCount() }} more assets
+              }
+            </p>
+            <button
+              type="button"
+              data-testid="pc1-expand"
+              class="min-h-11 rounded-md px-2 text-xs font-medium text-primary underline underline-offset-2 hover:bg-surface-inset"
+              [attr.aria-expanded]="expanded()"
+              (click)="toggleExpanded()"
+            >
+              {{ expanded() ? 'Show top ' + previewRows : 'View full table' }}
+            </button>
+          </div>
+        }
+      }
+    </div>
+  </section>
+} @else {
+  <app-turbulence-panel-fallback panel="pc1-contribution" height="h-[433px] lg:h-[330px]" />
+}
