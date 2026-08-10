@@ -1,0 +1,10 @@
+/*
+  The page has no styles of its own: every surface comes from the shared kit and
+  the design tokens in `src/styles.css`. The audit-trail focus target below is
+  the one exception worth naming — it is focused programmatically by "View log",
+  never by Tab, so it takes no visible ring of its own.
+*/
+
+:host [tabindex='-1']:focus {
+  outline: none;
+}

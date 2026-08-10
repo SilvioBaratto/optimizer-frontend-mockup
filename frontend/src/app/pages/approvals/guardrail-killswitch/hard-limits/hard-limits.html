@@ -1,0 +1,173 @@
+<!--
+  Regions 4 + 5 — SectionLabel 'HARD LIMITS & VALIDATORS' with its Add action,
+  over the grid of configured limits. The label carries a control, so it is
+  written out here rather than passed to `app-section-card-grid`'s `label`;
+  the heading level is the same <h2> that component would have rendered.
+-->
+<section class="flex flex-col gap-3">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 class="eyebrow">HARD LIMITS &amp; VALIDATORS</h2>
+    <button
+      type="button"
+      appButton="secondary"
+      data-testid="add-limit"
+      [disabled]="busy()"
+      (click)="add()"
+    >
+      <span aria-hidden="true">+</span>&nbsp;Add limit
+    </button>
+  </div>
+
+  @if (busy()) {
+    <div data-testid="limits-loading" aria-busy="true" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <p role="status" class="sr-only">Reading the configured hard limits…</p>
+      @for (row of skeletonRows; track row) {
+        <app-skeleton-block height="h-16" />
+      }
+    </div>
+  } @else if (error(); as failure) {
+    <!--
+      Localised to this grid. The pipeline above and the audit trail below are
+      separate reads and stay on screen — the spec is explicit that one region
+      failing must not blank the others.
+    -->
+    <app-error-state
+      data-testid="limits-error"
+      [message]="failure"
+      detail="The audit trail and the pipeline counters below are unaffected."
+      cause="load"
+      (retry)="retry()"
+    />
+  } @else if (empty()) {
+    <!--
+      Title and detail are the spec's own sentence, split at its em dash: an
+      EmptyState prints both, so handing it the whole sentence as the detail
+      under the same words as the title printed "No limits configured yet"
+      twice, one line apart.
+    -->
+    <app-empty-state [title]="noLimitsTitle" [detail]="noLimitsDetail">
+      <button type="button" appButton="primary" size="md" data-testid="empty-add-limit" (click)="add()">
+        Add limit
+      </button>
+    </app-empty-state>
+  } @else {
+    <app-section-card-grid [columns]="2">
+      @for (limit of limits(); track limit.id) {
+        <!--
+          The wrapper carries the state, not the card: a breach is ringed and a
+          switched-off limit is desaturated, and both stay in the grid at their
+          original position either way.
+        -->
+        <div
+          [class]="cardClass(limit)"
+          [attr.data-limit]="limit.id"
+          [attr.data-status]="limit.status"
+          [attr.data-enabled]="limit.enabled"
+        >
+          <!--
+            Only the reading goes inside the card. `app-entity-card` puts its
+            projected slot in a `shrink-0` flex item, so whatever is handed to
+            it is sized at max-content and cannot give way: the three actions
+            in there measured 418px wide, which pushed the whole document
+            sideways at 320 and 768px. They live in the ActionButtonRow below
+            instead — which is what the spec's Regioni row names anyway.
+          -->
+          <app-entity-card class="block" [title]="limit.name" [meta]="meta(limit)">
+            <span class="flex flex-wrap items-center justify-end gap-2">
+              <span
+                [attr.data-threshold]="limit.id"
+                class="text-xs tabular-nums text-text-secondary"
+              >
+                {{ threshold(limit) }}
+              </span>
+
+              <app-status-badge
+                [attr.data-badge]="limit.id"
+                [label]="statusLabel[limit.status]"
+                [tone]="limit.status === 'breach' ? 'alert' : 'ok'"
+              />
+
+              @if (!limit.enabled) {
+                <app-status-badge [label]="enabledLabel.disabled" tone="pending" />
+              }
+            </span>
+          </app-entity-card>
+
+          <app-action-button-row align="end">
+            <button
+              type="button"
+              appButton="ghost"
+              size="xs"
+              [attr.data-edit]="limit.id"
+              [attr.aria-label]="'Edit ' + limit.name"
+              (click)="edit(limit)"
+            >
+              Edit
+            </button>
+
+            <!--
+              A switch, not a checkbox: turning off a kill-switch-scope limit
+              opens a confirmation, and a checkbox that sometimes does not
+              change on click is a lie about its own state.
+            -->
+            <button
+              type="button"
+              appButton="ghost"
+              size="xs"
+              role="switch"
+              [attr.data-toggle]="limit.id"
+              [attr.aria-checked]="limit.enabled"
+              [attr.aria-label]="
+                (limit.enabled ? enabledLabel.enabled : enabledLabel.disabled) +
+                ' — ' +
+                limit.name
+              "
+              (click)="toggleEnabled(limit)"
+            >
+              <span aria-hidden="true">{{ limit.enabled ? '☑' : '☐' }}</span>
+              {{ limit.enabled ? enabledLabel.enabled : enabledLabel.disabled }}
+            </button>
+
+            <button
+              type="button"
+              appButton="ghost"
+              size="xs"
+              [attr.data-log]="limit.id"
+              [attr.aria-label]="'View audit log for ' + limit.validatorName"
+              (click)="viewLog(limit)"
+            >
+              View log
+            </button>
+          </app-action-button-row>
+        </div>
+      }
+    </app-section-card-grid>
+  }
+
+  <!-- A filter applied three regions away is announced, not applied silently. -->
+  <p aria-live="polite" class="sr-only" data-testid="limits-filter-notice">
+    {{ filterNotice() }}
+  </p>
+</section>
+
+<!-- Add / Edit, over an unchanged grid until the boundary accepts the draft. -->
+<app-limit-form [request]="formRequest()" (saved)="closeForm()" (cancelled)="closeForm()" />
+
+<!--
+  The same rationale-and-confirm flow as the global kill-switch, for the same
+  reason: this moves the same pass/fail boundary.
+-->
+<app-reason-dialog
+  [open]="disableTarget() !== null"
+  [title]="disableTitle()"
+  [message]="disableMessage"
+  reasonLabel="Reason for the state change"
+  reasonHint="Recorded in the guardrail audit trail with your name and the time."
+  confirmLabel="Disable limit"
+  [destructive]="true"
+  [error]="actionError()"
+  [retryable]="false"
+  [(reason)]="disableReason"
+  (confirmed)="confirmDisable($event)"
+  (cancelled)="cancelDisable()"
+/>
